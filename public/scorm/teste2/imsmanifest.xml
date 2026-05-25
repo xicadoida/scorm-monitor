@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest identifier="34a907fc-4bb5-4615-aabc-df3ebf39072e" xmlns="http://www.imsglobal.org/xsd/imscp_v1p1" xmlns:imsss="http://www.imsglobal.org/xsd/imsss" xmlns:adlcp="http://www.adlnet.org/xsd/adlcp_v1p3" xmlns:adlseq="http://www.adlnet.org/xsd/adlseq_v1p3" xmlns:adlnav="http://www.adlnet.org/xsd/adlnav_v1p3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:lom="http://ltsc.ieee.org/xsd/LOM" xsi:schemaLocation="http://www.imsglobal.org/xsd/imscp_v1p1 imscp_v1p1.xsd http://www.imsglobal.org/xsd/imsss imsss_v1p0.xsd http://www.adlnet.org/xsd/adlcp_v1p3 adlcp_v1p3.xsd http://www.adlnet.org/xsd/adlseq_v1p3 adlseq_v1p3.xsd http://www.adlnet.org/xsd/adlnav_v1p3 adlnav_v1p3.xsd http://ltsc.ieee.org/xsd/LOM lom.xsd">
+    <metadata>
+        <schema>ADL SCORM</schema>
+        <schemaversion>CAM 1.3</schemaversion>
+        <lom:lom>
+            <lom:general>
+                <lom:title>
+                    <lom:string>Bem vindo! </lom:string>
+                </lom:title>
+            </lom:general>
+            <lom:metaMetadata>
+                <lom:metadataSchema>LOMv1.0</lom:metadataSchema>
+                <lom:metadataSchema>SCORM_CAM_v1.3</lom:metadataSchema>
+            </lom:metaMetadata>
+        </lom:lom>
+    </metadata>
+    <organizations default="dc93a7cd-4a15-11f1-b1ab-5e3a14c003ed_org">
+        <organization identifier="dc93a7cd-4a15-11f1-b1ab-5e3a14c003ed_org">
+            <title>Bem vindo! </title>
+            <item identifier="dc93a7cd-4a15-11f1-b1ab-5e3a14c003ed" identifierref="resource">
+                <title>Bem vindo! </title>
+                <imsss:sequencing>
+                    <imsss:deliveryControls completionSetByContent="true" objectiveSetByContent="true"></imsss:deliveryControls>
+                </imsss:sequencing>
+            </item>
+            <imsss:sequencing>
+                <imsss:controlMode flow="true"></imsss:controlMode>
+            </imsss:sequencing>
+        </organization>
+    </organizations>
+    <resources>
+        <resource identifier="resource" type="webcontent" adlcp:scormType="sco" href="res/index.html">
+            <file href="res/js/fast-average-color-7.1.0.umd.js"></file>
+            <file href="res/js/focus-visible-5.2.0.iife.js"></file>
+            <file href="res/js/hls.js-1.6.2.umd.js"></file>
+            <file href="res/js/hyperhtml-2.34.2.umd.js"></file>
+            <file href="res/js/immer-6.0.9.umd.js"></file>
+            <file href="res/js/luxon-3.4.4.umd.js"></file>
+            <file href="res/js/output.min.js"></file>
+            <file href="res/js/posthog-js-1.335.3.esm.js"></file>
+            <file href="res/js/protobufjs-6.8.8.umd.js"></file>
+            <file href="res/js/react-19.2.3.umd.js"></file>
+            <file href="res/js/react-dom-19.2.3.umd.js"></file>
+            <file href="res/js/reatom-v1-1.1.5.umd.js"></file>
+            <file href="res/js/res/EmptyStateLock-JOKGWW5F.png"></file>
+            <file href="res/js/res/EmptyStatePreFilledImage-MIFR5ML7.svg"></file>
+            <file href="res/js/res/default_background-WLUHEOYW.png"></file>
+            <file href="res/styles/bundle.css"></file>
+            <file href="res/styles/fonts/jb-mono-bold-italic_75ca6e40.woff"></file>
+            <file href="res/styles/fonts/jb-mono-bold_98303ebd.woff"></file>
+            <file href="res/styles/fonts/jb-mono-regular-italic_d49a26b5.woff"></file>
+            <file href="res/styles/fonts/jb-mono-regular_8c33f3c.woff"></file>
+            <file href="res/styles/fonts/roboto-bold-italic_da1a3932.woff2"></file>
+            <file href="res/styles/fonts/roboto-bold_3a4bac1d.woff2"></file>
+            <file href="res/styles/fonts/roboto-medium-italic_f3e02675.woff2"></file>
+            <file href="res/styles/fonts/roboto-medium_513df3a1.woff2"></file>
+            <file href="res/styles/fonts/roboto-regular-italic_b3e37f46.woff2"></file>
+            <file href="res/styles/fonts/roboto-regular_da6cc2e.woff2"></file>
+            <file href="res/styles/res/FallbackTile_88eb17b.svg"></file>
+            <file href="res/styles/res/arrow-icon-left_9424b54a.svg"></file>
+            <file href="res/styles/res/arrow-icon-right_4bfe2449.svg"></file>
+            <file href="res/styles/res/default-background-image_301b2040.svg"></file>
+            <file href="res/styles/res/watermark-logo_9d0cfd7e.svg"></file>
+            <file href="res/unsupportedBrowser/fonts/fonts.css"></file>
+            <file href="res/unsupportedBrowser/fonts/roboto-bold-italic.woff2"></file>
+            <file href="res/unsupportedBrowser/fonts/roboto-bold.woff2"></file>
+            <file href="res/unsupportedBrowser/fonts/roboto-medium-italic.woff2"></file>
+            <file href="res/unsupportedBrowser/fonts/roboto-medium.woff2"></file>
+            <file href="res/unsupportedBrowser/fonts/roboto-regular-italic.woff2"></file>
+            <file href="res/unsupportedBrowser/fonts/roboto-regular.woff2"></file>
+            <file href="res/unsupportedBrowser/unsupported-browser.html"></file>
+            <file href="res/unsupportedBrowser/unsupported-browser.js"></file>
+            <file href="res/unsupportedBrowser/unsupportedBrowserImages/Chrome.png"></file>
+            <file href="res/unsupportedBrowser/unsupportedBrowserImages/Edge.png"></file>
+            <file href="res/unsupportedBrowser/unsupportedBrowserImages/Firefox.png"></file>
+            <file href="res/unsupportedBrowser/unsupportedBrowserImages/Safari.png"></file>
+            <file href="res/goodbye.html"></file>
+            <file href="res/fonts/inter/inter-bold-italic.woff2"></file>
+            <file href="res/fonts/inter/inter-bold.woff2"></file>
+            <file href="res/fonts/inter/inter-regular-italic.woff2"></file>
+            <file href="res/fonts/inter/inter-regular.woff2"></file>
+            <file href="res/fonts/inter/inter-semiBold-italic.woff2"></file>
+            <file href="res/fonts/inter/inter-semiBold.woff2"></file>
+            <file href="res/fonts/inter/inter-bold-italic.woff2"></file>
+            <file href="res/fonts/inter/inter-bold.woff2"></file>
+            <file href="res/fonts/inter/inter-regular-italic.woff2"></file>
+            <file href="res/fonts/inter/inter-regular.woff2"></file>
+            <file href="res/fonts/inter/inter-semiBold-italic.woff2"></file>
+            <file href="res/fonts/inter/inter-semiBold.woff2"></file>
+            <file href="res/index.html"></file>
+            <file href="res/connectors/scorm.min.js"></file>
+            <file href="res/lng/pt-BR/messages.json"></file>
+            <file href="res/data-1.json"></file>
+            <file href="res/data/islen-91324330/def56f79-4a16-11f1-b1e5-5e3a14c003ed.webp"></file>
+            <file href="res/data/islen-91324330/62727cce-4a2b-11f1-9641-324d32898ed1.webp"></file>
+            <file href="res/data/islen-91324330/5ee09674-4a1e-11f1-b561-5e3a14c003ed.webp"></file>
+            <file href="res/data/islen-91324330/842d2bd6-4a2f-11f1-981e-324d32898ed1.png"></file>
+        </resource>
+    </resources>
+</manifest>

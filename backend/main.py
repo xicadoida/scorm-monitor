@@ -1,19 +1,25 @@
 from datetime import datetime
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
 from database import engine, Base, SessionLocal
+
 from models import *
 from schemas import *
+
 from routes.courses import router as courses_router
 from routes.sessions import router as sessions_router
 from routes.students import router as students_router
 from routes.enrollments import router as enrollments_router
 
+from routes.auth import router as auth_router
+
 app = FastAPI()
+
 app.include_router(courses_router)
 app.include_router(sessions_router)
 app.include_router(students_router)
+app.include_router(enrollments_router)
+app.include_router(auth_router)
 
 app.add_middleware(
     CORSMiddleware,

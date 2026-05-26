@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Scorm12API } from 'scorm-again'
 import Dashboard from './pages/Dashboard'
 import ReportPage from './pages/ReportPage'
+import LoginPage from './pages/LoginPage'
+import AdminPage from './pages/AdminPage'
 
 
 function App() {
@@ -31,7 +33,9 @@ function App() {
   })
 
   const [sessionId, setSessionId] = useState(null)
-  const API_URL = "http://127.0.0.1:8000"
+  const [loggedStudent, setLoggedStudent] = useState(null)
+  const API_URL =
+    import.meta.env.VITE_API_URL || "http://127.0.0.1:8000"
 
 
   async function finishBackendSession(id) {
@@ -139,6 +143,19 @@ function App() {
   }
   
   useEffect(() => {
+    const saved = localStorage.getItem("loggedStudent")
+
+    if (saved) {
+      const student = JSON.parse(saved)
+      setLoggedStudent(student)
+      setSelectedStudent(student)
+      setCurrentPage("dashboard")
+    } else {
+      setCurrentPage("login")
+    }
+  }, [])
+
+  useEffect(() => {
     const handleBeforeUnload = () => {
       if (sessionId) {
         navigator.sendBeacon(
@@ -163,21 +180,6 @@ function App() {
       }
     }
   }, [sessionId])
-
-  useEffect(() => {
-    async function loadStudents() {
-      const response = await fetch(`${API_URL}/students`)
-      const data = await response.json()
-
-      setStudents(data)
-
-      if (data.length > 0) {
-        setSelectedStudent(data[0])
-      }
-    }
-
-    loadStudents()
-  }, [])
 
   useEffect(() => {
     if (selectedCourse) {
@@ -212,7 +214,7 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (!selectedCourse || currentPage !== "player") return
+    if (!selectedCourse || !selectedStudent || currentPage !== "player") return
 
     let currentSessionId = null
 
@@ -317,22 +319,45 @@ function App() {
       />
     )
   }
-
+  if (currentPage === "login") {
+    return (
+      <LoginPage
+        API_URL={API_URL}
+        onLogin={(student) => {
+          setLoggedStudent(student)
+          setSelectedStudent(student)
+          setCurrentPage("dashboard")
+        }}
+      />
+    )
+  }
+  if (currentPage === "admin") {
+    return (
+      <AdminPage
+        API_URL={API_URL}
+        onBack={() => setCurrentPage("dashboard")}
+      />
+    )
+  }
   if (currentPage === "dashboard") {
     return (
       <Dashboard
-      onOpenReport={() => setCurrentPage("report")}
-        students={students}
+        onOpenAdmin={() => setCurrentPage("admin")}
         selectedStudent={selectedStudent}
-        setSelectedStudent={setSelectedStudent}
         courses={courses}
         API_URL={API_URL}
+        onOpenReport={() => setCurrentPage("report")}
+        onLogout={() => {
+          localStorage.removeItem("loggedStudent")
+          setLoggedStudent(null)
+          setSelectedStudent(null)
+          setCurrentPage("login")
+        }}
         onOpenCourse={(course) => {
           setSelectedCourse(course)
           setCurrentPage("player")
-        
         }}
-      />
+      />  
     )
   }
   return (
@@ -369,38 +394,10 @@ function App() {
         >
           Voltar para cursos
         </button>
-        <label>Aluno ID:</label>
-        <select
-          value={selectedStudent?.student_code || ""}
-          onChange={e => {
-            const student = students.find(
-              s => s.student_code === e.target.value
-            )
-
-            setSelectedStudent(student)
-
-            if (iframeRef.current && selectedCourse) {
-              iframeRef.current.src =
-                selectedCourse.scorm_path +
-                "?reload=" +
-                Date.now()
-            }
-          }}
-          style={{
-            width: "100%",
-            marginTop: "8px",
-            marginBottom: "20px"
-          }}
-        >
-          {students.map(student => (
-            <option
-              key={student.id}
-              value={student.student_code}
-            >
-              {student.name}
-            </option>
-          ))}
-        </select>
+        <p>
+          <strong>Aluno:</strong><br />
+          {selectedStudent?.name} — {selectedStudent?.email}
+        </p>
 
         <label>Curso:</label>
           <select

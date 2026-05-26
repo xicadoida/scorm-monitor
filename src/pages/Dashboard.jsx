@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react'
 
 function Dashboard({
-  students,
   selectedStudent,
-  setSelectedStudent,
   courses,
   onOpenCourse,
   onOpenReport,
+  onLogout,
+  onOpenAdmin,
   API_URL
 }) {
+
   const [progressData, setProgressData] = useState({})
 
   useEffect(() => {
@@ -39,7 +40,23 @@ function Dashboard({
       padding: "32px",
       fontFamily: "Arial"
     }}>
-    
+    <button
+      onClick={() => {
+        localStorage.removeItem("loggedStudent")
+        onLogout()
+      }}
+      style={{
+        padding: "10px 16px",
+        border: "none",
+        borderRadius: "10px",
+        background: "#dc2626",
+        color: "white",
+        cursor: "pointer",
+        marginBottom: "20px"
+      }}
+    >
+      Sair
+    </button>
       <h1>Plataforma de Cursos</h1>
         
       <p style={{ color: "#555" }}>
@@ -58,7 +75,20 @@ function Dashboard({
         >
         Ver relatório do professor
         </button>
-        
+      <button
+        onClick={onOpenAdmin}
+        style={{
+          padding: "10px 16px",
+          border: "none",
+          borderRadius: "10px",
+          background: "#059669",
+          color: "white",
+          cursor: "pointer",
+          marginLeft: "12px"
+        }}
+      >
+        Painel admin
+      </button>
       <div style={{
         background: "white",
         padding: "20px",
@@ -66,29 +96,10 @@ function Dashboard({
         marginTop: "24px",
         boxShadow: "0 4px 16px rgba(0,0,0,0.08)"
       }}>
-        <label><strong>Aluno:</strong></label>
-
-        <select
-          value={selectedStudent?.student_code || ""}
-          onChange={e => {
-            const student = students.find(
-              s => s.student_code === e.target.value
-            )
-
-            setSelectedStudent(student)
-          }}
-          style={{
-            width: "100%",
-            padding: "10px",
-            marginTop: "8px"
-          }}
-        >
-          {students.map(student => (
-            <option key={student.id} value={student.student_code}>
-              {student.name} — {student.email}
-            </option>
-          ))}
-        </select>
+        <strong>Aluno logado:</strong>
+        <p style={{ marginBottom: 0 }}>
+          {selectedStudent?.name} — {selectedStudent?.email}
+        </p>
       </div>
     
       <h2 style={{ marginTop: "32px" }}>Cursos disponíveis</h2>

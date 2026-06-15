@@ -1,7 +1,8 @@
 import { useState } from 'react'
 
-function LoginPage({ API_URL, onLogin }) {
+function LoginPage({ API_URL, onLogin, onGoToRegister }) {
   const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
   const [error, setError] = useState("")
 
   async function handleLogin(e) {
@@ -13,7 +14,7 @@ function LoginPage({ API_URL, onLogin }) {
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ email })
+      body: JSON.stringify({ email, password })
     })
 
     const data = await response.json()
@@ -68,8 +69,22 @@ function LoginPage({ API_URL, onLogin }) {
             marginTop: "8px",
             marginBottom: "16px"
           }}
+          
         />
+        <label>Senha:</label>
 
+        <input
+          type="password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          placeholder="Sua senha"
+          style={{
+            width: "100%",
+            padding: "10px",
+            marginTop: "8px",
+            marginBottom: "16px"
+          }}
+        />
         {error && (
           <p style={{ color: "red" }}>
             {error}
@@ -90,6 +105,23 @@ function LoginPage({ API_URL, onLogin }) {
           }}
         >
           Entrar
+        </button>
+        <button
+          type="button"
+          onClick={onGoToRegister}
+          style={{
+            width: "100%",
+            padding: "12px",
+            border: "none",
+            borderRadius: "10px",
+            background: "#6b7280",
+            color: "white",
+            fontWeight: "bold",
+            cursor: "pointer",
+            marginTop: "10px"
+          }}
+        >
+          Criar conta
         </button>
       </form>
     </div>

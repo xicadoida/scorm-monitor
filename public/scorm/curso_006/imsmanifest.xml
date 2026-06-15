@@ -1,0 +1,102 @@
+<?xml version="1.0" ?>
+<manifest identifier="wR_Efl5P4OWUoGSw9LjNkb58OA3Ze5lD1UrM5X1Q" version="1"
+  xmlns="http://www.imsproject.org/xsd/imscp_rootv1p1p2"
+  xmlns:adlcp="http://www.adlnet.org/xsd/adlcp_rootv1p2"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.imsproject.org/xsd/imscp_rootv1p1p2 imscp_rootv1p1p2.xsd
+                      http://www.adlnet.org/xsd/adlcp_rootv1p2 adlcp_rootv1p2.xsd">
+  <metadata>
+    <schema>ADL SCORM</schema>
+    <schemaversion>1.2</schemaversion>
+    <adlcp:location>metadata.xml</adlcp:location>
+  </metadata>
+  <organizations default="articulate_rise">
+      <organization identifier="articulate_rise">
+      <title>Claude no PowerPoint: Guia Essencial para Educadores e Profissionais (Roteiro Articulate)</title>
+      <item identifier="i1" identifierref="r1" isvisible="true">
+        <title>Claude no PowerPoint: Guia Essencial para Educadores e Profissionais (Roteiro Articulate)</title>
+        <adlcp:datafromlms>datafromlms</adlcp:datafromlms>
+      </item>
+    </organization>
+  </organizations>
+  <resources>
+    <resource identifier="r1" type="webcontent" adlcp:scormtype="sco" href="scormdriver/indexAPI.html">
+      <!-- SCORMDRIVER STUFF -->
+      <file href="scormdriver/indexAPI.html" />
+      <file href="scormdriver/preloadIntegrity.js" />
+      <file href="scormdriver/driverOptions.js" />
+      <file href="scormdriver/AICCComm.html" />
+      <file href="scormdriver/auto-scripts/AutoBookmark.js" />
+      <file href="scormdriver/auto-scripts/AutoCompleteSCO.js" />
+      <file href="scormdriver/auto-scripts/CourseExit.js" />
+      <file href="scormdriver/blank.html" />
+      <file href="scormdriver/goodbye.html" />
+      <file href="scormdriver/scormdriver.js" />
+      <file href="scormdriver/browsersniff.js" />
+
+      <!-- RUNTIME COMMON STUFF -->
+      <file href="scormcontent/index.html" />
+
+      
+        <file href="scormcontent/lib/lzwcompress.js"/>
+      
+
+      <!-- FRONTEND BUNDLE ASSETS -->
+      <file href="scormcontent/lib/rise/b3ce6445.js" />
+<file href="scormcontent/lib/rise/0e858ba7.css" />
+<file href="scormcontent/lib/rise/6b532c70.js" />
+<file href="scormcontent/lib/rise/ff85f5a8.css" />
+<file href="scormcontent/lib/rise/05422e96.js" />
+<file href="scormcontent/lib/rise/9aede266.ttf" />
+<file href="scormcontent/lib/rise/bff47411.woff" />
+<file href="scormcontent/lib/rise/794fe56d.js" />
+<file href="scormcontent/lib/rise/29cf6be0.js" />
+<file href="scormcontent/lib/rise/fe03ee9b.js" />
+<file href="scormcontent/lib/rise/76830a3e.js" />
+<file href="scormcontent/lib/rise/3125981b.js" />
+<file href="scormcontent/lib/rise/95951b07.js" />
+<file href="scormcontent/lib/rise/ccf7120d.js" />
+<file href="scormcontent/lib/rise/7e560af7.js" />
+<file href="scormcontent/lib/rise/64c13194.js" />
+<file href="scormcontent/lib/rise/8716f7be.js" />
+<file href="scormcontent/lib/rise/d4f1495e.js" />
+<file href="scormcontent/lib/rise/c3d18634.js" />
+<file href="scormcontent/lib/rise/578ab21f.js" />
+<file href="scormcontent/lib/rise/90f65467.js" />
+<file href="scormcontent/lib/rise/2d62667c.js" />
+<file href="scormcontent/lib/rise/5fee7209.js" />
+<file href="scormcontent/lib/rise/552d8c2b.js" />
+<file href="scormcontent/lib/rise/cc70d403.js" />
+<file href="scormcontent/lib/rise/26eb66fd.js" />
+<file href="scormcontent/lib/learn_dist/entry.js" />
+<file href="scormcontent/lib/learn_dist/9b1f8619.js" />
+<file href="scormcontent/lib/learn_dist/b954bbcb.css" />
+<file href="scormcontent/lib/learn_dist/7443b0a5.js" />
+<file href="scormcontent/lib/mondrian/entry.js" />
+<file href="scormcontent/lib/mondrian/f83f0ba2.js" />
+<file href="scormcontent/lib/mondrian/27b65238.js" />
+<file href="scormcontent/lib/mondrian/8d787cef.js" />
+<file href="scormcontent/lib/mondrian/3868877e.js" />
+<file href="scormcontent/lib/mondrian/5d56aa22.js" />
+<file href="scormcontent/lib/sandbox/sandbox.html" />
+<file href="scormcontent/lib/sandbox/c77685df.js" />
+<file href="scormcontent/lib/sandbox/4adfab46.css" />
+
+
+      <!-- RUNTIME CONTENT STUFF -->
+      <file href="scormcontent/lib/fonts/Lato2-Regular.woff" />
+<file href="scormcontent/lib/fonts/Lato2-Light.woff" />
+<file href="scormcontent/lib/fonts/Lato2-Italic.woff" />
+<file href="scormcontent/lib/fonts/Lato2-Bold.woff" />
+<file href="scormcontent/lib/fonts/Lato2-Black.woff" />
+<file href="scormcontent/lib/fonts/Merriweather-Black.woff" />
+<file href="scormcontent/lib/fonts/Merriweather-Italic.woff" />
+<file href="scormcontent/lib/fonts/Merriweather-Bold.woff" />
+<file href="scormcontent/lib/fonts/Merriweather-Regular.woff" />
+<file href="scormcontent/lib/fonts/Merriweather-Light.woff" />
+<file href="scormcontent/assets/small.png" />
+<file href="scormcontent/assets/5kjkSEIzNhuYL9dn.jpg" />
+
+    </resource>
+  </resources>
+</manifest>

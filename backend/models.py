@@ -42,6 +42,7 @@ class Student(Base):
     name = Column(String)
     email = Column(String, unique=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    password_hash = Column(String)
 
 
 class Enrollment(Base):
@@ -52,3 +53,18 @@ class Enrollment(Base):
     course_code = Column(String, index=True)
     active = Column(Boolean, default=True)
     assigned_at = Column(DateTime, default=datetime.utcnow)
+
+class ClassGroup(Base):
+    __tablename__ = "class_groups"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ClassStudent(Base):
+    __tablename__ = "class_students"
+
+    id = Column(Integer, primary_key=True, index=True)
+    class_id = Column(Integer, index=True)
+    student_code = Column(String, index=True)

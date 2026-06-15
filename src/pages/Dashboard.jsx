@@ -7,6 +7,7 @@ function Dashboard({
   onOpenReport,
   onLogout,
   onOpenAdmin,
+  isAdmin,
   API_URL
 }) {
 
@@ -62,33 +63,39 @@ function Dashboard({
       <p style={{ color: "#555" }}>
         Acompanhe os cursos disponíveis e o progresso dos alunos.
       </p>
-      <button
-        onClick={onOpenReport}
-        style={{
-            padding: "10px 16px",
-            border: "none",
-            borderRadius: "10px",
-            background: "#111827",
-            color: "white",
-            cursor: "pointer"
-        }}
-        >
-        Ver relatório do professor
-        </button>
-      <button
-        onClick={onOpenAdmin}
-        style={{
-          padding: "10px 16px",
-          border: "none",
-          borderRadius: "10px",
-          background: "#059669",
-          color: "white",
-          cursor: "pointer",
-          marginLeft: "12px"
-        }}
-      >
-        Painel admin
-      </button>
+      
+      {isAdmin && (
+        <>
+          <button
+            onClick={onOpenReport}
+            style={{
+              padding: "10px 16px",
+              border: "none",
+              borderRadius: "10px",
+              background: "#111827",
+              color: "white",
+              cursor: "pointer"
+            }}
+          >
+            Ver relatório do professor
+          </button>
+
+          <button
+            onClick={onOpenAdmin}
+            style={{
+              padding: "10px 16px",
+              border: "none",
+              borderRadius: "10px",
+              background: "#059669",
+              color: "white",
+              cursor: "pointer",
+              marginLeft: "12px"
+            }}
+          >
+            Painel admin
+          </button>
+        </>
+      )}
       <div style={{
         background: "white",
         padding: "20px",

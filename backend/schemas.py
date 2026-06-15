@@ -30,3 +30,14 @@ class StudentCreateRequest(BaseModel):
 class EnrollmentCreateRequest(BaseModel):
     student_code: str
     course_code: str
+
+class CourseUpdateRequest(BaseModel):
+    title: Optional[str] = None
+    active: Optional[bool] = None
+
+class ClassCreateRequest(BaseModel):
+    name: str
+
+
+class AddStudentsToClassRequest(BaseModel):
+    student_codes: list[str]

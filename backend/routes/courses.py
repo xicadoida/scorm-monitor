@@ -3,7 +3,7 @@ from fastapi import APIRouter
 
 from database import SessionLocal
 from models import Course
-from schemas import CourseCreateRequest
+from schemas import CourseCreateRequest, CourseUpdateRequest
 
 import os
 import zipfile
@@ -131,4 +131,38 @@ async def upload_course(
         "course_code": course.course_code,
         "scorm_path": course.scorm_path,
         "message": "Course uploaded successfully"
+    }
+
+@router.put("/courses/{course_code}")
+def update_course(course_code: str, data: CourseUpdateRequest):
+    db = SessionLocal()
+
+    course = db.query(Course).filter(
+        Course.course_code == course_code
+    ).first()
+
+    if not course:
+        db.close()
+        return {
+            "success": False,
+            "message": "Curso não encontrado."
+        }
+
+    if data.title is not None:
+        course.title = data.title
+
+    if data.active is not None:
+        course.active = data.active
+
+    db.commit()
+    db.refresh(course)
+    db.close()
+
+    return {
+        "success": True,
+        "id": course.id,
+        "title": course.title,
+        "course_code": course.course_code,
+        "scorm_path": course.scorm_path,
+        "active": course.active
     }

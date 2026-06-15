@@ -99,6 +99,7 @@ function ReportPage({ API_URL, onBack }) {
       )
 
     return matchesStudent && matchesCourse && matchesStatus
+  
   })
 
   return (
@@ -109,7 +110,12 @@ function ReportPage({ API_URL, onBack }) {
       fontFamily: "Arial"
     }}>
       <button onClick={onBack}>Voltar</button>
-
+      <button
+        onClick={exportCompletedCSV}
+        style={{ marginLeft: "12px" }}
+      >
+        Exportar concluídos
+      </button>
       <h1>Relatório de Progresso</h1>
       <p style={{ color: "#555" }}>
         Acompanhamento geral das sessões dos alunos.
@@ -238,6 +244,49 @@ function SummaryCard({ title, value }) {
       <h2 style={{ margin: "8px 0 0", fontSize: "32px" }}>{value}</h2>
     </div>
   )
+}
+function exportCompletedCSV() {
+  const completed = sessions.filter(
+    session => session.completed || session.status === "completed" || session.status === "passed"
+  )
+
+  const headers = [
+    "Aluno",
+    "Curso",
+    "Status",
+    "Tempo",
+    "Início",
+    "Conclusão"
+  ]
+
+  const rows = completed.map(session => [
+    session.student_id,
+    session.course_id,
+    formatStatus(session.status),
+    formatSessionTime(session.session_time),
+    formatDate(session.started_at),
+    formatDate(session.completed_at)
+  ])
+
+  const csvContent = [
+    headers,
+    ...rows
+  ]
+    .map(row => row.map(value => `"${value || "-"}"`).join(","))
+    .join("\n")
+
+  const blob = new Blob([csvContent], {
+    type: "text/csv;charset=utf-8;"
+  })
+
+  const url = URL.createObjectURL(blob)
+
+  const link = document.createElement("a")
+  link.href = url
+  link.download = "concluidos.csv"
+  link.click()
+
+  URL.revokeObjectURL(url)
 }
 
 export default ReportPage

@@ -10,7 +10,7 @@ from routes.courses import router as courses_router
 from routes.sessions import router as sessions_router
 from routes.students import router as students_router
 from routes.enrollments import router as enrollments_router
-
+from routes.classes import router as classes_router
 from routes.auth import router as auth_router
 
 app = FastAPI()
@@ -20,6 +20,8 @@ app.include_router(sessions_router)
 app.include_router(students_router)
 app.include_router(enrollments_router)
 app.include_router(auth_router)
+app.include_router(classes_router)
+
 
 app.add_middleware(
     CORSMiddleware,

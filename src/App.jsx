@@ -4,7 +4,7 @@ import Dashboard from './pages/Dashboard'
 import ReportPage from './pages/ReportPage'
 import LoginPage from './pages/LoginPage'
 import AdminPage from './pages/AdminPage'
-
+import RegisterPage from './pages/RegisterPage'
 
 function App() {
   const [currentPage, setCurrentPage] = useState("dashboard")
@@ -12,7 +12,7 @@ function App() {
   const [selectedCourse, setSelectedCourse] = useState(null)
   const [students, setStudents] = useState([])
   const [selectedStudent, setSelectedStudent] = useState(null)
-
+  
   const iframeRef = useRef(null)
   const savedProgressRef = useRef({
     suspend_data: "",
@@ -21,9 +21,9 @@ function App() {
 
   const studentId = selectedStudent?.student_code || ""
   const courseId = selectedCourse?.course_code || ""
-
+  
   const [records, setRecords] = useState([])
-
+  
   const [trackingData, setTrackingData] = useState({
     status: "-",
     completed: false,
@@ -34,6 +34,12 @@ function App() {
 
   const [sessionId, setSessionId] = useState(null)
   const [loggedStudent, setLoggedStudent] = useState(null)
+  const ADMIN_EMAILS = [
+    "admin@admin.com"
+  ]
+  const isAdmin =
+    loggedStudent &&
+    ADMIN_EMAILS.includes(loggedStudent.email)        
   const API_URL =
     import.meta.env.VITE_API_URL || "http://127.0.0.1:8000"
 
@@ -311,7 +317,7 @@ function App() {
     }
   }, [studentId, selectedCourse, currentPage])
 
-  if (currentPage === "report") {
+  if (currentPage === "report" && isAdmin) {
     return (
       <ReportPage
         API_URL={API_URL}
@@ -319,19 +325,30 @@ function App() {
       />
     )
   }
+  if (currentPage === "register") {
+    return (
+      <RegisterPage
+        API_URL={API_URL}
+        onBackToLogin={() => setCurrentPage("login")}
+      />
+    )
+  }
+
   if (currentPage === "login") {
     return (
       <LoginPage
         API_URL={API_URL}
+        onGoToRegister={() => setCurrentPage("register")}
         onLogin={(student) => {
           setLoggedStudent(student)
           setSelectedStudent(student)
           setCurrentPage("dashboard")
+          
         }}
       />
     )
   }
-  if (currentPage === "admin") {
+  if (currentPage === "admin" && isAdmin) {
     return (
       <AdminPage
         API_URL={API_URL}
@@ -346,6 +363,7 @@ function App() {
         selectedStudent={selectedStudent}
         courses={courses}
         API_URL={API_URL}
+        isAdmin={isAdmin}
         onOpenReport={() => setCurrentPage("report")}
         onLogout={() => {
           localStorage.removeItem("loggedStudent")
@@ -361,8 +379,24 @@ function App() {
     )
   }
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
-      <div style={{ flex: 3 }}>
+    <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
+      <button
+        onClick={() => setCurrentPage("dashboard")}
+        style={{
+          position: "absolute",
+          top: "10px",
+          right: "10px",
+          zIndex: 1000,
+          padding: "10px 16px",
+          border: "none",
+          borderRadius: "8px",
+          cursor: "pointer"
+        }}
+      >
+        Voltar para cursos
+      </button>
+
+      <div style={{ flex: 1 }}>
         {selectedCourse ? (
           <iframe
             ref={iframeRef}
@@ -377,93 +411,6 @@ function App() {
             Carregando curso...
           </div>
         )}
-      </div>
-
-      <div style={{
-        flex: 1,
-        padding: "20px",
-        background: "#1e1e1e",
-        color: "white",
-        fontFamily: "Arial",
-        overflow: "auto"
-      }}>
-        <h2>Registro do aluno</h2>
-        <button
-          onClick={() => setCurrentPage("dashboard")}
-          style={{ marginBottom: "20px" }}
-        >
-          Voltar para cursos
-        </button>
-        <p>
-          <strong>Aluno:</strong><br />
-          {selectedStudent?.name} — {selectedStudent?.email}
-        </p>
-
-        <label>Curso:</label>
-          <select
-            value={selectedCourse?.course_code || ""}
-            onChange={e => {
-              const course = courses.find(c => c.course_code === e.target.value)
-              setSelectedCourse(course)
-
-              if (iframeRef.current && course) {
-                iframeRef.current.src = course.scorm_path + "?reload=" + Date.now()
-              }
-            }}
-            style={{
-              width: "100%",
-              marginTop: "8px",
-              marginBottom: "20px"
-            }}
-          >
-            {courses.map(course => (
-              <option key={course.id} value={course.course_code}>
-                {course.title}
-              </option>
-            ))}
-          </select>
-
-        <p><strong>Curso:</strong><br />{selectedCourse?.title || "Nenhum curso"}</p>
-        <p><strong>Status atual:</strong><br />{trackingData.status}</p>
-        <p><strong>Completou?</strong><br />{trackingData.completed ? "Sim" : "Não"}</p>
-        <p><strong>Tempo sessão:</strong><br />{trackingData.sessionTime}</p>
-        <p>
-          <strong>Sessões realizadas:</strong><br />
-          {trackingData.sessionsCount}
-        </p>
-        <p><strong>Concluído em:</strong><br />{trackingData.completedAt}</p>
-
-        <hr />
-
-        <h2>Registros salvos</h2>
-
-        <button onClick={clearRecords}>
-          Limpar registros
-        </button>
-
-        <div style={{ marginTop: "16px" }}>
-          {records.length === 0 && (
-            <p>Nenhum registro salvo ainda.</p>
-          )}
-
-          {records.map((record, index) => (
-            <div
-              key={index}
-              style={{
-                background: "#2b2b2b",
-                padding: "12px",
-                marginBottom: "10px",
-                borderRadius: "6px"
-              }}
-            >
-              <strong>Aluno:</strong> {record.studentId}<br />
-              <strong>Curso:</strong> {record.courseId}<br />
-              <strong>Status:</strong> {record.status}<br />
-              <strong>Concluiu:</strong> {record.completed ? "Sim" : "Não"}<br />
-              <strong>Data:</strong> {record.completedAt}
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   )

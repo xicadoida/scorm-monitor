@@ -108,7 +108,7 @@ async def upload_course(
 
     relative_root = os.path.relpath(scorm_root, "../public/scorm").replace("\\", "/")
 
-    scorm_path = f"/scorm/{relative_root}/scormdriver/indexAPI.html"
+    scorm_path = f"https://scorm-monitor.onrender.com/scorm/{relative_root}/scormdriver/indexAPI.html"
 
     db = SessionLocal()
 

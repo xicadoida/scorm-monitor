@@ -1,6 +1,7 @@
 from datetime import datetime
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from database import engine, Base, SessionLocal
 
 from models import *
@@ -12,6 +13,12 @@ from routes.students import router as students_router
 from routes.enrollments import router as enrollments_router
 from routes.classes import router as classes_router
 from routes.auth import router as auth_router
+
+app.mount(
+    "/scorm",
+    StaticFiles(directory="scorm"),
+    name="scorm"
+)
 
 app = FastAPI()
 

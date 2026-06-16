@@ -25,7 +25,7 @@ app.include_router(classes_router)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "https://lms.iaclube.help/"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

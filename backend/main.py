@@ -14,11 +14,6 @@ from routes.enrollments import router as enrollments_router
 from routes.classes import router as classes_router
 from routes.auth import router as auth_router
 
-app.mount(
-    "/scorm",
-    StaticFiles(directory="scorm"),
-    name="scorm"
-)
 
 app = FastAPI()
 
@@ -29,6 +24,11 @@ app.include_router(enrollments_router)
 app.include_router(auth_router)
 app.include_router(classes_router)
 
+app.mount(
+    "/scorm",
+    StaticFiles(directory="scorm"),
+    name="scorm"
+)
 
 app.add_middleware(
     CORSMiddleware,

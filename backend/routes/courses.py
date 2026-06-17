@@ -81,7 +81,7 @@ async def upload_course(
 
         # Upload via FTP para a Hostinger
         ftp = ftplib.FTP()
-        ftp.connect(FTP_HOST, 21)
+        ftp.connect(FTP_HOST, 21, timeout=10)
         ftp.login(FTP_USER, FTP_PASS)
 
         remote_course_dir = f"{FTP_BASE_DIR}/{course_code}"

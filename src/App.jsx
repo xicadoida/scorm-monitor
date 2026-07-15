@@ -34,6 +34,7 @@ function App() {
 
   const [sessionId, setSessionId] = useState(null)
   const [loggedStudent, setLoggedStudent] = useState(null)
+  const [pendingCourseCode, setPendingCourseCode] = useState(null)
   const ADMIN_EMAILS = [
     "admin@admin.com"
   ]
@@ -160,6 +161,13 @@ function App() {
       setCurrentPage("login")
     }
   }, [])
+  useEffect(() => {
+    const match = window.location.pathname.match(/^\/curso\/([^/]+)/)
+
+    if (match) {
+      setPendingCourseCode(match[1])
+    }
+  }, [])
 
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -205,7 +213,22 @@ function App() {
 
       setCourses(data)
 
-      if (data.length > 0) {
+      if (pendingCourseCode) {
+        const targetCourse = data.find(
+          c => c.course_code === pendingCourseCode
+        )
+
+        if (targetCourse) {
+          setSelectedCourse(targetCourse)
+          setCurrentPage("player")
+        } else {
+          setSelectedCourse(data[0] || null)
+          alert("Você não tem acesso a esse curso, ou ele não existe.")
+        }
+
+        setPendingCourseCode(null)
+        window.history.replaceState({}, "", "/")
+      } else if (data.length > 0) {
         setSelectedCourse(data[0])
       } else {
         setSelectedCourse(null)
@@ -213,7 +236,7 @@ function App() {
     }
 
     loadCoursesForStudent()
-  }, [selectedStudent])
+  }, [selectedStudent, pendingCourseCode])
 
   useEffect(() => {
     loadRecords()

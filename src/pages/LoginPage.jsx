@@ -51,9 +51,23 @@ function LoginPage({ API_URL, onLogin, onGoToRegister }) {
           boxShadow: "0 4px 16px rgba(0,0,0,0.08)"
         }}
       >
-        <h1>Entrar</h1>
+        <h1
+          style={{
+            fontSize: "32px",
+            marginBottom: "8px",
+            color: "#111827"
+          }}
+        >
+          Entrar
+        </h1>
 
-        <p style={{ color: "#555" }}>
+        <p
+          style={{
+            color: "#6b7280",
+            marginBottom: "24px",
+            lineHeight: 1.5
+          }}
+        >
           Acesse seus cursos usando seu email cadastrado.
         </p>
 

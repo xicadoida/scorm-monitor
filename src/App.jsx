@@ -162,6 +162,7 @@ function App() {
     }
   }, [])
 
+
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (sessionId) {

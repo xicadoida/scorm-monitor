@@ -161,13 +161,6 @@ function App() {
       setCurrentPage("login")
     }
   }, [])
-  useEffect(() => {
-    const match = window.location.pathname.match(/^\/curso\/([^/]+)/)
-
-    if (match) {
-      setPendingCourseCode(match[1])
-    }
-  }, [])
 
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -202,6 +195,14 @@ function App() {
   }, [studentId, selectedCourse])
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const cursoParam = params.get("curso")
+
+    if (cursoParam) {
+      setPendingCourseCode(cursoParam)
+    }
+  }, [])
+  useEffect(() => {
     async function loadCoursesForStudent() {
       if (!selectedStudent) return
 
@@ -222,16 +223,11 @@ function App() {
           setSelectedCourse(targetCourse)
           setCurrentPage("player")
         } else {
-          setSelectedCourse(data[0] || null)
           alert("Você não tem acesso a esse curso, ou ele não existe.")
         }
 
         setPendingCourseCode(null)
         window.history.replaceState({}, "", "/")
-      } else if (data.length > 0) {
-        setSelectedCourse(data[0])
-      } else {
-        setSelectedCourse(null)
       }
     }
 

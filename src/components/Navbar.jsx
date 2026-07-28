@@ -12,12 +12,12 @@ const TABS = [
   { key: "conta", label: "Conta" }
 ]
 
-function Navbar({ activeTab, onTabChange, onLogout }) {
+function Navbar({ activeTab, onTabChange, onLogout, logoUrl }) {
   return (
     <nav style={navbar}>
       <img
-        src="/logo-iaclube.png"
-        alt="iaclube.help - IA para todos"
+        src={logoUrl || "/logo-iaclube.png"}
+        alt="Logo"
         style={navbarLogo}
       />
 

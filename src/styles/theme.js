@@ -107,7 +107,7 @@ export const navbar = {
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  background: colors.navy,
+  background: "var(--lms-navy, " + colors.navy + ")",
   borderRadius: "999px",
   padding: "10px 24px",
   marginBottom: "32px",
@@ -133,8 +133,8 @@ export const navPillBase = {
 
 export const navPillActive = {
   ...navPillBase,
-  background: colors.orange,
-  border: `1.5px solid ${colors.orange}`
+  background: "var(--lms-orange, " + colors.orange + ")",
+  border: "1.5px solid var(--lms-orange, " + colors.orange + ")"
 }
 
 export const logoutButton = {
@@ -157,7 +157,7 @@ export const pageBackground = {
 }
 
 export const sectionTitle = {
-  color: colors.orange,
+  color: "var(--lms-orange, " + colors.orange + ")",
   fontSize: "18px",
   fontWeight: "bold",
   marginBottom: "16px"
@@ -183,7 +183,7 @@ export const courseGrid = {
 }
 
 export const courseCard = {
-  background: colors.navy,
+  background: "var(--lms-navy, " + colors.navy + ")",
   borderRadius: "16px",
   padding: "20px",
   display: "flex",
@@ -216,7 +216,7 @@ export const coursePillButton = {
   padding: "8px 18px",
   borderRadius: "999px",
   border: "none",
-  background: colors.orange,
+  background: "var(--lms-orange, " + colors.orange + ")",
   color: colors.white,
   fontWeight: "bold",
   fontSize: "13px",
@@ -279,8 +279,8 @@ export const paginationButton = {
 
 export const paginationButtonActive = {
   ...paginationButton,
-  background: colors.orange,
-  border: `1px solid ${colors.orange}`,
+  background: "var(--lms-orange, " + colors.orange + ")",
+  border: "1px solid var(--lms-orange, " + colors.orange + ")",
   color: colors.white
 }
 
@@ -294,7 +294,7 @@ export const paginationArrow = {
 // ---- Conta ----
 
 export const accountCard = {
-  background: colors.navy,
+  background: "var(--lms-navy, " + colors.navy + ")",
   borderRadius: "16px",
   padding: "24px",
   color: colors.white,

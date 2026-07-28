@@ -5,6 +5,7 @@ function AdminPage({ API_URL, onBack }) {
   const [selectedEnrollmentCourse, setSelectedEnrollmentCourse] = useState("")
   const [students, setStudents] = useState([])
   const [courses, setCourses] = useState([])
+  const [events, setEvents] = useState([])
 
   const [studentForm, setStudentForm] = useState({
     student_code: "",
@@ -15,7 +16,8 @@ function AdminPage({ API_URL, onBack }) {
   const [courseForm, setCourseForm] = useState({
     title: "",
     course_code: "",
-    file: null
+    file: null,
+    event_id: ""
   })
 
   const [enrollmentForm, setEnrollmentForm] = useState({
@@ -29,6 +31,17 @@ function AdminPage({ API_URL, onBack }) {
   const [selectedStudentCodes, setSelectedStudentCodes] = useState([])
   const [classStudents, setClassStudents] = useState([])
 
+  const [eventForm, setEventForm] = useState({
+    name: "",
+    logo_url: "",
+    color_primary: "",
+    color_secondary: ""
+  })
+
+  const [selectedEventId, setSelectedEventId] = useState("")
+  const [eventEmails, setEventEmails] = useState([])
+  const [emailsInput, setEmailsInput] = useState("")
+
   async function loadData() {
     const studentsResponse = await fetch(`${API_URL}/students`)
     const studentsData = await studentsResponse.json()
@@ -39,9 +52,13 @@ function AdminPage({ API_URL, onBack }) {
     const classesResponse = await fetch(`${API_URL}/classes`)
     const classesData = await classesResponse.json()
 
+    const eventsResponse = await fetch(`${API_URL}/events`)
+    const eventsData = await eventsResponse.json()
+
     setClasses(classesData)
     setStudents(studentsData)
     setCourses(coursesData)
+    setEvents(eventsData)
   }
 
   useEffect(() => {
@@ -65,6 +82,25 @@ function AdminPage({ API_URL, onBack }) {
 
     loadClassStudents()
   }, [selectedClassId])
+
+  useEffect(() => {
+    async function loadEventEmails() {
+      if (!selectedEventId) {
+        setEventEmails([])
+        return
+      }
+
+      const response = await fetch(
+        `${API_URL}/events/${selectedEventId}/emails`
+      )
+
+      const data = await response.json()
+      setEventEmails(data)
+    }
+
+    loadEventEmails()
+  }, [selectedEventId, API_URL])
+
   async function createStudent(e) {
     e.preventDefault()
 
@@ -94,6 +130,10 @@ function AdminPage({ API_URL, onBack }) {
     formData.append("course_code", courseForm.course_code)
     formData.append("file", courseForm.file)
 
+    if (courseForm.event_id) {
+      formData.append("event_id", courseForm.event_id)
+    }
+
     const response = await fetch(`${API_URL}/courses/upload`, {
         method: "POST",
         body: formData
@@ -111,11 +151,54 @@ function AdminPage({ API_URL, onBack }) {
     setCourseForm({
         title: "",
         course_code: "",
-        file: null
+        file: null,
+        event_id: ""
     })
 
     loadData()
     }
+
+  async function deleteCourse(course) {
+    const confirmed = window.confirm(
+      `Tem certeza que quer excluir o curso "${course.title}"? Essa ação não pode ser desfeita e vai remover o acesso de todos os alunos matriculados.`
+    )
+
+    if (!confirmed) return
+
+    const response = await fetch(`${API_URL}/courses/${course.course_code}`, {
+      method: "DELETE"
+    })
+
+    const data = await response.json()
+
+    if (!data.success) {
+      alert(data.message || "Não foi possível excluir o curso.")
+      return
+    }
+
+    if (data.ftp_warning) {
+      alert(
+        `Curso excluído do sistema, mas houve um problema ao remover os arquivos do servidor: ${data.ftp_warning}`
+      )
+    }
+
+    loadData()
+  }
+
+  async function updateCourseEvent(course, eventId) {
+    await fetch(`${API_URL}/courses/${course.course_code}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        event_id: eventId ? Number(eventId) : 0
+      })
+    })
+
+    loadData()
+  }
+
   async function createClass(e) {
     e.preventDefault()
 
@@ -193,6 +276,97 @@ function AdminPage({ API_URL, onBack }) {
       `Matrículas criadas: ${data.added}\nJá existentes: ${data.skipped}`
     )
   }
+
+  async function createEvent(e) {
+    e.preventDefault()
+
+    if (!eventForm.name) {
+      alert("Dá um nome pro evento.")
+      return
+    }
+
+    await fetch(`${API_URL}/events`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(eventForm)
+    })
+
+    setEventForm({
+      name: "",
+      logo_url: "",
+      color_primary: "",
+      color_secondary: ""
+    })
+
+    loadData()
+  }
+
+  async function deleteEvent(eventId) {
+    const confirmed = window.confirm(
+      "Excluir esse evento? Os cursos vinculados a ele voltam a ser públicos, mas não são excluídos."
+    )
+
+    if (!confirmed) return
+
+    await fetch(`${API_URL}/events/${eventId}`, { method: "DELETE" })
+
+    if (selectedEventId === String(eventId)) {
+      setSelectedEventId("")
+    }
+
+    loadData()
+  }
+
+  async function addEmailsToEvent(e) {
+    e.preventDefault()
+
+    if (!selectedEventId) {
+      alert("Selecione um evento primeiro.")
+      return
+    }
+
+    const emails = emailsInput
+      .split(/[\n,]/)
+      .map(email => email.trim())
+      .filter(Boolean)
+
+    if (emails.length === 0) return
+
+    await fetch(`${API_URL}/events/${selectedEventId}/emails`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ emails })
+    })
+
+    setEmailsInput("")
+
+    const response = await fetch(
+      `${API_URL}/events/${selectedEventId}/emails`
+    )
+    const data = await response.json()
+    setEventEmails(data)
+  }
+
+  async function removeEmailFromEvent(email) {
+    await fetch(
+      `${API_URL}/events/${selectedEventId}/emails/${encodeURIComponent(email)}`,
+      { method: "DELETE" }
+    )
+
+    setEventEmails(prev => prev.filter(e => e.email !== email))
+  }
+
+  function eventNameFor(eventId) {
+    if (!eventId) return "Público"
+
+    const event = events.find(e => e.id === eventId)
+    return event ? event.name : "Público"
+  }
+
   return (
     <div style={{
       minHeight: "100vh",
@@ -280,6 +454,25 @@ function AdminPage({ API_URL, onBack }) {
             style={inputStyle}
           />
 
+          <select
+            value={courseForm.event_id}
+            onChange={e =>
+              setCourseForm({
+                ...courseForm,
+                event_id: e.target.value
+              })
+            }
+            style={inputStyle}
+          >
+            <option value="">Curso público (visível pra todo mundo)</option>
+
+            {events.map(ev => (
+              <option key={ev.id} value={ev.id}>
+                Evento: {ev.name}
+              </option>
+            ))}
+          </select>
+
           <input
             type="file"
             accept=".zip"
@@ -297,6 +490,157 @@ function AdminPage({ API_URL, onBack }) {
           </button>
         </form>
       </div>
+
+      <div style={containerStyle}>
+        <h2>Eventos</h2>
+        <p style={{ color: "#666", marginTop: "-8px" }}>
+          Alunos com o email cadastrado num evento veem uma logo/cor diferente
+          e só enxergam os cursos vinculados a esse evento.
+        </p>
+
+        <form onSubmit={createEvent}>
+          <input
+            placeholder="Nome do evento"
+            value={eventForm.name}
+            onChange={e =>
+              setEventForm({ ...eventForm, name: e.target.value })
+            }
+            style={inputStyle}
+          />
+
+          <input
+            placeholder="URL da logo (opcional)"
+            value={eventForm.logo_url}
+            onChange={e =>
+              setEventForm({ ...eventForm, logo_url: e.target.value })
+            }
+            style={inputStyle}
+          />
+
+          <div style={{ display: "flex", gap: "10px", marginBottom: "12px" }}>
+            <label style={{ flex: 1 }}>
+              Cor principal (fundo)
+              <input
+                type="color"
+                value={eventForm.color_primary || "#152A47"}
+                onChange={e =>
+                  setEventForm({ ...eventForm, color_primary: e.target.value })
+                }
+                style={{ width: "100%", height: "40px" }}
+              />
+            </label>
+
+            <label style={{ flex: 1 }}>
+              Cor de destaque (botões)
+              <input
+                type="color"
+                value={eventForm.color_secondary || "#EF4923"}
+                onChange={e =>
+                  setEventForm({ ...eventForm, color_secondary: e.target.value })
+                }
+                style={{ width: "100%", height: "40px" }}
+              />
+            </label>
+          </div>
+
+          <button type="submit">
+            Criar evento
+          </button>
+        </form>
+
+        {events.length > 0 && (
+          <table style={{ ...tableStyle, marginTop: "20px" }}>
+            <thead>
+              <tr>
+                <th style={th}>Nome</th>
+                <th style={th}>Cores</th>
+                <th style={th}>Ações</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {events.map(ev => (
+                <tr key={ev.id}>
+                  <td style={td}>{ev.name}</td>
+                  <td style={td}>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        width: "16px",
+                        height: "16px",
+                        borderRadius: "4px",
+                        background: ev.color_primary || "#152A47",
+                        marginRight: "6px"
+                      }}
+                    />
+                    <span
+                      style={{
+                        display: "inline-block",
+                        width: "16px",
+                        height: "16px",
+                        borderRadius: "4px",
+                        background: ev.color_secondary || "#EF4923"
+                      }}
+                    />
+                  </td>
+                  <td style={td}>
+                    <button onClick={() => setSelectedEventId(String(ev.id))}>
+                      Gerenciar emails
+                    </button>
+                    <button
+                      onClick={() => deleteEvent(ev.id)}
+                      style={{ marginLeft: "8px", color: "#b91c1c" }}
+                    >
+                      Excluir
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        {selectedEventId && (
+          <div style={{ marginTop: "20px" }}>
+            <h3>
+              Emails de "{eventNameFor(Number(selectedEventId))}"
+            </h3>
+
+            <form onSubmit={addEmailsToEvent}>
+              <textarea
+                placeholder="Cole os emails aqui, um por linha (ou separados por vírgula)"
+                value={emailsInput}
+                onChange={e => setEmailsInput(e.target.value)}
+                style={{ ...inputStyle, minHeight: "100px" }}
+              />
+
+              <button type="submit">
+                Adicionar emails
+              </button>
+            </form>
+
+            {eventEmails.length === 0 ? (
+              <p>Nenhum email cadastrado nesse evento ainda.</p>
+            ) : (
+              <ul>
+                {eventEmails.map(item => (
+                  <li key={item.id}>
+                    {item.email}
+                    {" "}
+                    <button
+                      onClick={() => removeEmailFromEvent(item.email)}
+                      style={{ color: "#b91c1c" }}
+                    >
+                      remover
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </div>
+
       <div style={containerStyle}>
         <h2>Criar turma</h2>
 
@@ -537,8 +881,8 @@ function AdminPage({ API_URL, onBack }) {
                 <tr>
                   <th style={th}>Código</th>
                   <th style={th}>Título</th>
-                  <th style={th}>Caminho SCORM</th>
                   <th style={th}>Status</th>
+                  <th style={th}>Evento</th>
                   <th style={th}>Ações</th>
                   
                 </tr>
@@ -549,8 +893,21 @@ function AdminPage({ API_URL, onBack }) {
                   <tr key={course.id}>
                     <td style={td}>{course.course_code}</td>
                     <td style={td}>{course.title}</td>
-                    <td style={td}>{course.scorm_path}</td>
                     <td style={td}>{course.active ? "Ativo" : "Inativo"}</td>
+                    <td style={td}>
+                      <select
+                        value={course.event_id || ""}
+                        onChange={e => updateCourseEvent(course, e.target.value)}
+                      >
+                        <option value="">Público</option>
+
+                        {events.map(ev => (
+                          <option key={ev.id} value={ev.id}>
+                            {ev.name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
                     <td style={td}>
                       <button
                         onClick={async () => {
@@ -591,6 +948,13 @@ function AdminPage({ API_URL, onBack }) {
                         style={{ marginLeft: "8px" }}
                       >
                         {course.active ? "Desativar" : "Ativar"}
+                      </button>
+
+                      <button
+                        onClick={() => deleteCourse(course)}
+                        style={{ marginLeft: "8px", color: "#b91c1c" }}
+                      >
+                        Excluir
                       </button>
                     </td>
                   </tr>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Scorm12API } from 'scorm-again'
 import Dashboard from './pages/Dashboard'
 import ReportPage from './pages/ReportPage'
@@ -203,37 +203,37 @@ function App() {
       setPendingCourseCode(cursoParam)
     }
   }, [])
-  useEffect(() => {
-    async function loadCoursesForStudent() {
-      if (!selectedStudent) return
+  const reloadCourses = useCallback(async () => {
+    if (!selectedStudent) return
 
-      const response = await fetch(
-        `${API_URL}/students/${selectedStudent.student_code}/courses`
+    const response = await fetch(
+      `${API_URL}/students/${selectedStudent.student_code}/courses`
+    )
+
+    const data = await response.json()
+
+    setCourses(data)
+
+    if (pendingCourseCode) {
+      const targetCourse = data.find(
+        c => c.course_code === pendingCourseCode
       )
 
-      const data = await response.json()
-
-      setCourses(data)
-
-      if (pendingCourseCode) {
-        const targetCourse = data.find(
-          c => c.course_code === pendingCourseCode
-        )
-
-        if (targetCourse) {
-          setSelectedCourse(targetCourse)
-          setCurrentPage("player")
-        } else {
-          alert("Você não tem acesso a esse curso, ou ele não existe.")
-        }
-
-        setPendingCourseCode(null)
-        window.history.replaceState({}, "", "/")
+      if (targetCourse) {
+        setSelectedCourse(targetCourse)
+        setCurrentPage("player")
+      } else {
+        alert("Você não tem acesso a esse curso, ou ele não existe.")
       }
-    }
 
-    loadCoursesForStudent()
-  }, [selectedStudent, pendingCourseCode])
+      setPendingCourseCode(null)
+      window.history.replaceState({}, "", "/")
+    }
+  }, [selectedStudent, pendingCourseCode, API_URL])
+
+  useEffect(() => {
+    reloadCourses()
+  }, [reloadCourses])
 
   useEffect(() => {
     loadRecords()
@@ -377,25 +377,38 @@ function App() {
     )
   }
   if (currentPage === "dashboard") {
+    const event = loggedStudent?.event
+
+    const eventThemeVars = event
+      ? {
+          ...(event.color_primary && { "--lms-navy": event.color_primary }),
+          ...(event.color_secondary && { "--lms-orange": event.color_secondary })
+        }
+      : {}
+
     return (
-      <Dashboard
-        onOpenAdmin={() => setCurrentPage("admin")}
-        selectedStudent={selectedStudent}
-        courses={courses}
-        API_URL={API_URL}
-        isAdmin={isAdmin}
-        onOpenReport={() => setCurrentPage("report")}
-        onLogout={() => {
-          localStorage.removeItem("loggedStudent")
-          setLoggedStudent(null)
-          setSelectedStudent(null)
-          setCurrentPage("login")
-        }}
-        onOpenCourse={(course) => {
-          setSelectedCourse(course)
-          setCurrentPage("player")
-        }}
-      />  
+      <div style={eventThemeVars}>
+        <Dashboard
+          onOpenAdmin={() => setCurrentPage("admin")}
+          selectedStudent={selectedStudent}
+          courses={courses}
+          API_URL={API_URL}
+          isAdmin={isAdmin}
+          event={event}
+          reloadCourses={reloadCourses}
+          onOpenReport={() => setCurrentPage("report")}
+          onLogout={() => {
+            localStorage.removeItem("loggedStudent")
+            setLoggedStudent(null)
+            setSelectedStudent(null)
+            setCurrentPage("login")
+          }}
+          onOpenCourse={(course) => {
+            setSelectedCourse(course)
+            setCurrentPage("player")
+          }}
+        />
+      </div>
     )
   }
   return (

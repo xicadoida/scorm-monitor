@@ -19,6 +19,7 @@ class CourseCreateRequest(BaseModel):
     title: str
     course_code: str
     scorm_path: str
+    event_id: Optional[int] = None
 
 
 class StudentCreateRequest(BaseModel):
@@ -34,6 +35,7 @@ class EnrollmentCreateRequest(BaseModel):
 class CourseUpdateRequest(BaseModel):
     title: Optional[str] = None
     active: Optional[bool] = None
+    event_id: Optional[int] = None
 
 class ClassCreateRequest(BaseModel):
     name: str
@@ -41,3 +43,27 @@ class ClassCreateRequest(BaseModel):
 
 class AddStudentsToClassRequest(BaseModel):
     student_codes: list[str]
+
+
+class ChangePasswordRequest(BaseModel):
+    student_code: str
+    current_password: str
+    new_password: str
+
+
+class EventCreateRequest(BaseModel):
+    name: str
+    logo_url: Optional[str] = None
+    color_primary: Optional[str] = None
+    color_secondary: Optional[str] = None
+
+
+class EventUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    logo_url: Optional[str] = None
+    color_primary: Optional[str] = None
+    color_secondary: Optional[str] = None
+
+
+class EventAddEmailsRequest(BaseModel):
+    emails: list[str]

@@ -4,7 +4,9 @@ from pydantic import BaseModel
 
 from database import SessionLocal
 from models import Student
+from schemas import ChangePasswordRequest
 from security import hash_password, verify_password
+from event_utils import get_event_for_email
 
 router = APIRouter()
 
@@ -28,19 +30,22 @@ def login(data: LoginRequest):
         Student.email == data.email
     ).first()
 
-    db.close()
-
     if not student:
+        db.close()
         return {
             "success": False,
             "message": "Aluno não encontrado."
         }
 
     if not verify_password(data.password, student.password_hash):
+        db.close()
         return {
             "success": False,
             "message": "Senha incorreta."
         }
+
+    event = get_event_for_email(db, student.email)
+    db.close()
 
     return {
         "success": True,
@@ -48,7 +53,8 @@ def login(data: LoginRequest):
             "id": student.id,
             "student_code": student.student_code,
             "name": student.name,
-            "email": student.email
+            "email": student.email,
+            "event": event
         }
     }
 
@@ -78,6 +84,8 @@ def register(data: RegisterRequest):
     db.add(student)
     db.commit()
     db.refresh(student)
+
+    event = get_event_for_email(db, student.email)
     db.close()
 
     return {
@@ -86,6 +94,30 @@ def register(data: RegisterRequest):
             "id": student.id,
             "student_code": student.student_code,
             "name": student.name,
-            "email": student.email
+            "email": student.email,
+            "event": event
         }
     }
+
+
+@router.post("/auth/change-password")
+def change_password(data: ChangePasswordRequest):
+    db = SessionLocal()
+
+    student = db.query(Student).filter(
+        Student.student_code == data.student_code
+    ).first()
+
+    if not student:
+        db.close()
+        return {"success": False, "message": "Aluno não encontrado."}
+
+    if not verify_password(data.current_password, student.password_hash):
+        db.close()
+        return {"success": False, "message": "Senha atual incorreta."}
+
+    student.password_hash = hash_password(data.new_password)
+    db.commit()
+    db.close()
+
+    return {"success": True, "message": "Senha alterada com sucesso."}

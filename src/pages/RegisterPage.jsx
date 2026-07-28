@@ -1,4 +1,15 @@
 import { useState } from 'react'
+import {
+  pageWrapper,
+  card,
+  logo,
+  input,
+  buttonRow,
+  buttonPrimary,
+  buttonOutline,
+  errorMessage,
+  successMessage
+} from '../styles/theme'
 
 function RegisterPage({ API_URL, onBackToLogin }) {
   const [form, setForm] = useState({
@@ -44,38 +55,26 @@ function RegisterPage({ API_URL, onBackToLogin }) {
   }
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      background: "#f4f6fb",
-      fontFamily: "Arial"
-    }}>
-      <form
-        onSubmit={handleRegister}
-        style={{
-          background: "white",
-          padding: "32px",
-          borderRadius: "16px",
-          width: "380px",
-          boxShadow: "0 4px 16px rgba(0,0,0,0.08)"
-        }}
-      >
-        <h1>Criar conta</h1>
+    <div style={pageWrapper}>
+      <form onSubmit={handleRegister} style={{ ...card, width: "380px" }}>
+        <img
+          src="/logo-iaclube.png"
+          alt="iaclube.help - IA para todos"
+          style={logo}
+        />
 
         <input
-          placeholder="Nome"
+          placeholder="Nome completo"
           value={form.name}
           onChange={e => setForm({ ...form, name: e.target.value })}
-          style={inputStyle}
+          style={input}
         />
 
         <input
           placeholder="Email"
           value={form.email}
           onChange={e => setForm({ ...form, email: e.target.value })}
-          style={inputStyle}
+          style={input}
         />
 
         <input
@@ -83,7 +82,7 @@ function RegisterPage({ API_URL, onBackToLogin }) {
           placeholder="Senha"
           value={form.password}
           onChange={e => setForm({ ...form, password: e.target.value })}
-          style={inputStyle}
+          style={input}
         />
 
         <input
@@ -91,47 +90,24 @@ function RegisterPage({ API_URL, onBackToLogin }) {
           placeholder="Confirmar senha"
           value={form.confirmPassword}
           onChange={e => setForm({ ...form, confirmPassword: e.target.value })}
-          style={inputStyle}
+          style={{ ...input, marginBottom: "20px" }}
         />
 
-        {error && <p style={{ color: "red" }}>{error}</p>}
-        {success && <p style={{ color: "green" }}>{success}</p>}
+        {error && <p style={errorMessage}>{error}</p>}
+        {success && <p style={successMessage}>{success}</p>}
 
-        <button type="submit" style={buttonStyle}>
-          Criar conta
-        </button>
+        <div style={buttonRow}>
+          <button type="button" onClick={onBackToLogin} style={buttonOutline}>
+            Cancelar
+          </button>
 
-        <button
-          type="button"
-          onClick={onBackToLogin}
-          style={{
-            ...buttonStyle,
-            background: "#6b7280",
-            marginTop: "10px"
-          }}
-        >
-          Voltar para login
-        </button>
+          <button type="submit" style={buttonPrimary}>
+            Criar conta
+          </button>
+        </div>
       </form>
     </div>
   )
-}
-
-const inputStyle = {
-  width: "100%",
-  padding: "10px",
-  marginBottom: "12px"
-}
-
-const buttonStyle = {
-  width: "100%",
-  padding: "12px",
-  border: "none",
-  borderRadius: "10px",
-  background: "#2563eb",
-  color: "white",
-  fontWeight: "bold",
-  cursor: "pointer"
 }
 
 export default RegisterPage

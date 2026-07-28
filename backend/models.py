@@ -29,6 +29,29 @@ class Course(Base):
     scorm_path = Column(String(500))
     active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    # NULL = curso público (aparece pra todo mundo que não é de evento nenhum)
+    # preenchido = curso só aparece pra alunos cujo email está na lista do evento
+    event_id = Column(Integer, nullable=True, index=True)
+
+
+class Event(Base):
+    __tablename__ = "events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255))
+    logo_url = Column(String(500), nullable=True)
+    color_primary = Column(String(20), nullable=True)
+    color_secondary = Column(String(20), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class EventEmail(Base):
+    __tablename__ = "event_emails"
+
+    id = Column(Integer, primary_key=True, index=True)
+    event_id = Column(Integer, index=True)
+    email = Column(String(255), index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 
 class Student(Base):

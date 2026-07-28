@@ -1,4 +1,48 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import Navbar from '../components/Navbar'
+import {
+  pageBackground,
+  sectionTitle,
+  searchInput,
+  courseGrid,
+  courseCard,
+  courseCardHeader,
+  courseCardTitle,
+  courseCardSubtitle,
+  coursePillButton,
+  progressWrapper,
+  progressPercentLabel,
+  progressTrack,
+  progressFill,
+  emptyStateText,
+  paginationWrapper,
+  paginationButton,
+  paginationButtonActive,
+  paginationArrow,
+  accountCard
+} from '../styles/theme'
+
+const COURSES_PER_PAGE = 6
+
+// Ainda não existe carga horária nem % de progresso real vindos do backend.
+// Por enquanto aproximamos os dois a partir do que já temos (status e tempo de sessão),
+// só pra ter algo visual coerente pra apresentação. Quando o backend tiver esses dados
+// de verdade, é só trocar essas duas funções.
+function estimateProgress(progress) {
+  if (!progress) return 0
+  if (progress.completed) return 100
+  if (progress.sessions_count > 0) return 50
+  return 0
+}
+
+function formatHours(totalSessionTime) {
+  if (!totalSessionTime) return "0h"
+
+  const [hh] = totalSessionTime.split(":")
+  const hours = parseInt(hh, 10)
+
+  return Number.isNaN(hours) ? "0h" : `${hours}h`
+}
 
 function Dashboard({
   selectedStudent,
@@ -10,8 +54,10 @@ function Dashboard({
   isAdmin,
   API_URL
 }) {
-
+  const [activeTab, setActiveTab] = useState("meus-cursos")
   const [progressData, setProgressData] = useState({})
+  const [search, setSearch] = useState("")
+  const [page, setPage] = useState(1)
 
   useEffect(() => {
     async function loadProgress() {
@@ -34,154 +80,223 @@ function Dashboard({
     loadProgress()
   }, [courses, selectedStudent, API_URL])
 
-  return (
-    <div style={{
-      minHeight: "100vh",
-      background: "#f4f6fb",
-      padding: "32px",
-      fontFamily: "Arial"
-    }}>
-    <button
-      onClick={() => {
-        localStorage.removeItem("loggedStudent")
-        onLogout()
-      }}
-      style={{
-        padding: "10px 16px",
-        border: "none",
-        borderRadius: "10px",
-        background: "#dc2626",
-        color: "white",
-        cursor: "pointer",
-        marginBottom: "20px"
-      }}
-    >
-      Sair
-    </button>
-      <h1>Plataforma de Cursos</h1>
-        
-      <p style={{ color: "#555" }}>
-        Acompanhe os cursos disponíveis e o progresso dos alunos.
-      </p>
-      
-      {isAdmin && (
-        <>
+  useEffect(() => {
+    setPage(1)
+  }, [search, activeTab])
+
+  const filteredCourses = useMemo(() => {
+    return courses.filter(course =>
+      course.title.toLowerCase().includes(search.toLowerCase())
+    )
+  }, [courses, search])
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredCourses.length / COURSES_PER_PAGE)
+  )
+
+  const pageCourses = filteredCourses.slice(
+    (page - 1) * COURSES_PER_PAGE,
+    page * COURSES_PER_PAGE
+  )
+
+  const completedCourses = courses.filter(
+    course => progressData[course.course_code]?.completed
+  )
+
+  function renderCourseCard(course) {
+    const progress = progressData[course.course_code]
+    const percent = estimateProgress(progress)
+
+    return (
+      <div key={course.id} style={courseCard}>
+        <div style={courseCardHeader}>
+          <div>
+            <p style={courseCardTitle}>{course.title}</p>
+            <p style={courseCardSubtitle}>
+              {formatHours(progress?.total_session_time)}
+            </p>
+          </div>
+
           <button
+            type="button"
+            onClick={() => onOpenCourse(course)}
+            style={coursePillButton}
+          >
+            Acessar
+          </button>
+        </div>
+
+        <div style={progressWrapper}>
+          <p style={progressPercentLabel}>{percent}%</p>
+          <div style={progressTrack}>
+            <div style={progressFill(percent)} />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  function renderPagination() {
+    if (totalPages <= 1) return null
+
+    return (
+      <div style={paginationWrapper}>
+        <button
+          type="button"
+          style={paginationArrow}
+          onClick={() => setPage(p => Math.max(1, p - 1))}
+          disabled={page === 1}
+        >
+          ‹
+        </button>
+
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+          <button
+            key={n}
+            type="button"
+            style={n === page ? paginationButtonActive : paginationButton}
+            onClick={() => setPage(n)}
+          >
+            {n}
+          </button>
+        ))}
+
+        <button
+          type="button"
+          style={paginationArrow}
+          onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+          disabled={page === totalPages}
+        >
+          ›
+        </button>
+      </div>
+    )
+  }
+
+  function renderMeusCursos() {
+    return (
+      <>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "12px",
+            marginBottom: "16px"
+          }}
+        >
+          <p style={sectionTitle}>Meus cursos</p>
+
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Pesquise o curso"
+            style={searchInput}
+          />
+        </div>
+
+        <div style={courseGrid}>
+          {pageCourses.map(renderCourseCard)}
+
+          {filteredCourses.length === 0 && (
+            <p style={emptyStateText}>
+              Nenhum curso encontrado.
+            </p>
+          )}
+        </div>
+
+        {renderPagination()}
+      </>
+    )
+  }
+
+  function renderConta() {
+    return (
+      <>
+        <p style={sectionTitle}>Conta</p>
+
+        <div style={accountCard}>
+          <p style={{ margin: 0, fontWeight: "bold", fontSize: "16px" }}>
+            {selectedStudent?.name}
+          </p>
+          <p style={{ margin: "4px 0 0 0", color: "#B9C2D0", fontSize: "14px" }}>
+            {selectedStudent?.email}
+          </p>
+        </div>
+
+        <p style={sectionTitle}>Cursos concluídos</p>
+
+        <div style={courseGrid}>
+          {completedCourses.map(renderCourseCard)}
+
+          {completedCourses.length === 0 && (
+            <p style={emptyStateText}>
+              Nenhum curso concluído ainda.
+            </p>
+          )}
+        </div>
+      </>
+    )
+  }
+
+  function renderEmBreve() {
+    return <p style={emptyStateText}>Essa área ainda está em construção.</p>
+  }
+
+  return (
+    <div style={pageBackground}>
+      <Navbar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onLogout={() => {
+          localStorage.removeItem("loggedStudent")
+          onLogout()
+        }}
+      />
+
+      {isAdmin && (
+        <div style={{ display: "flex", gap: "10px", marginBottom: "24px" }}>
+          <button
+            type="button"
             onClick={onOpenReport}
             style={{
-              padding: "10px 16px",
+              padding: "8px 16px",
               border: "none",
               borderRadius: "10px",
               background: "#111827",
               color: "white",
-              cursor: "pointer"
+              cursor: "pointer",
+              fontSize: "13px"
             }}
           >
             Ver relatório do professor
           </button>
 
           <button
+            type="button"
             onClick={onOpenAdmin}
             style={{
-              padding: "10px 16px",
+              padding: "8px 16px",
               border: "none",
               borderRadius: "10px",
               background: "#059669",
               color: "white",
               cursor: "pointer",
-              marginLeft: "12px"
+              fontSize: "13px"
             }}
           >
             Painel admin
           </button>
-        </>
+        </div>
       )}
-      <div style={{
-        background: "white",
-        padding: "20px",
-        borderRadius: "16px",
-        marginTop: "24px",
-        boxShadow: "0 4px 16px rgba(0,0,0,0.08)"
-      }}>
-        <strong>Aluno logado:</strong>
-        <p style={{ marginBottom: 0 }}>
-          {selectedStudent?.name} — {selectedStudent?.email}
-        </p>
-      </div>
-    
-      <h2 style={{ marginTop: "32px" }}>Cursos disponíveis</h2>
 
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-        gap: "20px"
-      }}>
-        {courses.map(course => {
-          const progress = progressData[course.course_code]
-
-          return (
-            <div
-              key={course.id}
-              style={{
-                background: "white",
-                borderRadius: "16px",
-                padding: "24px",
-                boxShadow: "0 4px 16px rgba(0,0,0,0.08)"
-              }}
-            >
-              <h3>{course.title}</h3>
-
-              <p style={{ color: "#666" }}>
-                Código: {course.course_code}
-              </p>
-
-              <div style={{ marginTop: "16px" }}>
-                <p>
-                  <strong>Status:</strong>{" "}
-                  {progress?.completed
-                    ? "Concluído"
-                    : progress?.sessions_count > 0
-                    ? "Em andamento"
-                    : "Não iniciado"}
-                </p>
-
-                <p>
-                  <strong>Sessões:</strong>{" "}
-                  {progress?.sessions_count || 0}
-                </p>
-
-                <p>
-                  <strong>Tempo:</strong>{" "}
-                  {progress?.total_session_time || "-"}
-                </p>
-              </div>
-
-              <button
-                onClick={() => onOpenCourse(course)}
-                style={{
-                  marginTop: "16px",
-                  width: "100%",
-                  padding: "12px",
-                  border: "none",
-                  borderRadius: "10px",
-                  background: "#2563eb",
-                  color: "white",
-                  fontWeight: "bold",
-                  cursor: "pointer"
-                }}
-              >
-                {progress?.completed ? "Revisar curso" : "Continuar curso"}
-              </button>
-            </div>
-          )
-        })}
-
-        {courses.length === 0 && (
-          <p>Nenhum curso liberado para este aluno.</p>
-        )}
-      </div>
+      {activeTab === "meus-cursos" && renderMeusCursos()}
+      {activeTab === "conta" && renderConta()}
+      {activeTab === "inicio" && renderEmBreve()}
+      {activeTab === "todos-cursos" && renderEmBreve()}
     </div>
-    
   )
 }
 

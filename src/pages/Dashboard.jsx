@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import Navbar from '../components/Navbar'
+import Footer from '../components/Footer'
 import {
   pageBackground,
   sectionTitle,
@@ -77,6 +78,22 @@ function Dashboard({
   })
   const [passwordError, setPasswordError] = useState("")
   const [passwordSuccess, setPasswordSuccess] = useState("")
+
+  // Cada evento pode trocar "Curso" por outra palavra (ex: "Módulo").
+  // Tudo abaixo deriva dessa única palavra, pra manter a gramática consistente
+  // nos vários lugares que mencionam "curso" na tela.
+  const itemSingular = event?.item_name || "Curso"
+  const itemPlural = `${itemSingular}s`
+  const itemSingularLower =
+    itemSingular.charAt(0).toLowerCase() + itemSingular.slice(1)
+  const itemPluralLower =
+    itemPlural.charAt(0).toLowerCase() + itemPlural.slice(1)
+  const showProgress = event?.show_progress !== false
+
+  const tabLabels = {
+    "meus-cursos": `Meus ${itemPlural}`,
+    "todos-cursos": `Todos os ${itemPlural}`
+  }
 
   useEffect(() => {
     async function loadProgress() {
@@ -248,7 +265,7 @@ function Dashboard({
         <div style={courseCardHeader}>
           <div>
             <p style={courseCardTitle}>{course.title}</p>
-            {!showEnroll && (
+            {!showEnroll && showProgress && (
               <p style={courseCardSubtitle}>
                 {formatHours(progress?.total_session_time)}
               </p>
@@ -277,7 +294,7 @@ function Dashboard({
           )}
         </div>
 
-        {!showEnroll && (
+        {!showEnroll && showProgress && (
           <div style={progressWrapper}>
             <p style={progressPercentLabel}>{percent}%</p>
             <div style={progressTrack}>
@@ -339,12 +356,12 @@ function Dashboard({
             marginBottom: "16px"
           }}
         >
-          <p style={sectionTitle}>Meus cursos</p>
+          <p style={sectionTitle}>Meus {itemPluralLower}</p>
 
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Pesquise o curso"
+            placeholder={`Pesquise o ${itemSingularLower}`}
             style={searchInput}
           />
         </div>
@@ -354,7 +371,7 @@ function Dashboard({
 
           {filteredCourses.length === 0 && (
             <p style={emptyStateText}>
-              Nenhum curso encontrado.
+              Nenhum {itemSingularLower} encontrado.
             </p>
           )}
         </div>
@@ -378,13 +395,13 @@ function Dashboard({
           }}
         >
           <p style={sectionTitle}>
-            {event ? `Cursos do ${event.name}` : "Cursos"}
+            {event ? `${itemPlural} do ${event.name}` : itemPlural}
           </p>
 
           <input
             value={publicSearch}
             onChange={e => setPublicSearch(e.target.value)}
-            placeholder="Pesquise o curso"
+            placeholder={`Pesquise o ${itemSingularLower}`}
             style={searchInput}
           />
         </div>
@@ -394,7 +411,7 @@ function Dashboard({
 
           {availablePublicCourses.length === 0 && (
             <p style={emptyStateText}>
-              Nenhum curso disponível pra inscrição no momento.
+              Nenhum {itemSingularLower} disponível pra inscrição no momento.
             </p>
           )}
         </div>
@@ -462,14 +479,14 @@ function Dashboard({
           </button>
         </form>
 
-        <p style={sectionTitle}>Cursos concluídos</p>
+        <p style={sectionTitle}>{itemPlural} concluídos</p>
 
         <div style={courseGrid}>
           {completedCourses.map(c => renderCourseCard(c))}
 
           {completedCourses.length === 0 && (
             <p style={emptyStateText}>
-              Nenhum curso concluído ainda.
+              Nenhum {itemSingularLower} concluído ainda.
             </p>
           )}
         </div>
@@ -483,6 +500,7 @@ function Dashboard({
         activeTab={activeTab}
         onTabChange={setActiveTab}
         logoUrl={event?.logo_url}
+        tabLabels={tabLabels}
         onLogout={() => {
           localStorage.removeItem("loggedStudent")
           onLogout()
@@ -528,6 +546,8 @@ function Dashboard({
       {activeTab === "meus-cursos" && renderMeusCursos()}
       {activeTab === "todos-cursos" && renderTodosCursos()}
       {activeTab === "conta" && renderConta()}
+
+      {event?.show_footer && <Footer />}
     </div>
   )
 }

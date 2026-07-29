@@ -6,13 +6,18 @@ import {
   logoutButton
 } from '../styles/theme'
 
-const TABS = [
+const DEFAULT_TABS = [
   { key: "meus-cursos", label: "Meus Cursos" },
-  { key: "todos-cursos", label: "Todos Cursos" },
+  { key: "todos-cursos", label: "Todos os Cursos" },
   { key: "conta", label: "Conta" }
 ]
 
-function Navbar({ activeTab, onTabChange, onLogout, logoUrl }) {
+function Navbar({ activeTab, onTabChange, onLogout, logoUrl, tabLabels }) {
+  const tabs = DEFAULT_TABS.map(tab => ({
+    ...tab,
+    label: tabLabels?.[tab.key] || tab.label
+  }))
+
   return (
     <nav style={navbar}>
       <img
@@ -22,7 +27,7 @@ function Navbar({ activeTab, onTabChange, onLogout, logoUrl }) {
       />
 
       <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
-        {TABS.map(tab => (
+        {tabs.map(tab => (
           <button
             key={tab.key}
             type="button"

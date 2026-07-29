@@ -35,7 +35,10 @@ function AdminPage({ API_URL, onBack }) {
     name: "",
     logo_url: "",
     color_primary: "",
-    color_secondary: ""
+    color_secondary: "",
+    item_name: "",
+    show_progress: true,
+    show_footer: false
   })
 
   const [selectedEventId, setSelectedEventId] = useState("")
@@ -297,7 +300,10 @@ function AdminPage({ API_URL, onBack }) {
       name: "",
       logo_url: "",
       color_primary: "",
-      color_secondary: ""
+      color_secondary: "",
+      item_name: "",
+      show_progress: true,
+      show_footer: false
     })
 
     loadData()
@@ -540,6 +546,45 @@ function AdminPage({ API_URL, onBack }) {
                 }
                 style={{ width: "100%", height: "40px" }}
               />
+            </label>
+          </div>
+
+          <input
+            placeholder='Nome no lugar de "Curso" (opcional, ex: Módulo)'
+            value={eventForm.item_name}
+            onChange={e =>
+              setEventForm({ ...eventForm, item_name: e.target.value })
+            }
+            style={inputStyle}
+          />
+
+          <div style={{ display: "flex", gap: "20px", marginBottom: "12px" }}>
+            <label>
+              <input
+                type="checkbox"
+                checked={eventForm.show_progress}
+                onChange={e =>
+                  setEventForm({
+                    ...eventForm,
+                    show_progress: e.target.checked
+                  })
+                }
+              />
+              {" "}Mostrar barra de progresso nos cards
+            </label>
+
+            <label>
+              <input
+                type="checkbox"
+                checked={eventForm.show_footer}
+                onChange={e =>
+                  setEventForm({
+                    ...eventForm,
+                    show_footer: e.target.checked
+                  })
+                }
+              />
+              {" "}Mostrar rodapé com logos de apoio (CCOM/RNP/UnB)
             </label>
           </div>
 

@@ -28,5 +28,8 @@ def get_event_for_email(db, email):
         "name": event.name,
         "logo_url": event.logo_url,
         "color_primary": event.color_primary,
-        "color_secondary": event.color_secondary
+        "color_secondary": event.color_secondary,
+        "item_name": event.item_name,
+        "show_progress": event.show_progress,
+        "show_footer": event.show_footer
     }

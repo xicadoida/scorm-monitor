@@ -56,6 +56,9 @@ class EventCreateRequest(BaseModel):
     logo_url: Optional[str] = None
     color_primary: Optional[str] = None
     color_secondary: Optional[str] = None
+    item_name: Optional[str] = None
+    show_progress: Optional[bool] = True
+    show_footer: Optional[bool] = False
 
 
 class EventUpdateRequest(BaseModel):
@@ -63,6 +66,9 @@ class EventUpdateRequest(BaseModel):
     logo_url: Optional[str] = None
     color_primary: Optional[str] = None
     color_secondary: Optional[str] = None
+    item_name: Optional[str] = None
+    show_progress: Optional[bool] = None
+    show_footer: Optional[bool] = None
 
 
 class EventAddEmailsRequest(BaseModel):

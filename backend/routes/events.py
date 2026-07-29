@@ -22,6 +22,9 @@ def create_event(data: EventCreateRequest):
         logo_url=data.logo_url,
         color_primary=data.color_primary,
         color_secondary=data.color_secondary,
+        item_name=data.item_name,
+        show_progress=data.show_progress if data.show_progress is not None else True,
+        show_footer=data.show_footer if data.show_footer is not None else False,
         created_at=datetime.utcnow()
     )
 
@@ -35,7 +38,10 @@ def create_event(data: EventCreateRequest):
         "name": event.name,
         "logo_url": event.logo_url,
         "color_primary": event.color_primary,
-        "color_secondary": event.color_secondary
+        "color_secondary": event.color_secondary,
+        "item_name": event.item_name,
+        "show_progress": event.show_progress,
+        "show_footer": event.show_footer
     }
 
 
@@ -51,6 +57,9 @@ def list_events():
             "logo_url": e.logo_url,
             "color_primary": e.color_primary,
             "color_secondary": e.color_secondary,
+            "item_name": e.item_name,
+            "show_progress": e.show_progress,
+            "show_footer": e.show_footer,
             "created_at": e.created_at
         }
         for e in events
@@ -81,6 +90,15 @@ def update_event(event_id: int, data: EventUpdateRequest):
 
     if data.color_secondary is not None:
         event.color_secondary = data.color_secondary
+
+    if data.item_name is not None:
+        event.item_name = data.item_name
+
+    if data.show_progress is not None:
+        event.show_progress = data.show_progress
+
+    if data.show_footer is not None:
+        event.show_footer = data.show_footer
 
     db.commit()
     db.close()

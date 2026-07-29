@@ -42,6 +42,10 @@ class Event(Base):
     logo_url = Column(String(500), nullable=True)
     color_primary = Column(String(20), nullable=True)
     color_secondary = Column(String(20), nullable=True)
+    # nome usado no lugar de "Curso" nos textos da plataforma (ex: "Módulo")
+    item_name = Column(String(50), nullable=True)
+    show_progress = Column(Boolean, default=True)
+    show_footer = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 

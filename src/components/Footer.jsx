@@ -26,7 +26,7 @@ function Footer() {
     <div style={wrapperStyle}>
       <span style={labelStyle}>Apoio</span>
       <img src="/footer-ccom.png" alt="CCOM" style={logoStyle} />
-      <img src="/footer-rnp.png" alt="RNP" style={logoStyle} />
+      <img src="/footer-nmi.png" alt="RNP" style={logoStyle} />
       <img src="/footer-unb.png" alt="UnB" style={logoStyle} />
     </div>
   )

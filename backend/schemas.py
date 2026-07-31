@@ -20,6 +20,7 @@ class CourseCreateRequest(BaseModel):
     course_code: str
     scorm_path: str
     event_id: Optional[int] = None
+    color_primary: Optional[str] = None
 
 
 class StudentCreateRequest(BaseModel):
@@ -36,6 +37,7 @@ class CourseUpdateRequest(BaseModel):
     title: Optional[str] = None
     active: Optional[bool] = None
     event_id: Optional[int] = None
+    color_primary: Optional[str] = None
 
 class ClassCreateRequest(BaseModel):
     name: str

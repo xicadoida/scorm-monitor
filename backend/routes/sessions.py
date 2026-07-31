@@ -50,9 +50,14 @@ def update_session(session_id: int, data: SessionUpdateRequest):
     if data.status is not None:
         session.status = data.status
 
-        if data.status in ["completed", "passed"]:
+        # O SCORM pode informar "completed" antes de o questionário ser
+        # corrigido. Somente aprovação encerra o acesso do aluno ao curso.
+        if data.status == "passed":
             session.completed = True
             session.completed_at = datetime.utcnow()
+        elif data.status == "failed":
+            session.completed = False
+            session.completed_at = None
 
     if data.session_time is not None:
         session.session_time = data.session_time
@@ -127,9 +132,14 @@ def get_progress(student_id: str, course_id: str):
             "total_session_time": ""
         }
 
-    latest_session = sessions[-1]
+    latest_session = max(
+        sessions,
+        key=lambda session: session.updated_at or session.started_at
+    )
 
-    completed = any(s.completed for s in sessions)
+    # "completed" histórico não pode vencer uma reprovação posterior.
+    # A aprovação é o único estado que libera o cartão como concluído.
+    completed = latest_session.status == "passed"
 
     result = {
         "suspend_data": latest_session.suspend_data,

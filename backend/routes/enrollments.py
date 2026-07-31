@@ -113,7 +113,8 @@ def get_student_courses(student_code: str):
             "title": c.title,
             "course_code": c.course_code,
             "scorm_path": c.scorm_path,
-            "active": c.active
+            "active": c.active,
+            "color_primary": c.color_primary
         }
         for c in courses
     ]

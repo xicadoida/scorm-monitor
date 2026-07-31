@@ -32,6 +32,8 @@ class Course(Base):
     # NULL = curso público (aparece pra todo mundo que não é de evento nenhum)
     # preenchido = curso só aparece pra alunos cujo email está na lista do evento
     event_id = Column(Integer, nullable=True, index=True)
+    # Cor usada nos elementos de ação do cartão deste curso.
+    color_primary = Column(String(20), nullable=True)
 
 
 class Event(Base):

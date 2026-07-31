@@ -66,7 +66,8 @@ async def upload_course(
     title: str = Form(...),
     course_code: str = Form(...),
     file: UploadFile = File(...),
-    event_id: Optional[int] = Form(None)
+    event_id: Optional[int] = Form(None),
+    color_primary: Optional[str] = Form(None)
 ):
     with tempfile.TemporaryDirectory() as tmp_dir:
         zip_path = os.path.join(tmp_dir, file.filename)
@@ -125,6 +126,7 @@ async def upload_course(
             scorm_path=scorm_path,
             active=True,
             event_id=event_id,
+            color_primary=color_primary,
             created_at=datetime.utcnow()
         )
 
@@ -139,6 +141,7 @@ async def upload_course(
             "course_code": course.course_code,
             "scorm_path": course.scorm_path,
             "event_id": course.event_id,
+            "color_primary": course.color_primary,
             "message": "Course uploaded successfully"
         }
 
@@ -153,6 +156,7 @@ def create_course(data: CourseCreateRequest):
         scorm_path=data.scorm_path,
         active=True,
         event_id=data.event_id,
+        color_primary=data.color_primary,
         created_at=datetime.utcnow()
     )
 
@@ -167,7 +171,8 @@ def create_course(data: CourseCreateRequest):
         "course_code": course.course_code,
         "scorm_path": course.scorm_path,
         "active": course.active,
-        "event_id": course.event_id
+        "event_id": course.event_id,
+        "color_primary": course.color_primary
     }
 
 
@@ -184,6 +189,7 @@ def list_courses():
             "scorm_path": c.scorm_path,
             "active": c.active,
             "event_id": c.event_id,
+            "color_primary": c.color_primary,
             "created_at": c.created_at
         }
         for c in courses
@@ -219,7 +225,8 @@ def list_public_courses(email: str):
             "course_code": c.course_code,
             "scorm_path": c.scorm_path,
             "active": c.active,
-            "event_id": c.event_id
+            "event_id": c.event_id,
+            "color_primary": c.color_primary
         }
         for c in courses
     ]
@@ -250,6 +257,9 @@ def update_course(course_code: str, data: CourseUpdateRequest):
         # manda 0 pra "desvincular do evento" (voltar a ser público)
         course.event_id = None if data.event_id == 0 else data.event_id
 
+    if data.color_primary is not None:
+        course.color_primary = data.color_primary
+
     db.commit()
     db.refresh(course)
     db.close()
@@ -261,7 +271,8 @@ def update_course(course_code: str, data: CourseUpdateRequest):
         "course_code": course.course_code,
         "scorm_path": course.scorm_path,
         "active": course.active,
-        "event_id": course.event_id
+        "event_id": course.event_id,
+        "color_primary": course.color_primary
     }
 
 

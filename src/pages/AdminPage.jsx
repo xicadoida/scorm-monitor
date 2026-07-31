@@ -17,7 +17,8 @@ function AdminPage({ API_URL, onBack }) {
     title: "",
     course_code: "",
     file: null,
-    event_id: ""
+    event_id: "",
+    color_primary: "#152A47"
   })
 
   const [enrollmentForm, setEnrollmentForm] = useState({
@@ -137,6 +138,10 @@ function AdminPage({ API_URL, onBack }) {
       formData.append("event_id", courseForm.event_id)
     }
 
+    if (courseForm.color_primary) {
+      formData.append("color_primary", courseForm.color_primary)
+    }
+
     const response = await fetch(`${API_URL}/courses/upload`, {
         method: "POST",
         body: formData
@@ -155,7 +160,8 @@ function AdminPage({ API_URL, onBack }) {
         title: "",
         course_code: "",
         file: null,
-        event_id: ""
+        event_id: "",
+        color_primary: "#152A47"
     })
 
     loadData()
@@ -499,6 +505,18 @@ function AdminPage({ API_URL, onBack }) {
               </option>
             ))}
           </select>
+
+          <label style={{ display: "block", marginBottom: "12px", color: "#374151" }}>
+            Cor principal do curso
+            <input
+              type="color"
+              value={courseForm.color_primary}
+              onChange={e =>
+                setCourseForm({ ...courseForm, color_primary: e.target.value })
+              }
+              style={{ display: "block", marginTop: "6px", height: "36px", width: "64px" }}
+            />
+          </label>
 
           <input
             type="file"

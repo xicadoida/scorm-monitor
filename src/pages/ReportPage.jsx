@@ -69,7 +69,7 @@ function ReportPage({ API_URL, onBack }) {
   const totalSessions = sessions.length
 
   const completedSessions = sessions.filter(
-    session => session.completed
+    session => session.status === "passed"
   ).length
 
   const inProgressSessions = sessions.filter(
@@ -90,7 +90,7 @@ function ReportPage({ API_URL, onBack }) {
 
       (
         statusFilter === "completed" &&
-        (session.status === "completed" || session.status === "passed")
+        session.status === "passed"
       ) ||
 
       (
@@ -101,6 +101,34 @@ function ReportPage({ API_URL, onBack }) {
     return matchesStudent && matchesCourse && matchesStatus
   
   })
+
+  function exportCompletedCSV() {
+    const completed = sessions.filter(
+      session => session.status === "passed"
+    )
+
+    const headers = ["Aluno", "Curso", "Status", "Tempo", "Início", "Conclusão"]
+    const escapeCsv = value => `"${String(value ?? "-").replaceAll('"', '""')}"`
+    const rows = completed.map(session => [
+      session.student_id,
+      session.course_id,
+      formatStatus(session.status),
+      formatSessionTime(session.session_time),
+      formatDate(session.started_at),
+      formatDate(session.completed_at)
+    ])
+    const blob = new Blob([[headers, ...rows].map(row => row.map(escapeCsv).join(",")).join("\r\n")], {
+      type: "text/csv;charset=utf-8;"
+    })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = "aprovados.csv"
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <div style={{
@@ -218,20 +246,6 @@ const inputStyle = {
   border: "1px solid #ddd"
 }
 
-function formatDate(dateString) {
-  if (!dateString) return "-"
-
-  const date = new Date(dateString)
-
-  return date.toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit"
-  })
-}
-
 function SummaryCard({ title, value }) {
   return (
     <div style={{
@@ -245,48 +259,4 @@ function SummaryCard({ title, value }) {
     </div>
   )
 }
-function exportCompletedCSV() {
-  const completed = sessions.filter(
-    session => session.completed || session.status === "completed" || session.status === "passed"
-  )
-
-  const headers = [
-    "Aluno",
-    "Curso",
-    "Status",
-    "Tempo",
-    "Início",
-    "Conclusão"
-  ]
-
-  const rows = completed.map(session => [
-    session.student_id,
-    session.course_id,
-    formatStatus(session.status),
-    formatSessionTime(session.session_time),
-    formatDate(session.started_at),
-    formatDate(session.completed_at)
-  ])
-
-  const csvContent = [
-    headers,
-    ...rows
-  ]
-    .map(row => row.map(value => `"${value || "-"}"`).join(","))
-    .join("\n")
-
-  const blob = new Blob([csvContent], {
-    type: "text/csv;charset=utf-8;"
-  })
-
-  const url = URL.createObjectURL(blob)
-
-  const link = document.createElement("a")
-  link.href = url
-  link.download = "concluidos.csv"
-  link.click()
-
-  URL.revokeObjectURL(url)
-}
-
 export default ReportPage

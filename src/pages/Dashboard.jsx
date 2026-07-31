@@ -40,18 +40,6 @@ function estimateProgress(progress) {
   return 0
 }
 
-function getAttendanceStatus(progress) {
-  if (progress?.completed) {
-    return { label: "Concluído", color: "#7CD992" }
-  }
-
-  if (progress?.sessions_count > 0) {
-    return { label: "Em andamento", color: "#F2B134" }
-  }
-
-  return { label: "Não iniciado", color: "#94A3B8" }
-}
-
 function formatHours(totalSessionTime) {
   if (!totalSessionTime) return "0h"
 
@@ -75,6 +63,8 @@ function Dashboard({
 }) {
   const [activeTab, setActiveTab] = useState("todos-cursos")
   const [progressData, setProgressData] = useState({})
+  const [attendance, setAttendance] = useState(null)
+  const [attendanceError, setAttendanceError] = useState("")
   const [search, setSearch] = useState("")
 
   const [publicCourses, setPublicCourses] = useState([])
@@ -130,6 +120,30 @@ function Dashboard({
 
     loadProgress()
   }, [courses, selectedStudent, API_URL])
+
+  useEffect(() => {
+    async function loadAttendance() {
+      if (!selectedStudent) return
+
+      setAttendanceError("")
+      try {
+        const response = await fetch(
+          `${API_URL}/attendance/students/${selectedStudent.student_code}`
+        )
+        const data = await response.json()
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || "Não foi possível carregar a frequência.")
+        }
+
+        setAttendance(data)
+      } catch (error) {
+        setAttendanceError(error.message)
+      }
+    }
+
+    loadAttendance()
+  }, [selectedStudent, API_URL])
 
   useEffect(() => {
     async function loadPublicCourses() {
@@ -312,6 +326,12 @@ function Dashboard({
 
     const isEnrolled = enrolledCodes.has(course.course_code)
     const isCompleted = Boolean(progress?.completed)
+    const status = isCompleted
+      ? "Concluído"
+      : progress?.sessions_count > 0
+        ? "Em andamento"
+        : "Não iniciado"
+    const actionColor = course.color_primary || event?.color_primary || "var(--lms-navy, #152A47)"
 
     let buttonLabel = "Inscrever"
     let buttonAction = () => handleEnroll(course)
@@ -319,12 +339,7 @@ function Dashboard({
     let buttonStyle = coursePillButton
 
     if (!isMeus) {
-      if (isCompleted) {
-        buttonLabel = "Concluído"
-        buttonAction = () => onOpenCourse(course)
-        buttonDisabled = false
-        buttonStyle = { ...coursePillButton, opacity: 0.7 }
-      } else if (isEnrolled) {
+      if (isEnrolled && !isCompleted) {
         buttonLabel = "Acessar"
         buttonAction = () => onOpenCourse(course)
         buttonDisabled = false
@@ -333,37 +348,43 @@ function Dashboard({
       }
     }
 
+    const actionButtonStyle = {
+      ...coursePillButton,
+      background: "#FFFFFF",
+      color: actionColor,
+      border: `1.5px solid ${actionColor}`
+    }
+
     return (
       <div key={course.course_code} style={courseCard}>
         <div style={courseCardHeader}>
-          <div>
-            <p style={courseCardTitle}>{course.title}</p>
-            {isMeus && showProgress && (
-              <p style={courseCardSubtitle}>
-                {formatHours(progress?.total_session_time)}
-              </p>
-            )}
-          </div>
+          <span style={{ ...courseCardSubtitle, fontWeight: "bold" }}>{status}</span>
 
-          {isMeus ? (
+          {isMeus && !isCompleted ? (
             <button
               type="button"
               onClick={() => onOpenCourse(course)}
-              style={coursePillButton}
+              style={actionButtonStyle}
             >
               Acessar
             </button>
-          ) : (
+          ) : !isMeus && !isCompleted ? (
             <button
               type="button"
               onClick={buttonAction}
               disabled={buttonDisabled}
-              style={buttonStyle}
+              style={isEnrolled ? actionButtonStyle : buttonStyle}
             >
               {buttonLabel}
             </button>
-          )}
+          ) : null}
         </div>
+
+        <p style={courseCardTitle}>{course.title}</p>
+
+        {isMeus && showProgress && (
+          <p style={courseCardSubtitle}>{formatHours(progress?.total_session_time)}</p>
+        )}
 
         {isMeus && showProgress && (
           <div style={progressWrapper}>
@@ -509,9 +530,24 @@ function Dashboard({
   }
 
   function renderConta() {
+    const attendanceStatuses = {
+      presente: { symbol: "✓", color: "#22B95E", background: "#E7F8ED" },
+      justificada: { symbol: "!", color: "#D88400", background: "#FFF5DF" },
+      falta: { symbol: "×", color: "#E34B4B", background: "#FDEBEB" },
+      a_realizar: { symbol: "·", color: "#9AA8BA", background: "#FFFFFF" }
+    }
+    const formatAttendanceDate = value => {
+      if (!value) return "—"
+      const [year, month, day] = value.split("-")
+      return year && month && day ? `${day}/${month}` : value
+    }
+
     return (
       <>
         <p style={sectionTitle}>Conta</p>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "32px", alignItems: "start" }}>
+        <div>
 
         <div style={accountCard}>
           <p style={{ margin: 0, fontWeight: "bold", fontSize: "16px" }}>
@@ -520,61 +556,6 @@ function Dashboard({
           <p style={{ margin: "4px 0 0 0", color: "#B9C2D0", fontSize: "14px" }}>
             {selectedStudent?.email}
           </p>
-        </div>
-
-        <p style={sectionTitle}>Frequência</p>
-
-        <div style={{ ...accountCard, maxWidth: "520px" }}>
-          {courses.length === 0 ? (
-            <p style={{ margin: 0, color: "#B9C2D0", fontSize: "14px" }}>
-              Você ainda não tem {itemPluralLower} atribuídos.
-            </p>
-          ) : (
-            courses.map(course => {
-              const status = getAttendanceStatus(
-                progressData[course.course_code]
-              )
-
-              return (
-                <div
-                  key={course.course_code}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "10px 0",
-                    borderBottom: "1px solid rgba(255,255,255,0.1)"
-                  }}
-                >
-                  <span style={{ color: "white", fontSize: "14px" }}>
-                    {course.title}
-                  </span>
-
-                  <span
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      fontSize: "13px",
-                      color: status.color,
-                      whiteSpace: "nowrap"
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: "8px",
-                        height: "8px",
-                        borderRadius: "999px",
-                        background: status.color,
-                        display: "inline-block"
-                      }}
-                    />
-                    {status.label}
-                  </span>
-                </div>
-              )
-            })
-          )}
         </div>
 
         <p style={sectionTitle}>Alterar senha</p>
@@ -670,6 +651,29 @@ function Dashboard({
             {deleting ? "Excluindo..." : "Excluir minha conta"}
           </button>
         </form>
+        </div>
+
+        <section style={{ background: "#FFFFFF", border: "1px solid #D9DEE7", borderRadius: "16px", overflow: "hidden", color: "#16465A", minWidth: 0 }}>
+          <div style={{ padding: "22px 28px 18px", borderBottom: "1px solid #E8ECF1" }}>
+            <p style={{ margin: 0, fontSize: "12px", letterSpacing: "1.6px", color: "#22B95E", fontWeight: "bold" }}>CARTEIRA DE FREQUÊNCIA</p>
+            <h2 style={{ margin: "6px 0 4px", fontSize: "26px", lineHeight: 1.1 }}>{attendance?.student?.name || selectedStudent?.name}</h2>
+            <p style={{ margin: 0, color: "#718096", fontSize: "13px" }}>{attendance?.student?.email || selectedStudent?.email}</p>
+          </div>
+
+          {attendanceError ? <p style={{ padding: "24px 28px", color: "#E34B4B", margin: 0 }}>{attendanceError}</p> : !attendance ? <p style={{ padding: "24px 28px", color: "#718096", margin: 0 }}>Carregando frequência...</p> : <>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(70px, 1fr))", gap: "14px", padding: "20px 28px", borderBottom: "1px solid #E8ECF1" }}>
+              {[[`${attendance.stats.frequencia ?? "—"}${attendance.stats.frequencia != null ? "%" : ""}`, "Frequência"], [attendance.stats.presencas, "Presenças"], [attendance.stats.faltas, "Faltas"], [attendance.stats.a_realizar, "A realizar"]].map(([value, label]) => <div key={label}><strong style={{ fontSize: "25px" }}>{value}</strong><span style={{ display: "block", marginTop: "4px", color: "#718096", textTransform: "uppercase", fontSize: "10px", letterSpacing: "1px" }}>{label}</span></div>)}
+            </div>
+            <div style={{ padding: "14px 28px 22px" }}>
+              {attendance.modules.length === 0 ? <p style={{ color: "#718096", margin: "8px 0" }}>Nenhuma chamada disponível ainda.</p> : attendance.modules.map((module, index) => <div key={module.id} style={{ display: "grid", gridTemplateColumns: "58px minmax(0, 1fr) 48px", gap: "14px", alignItems: "center", padding: "12px 0" }}>
+                <div><strong style={{ fontSize: "14px" }}>{module.name || `M${index + 1}`}</strong><span style={{ display: "block", color: "#718096", fontSize: "10px" }}>{module.parts.length} {module.parts.length === 1 ? "parte" : "partes"}</span></div>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>{module.parts.map(part => { const partStatus = attendanceStatuses[part.status] || attendanceStatuses.a_realizar; return <div key={part.id} title={part.label} style={{ width: "54px", minHeight: "42px", borderRadius: "8px", border: `1px solid ${partStatus.color}`, background: partStatus.background, color: partStatus.color, textAlign: "center", paddingTop: "3px", boxSizing: "border-box" }}><strong style={{ display: "block", lineHeight: 1 }}>{partStatus.symbol}</strong><span style={{ fontSize: "10px" }}>{formatAttendanceDate(part.date)}</span></div> })}</div>
+                <strong style={{ color: module.percent == null ? "#718096" : module.percent >= 75 ? "#22B95E" : "#E34B4B", textAlign: "right", fontSize: "12px" }}>{module.percent == null ? "—" : `${module.percent}%`}</strong>
+              </div>)}
+            </div>
+          </>}
+        </section>
+        </div>
       </>
     )
   }

@@ -17,6 +17,7 @@ from schemas import (
     AttendanceModulePartUpdateRequest,
     AttendanceRecordUpdateRequest
 )
+from event_utils import get_event_for_email
 
 router = APIRouter()
 
@@ -243,7 +244,7 @@ def _compute_stats(statuses):
 
 
 @router.get("/attendance/students/{student_code}")
-def get_student_attendance(student_code: str, event_id: int = None):
+def get_student_attendance(student_code: str):
     db = SessionLocal()
 
     student = db.query(Student).filter(
@@ -254,10 +255,15 @@ def get_student_attendance(student_code: str, event_id: int = None):
         db.close()
         return {"success": False, "message": "Aluno não encontrado."}
 
-    query = db.query(AttendanceModule)
+    student_event = get_event_for_email(db, student.email)
+    student_event_id = student_event["id"] if student_event else None
 
-    if event_id is not None:
-        query = query.filter(AttendanceModule.event_id == event_id)
+    # Aluno vê os módulos globais (sem evento) e, se for de um evento,
+    # também os módulos criados especificamente pra esse evento.
+    query = db.query(AttendanceModule).filter(
+        (AttendanceModule.event_id.is_(None)) |
+        (AttendanceModule.event_id == student_event_id)
+    )
 
     modules = query.order_by(AttendanceModule.position).all()
 

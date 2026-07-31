@@ -304,11 +304,11 @@ function App() {
           if (isStatus) {
             updateBackendSession(currentSessionId, {
               status: value,
-              completed: value === "completed" || value === "passed"
+              completed: value === "passed"
             })  
             updated.status = value
 
-            if (value === "completed" || value === "passed") {
+            if (value === "passed") {
               updated.completed = true
               updated.completedAt = new Date().toLocaleString()
               saveCompletion(value)

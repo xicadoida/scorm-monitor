@@ -40,6 +40,18 @@ function estimateProgress(progress) {
   return 0
 }
 
+function getAttendanceStatus(progress) {
+  if (progress?.completed) {
+    return { label: "Concluído", color: "#7CD992" }
+  }
+
+  if (progress?.sessions_count > 0) {
+    return { label: "Em andamento", color: "#F2B134" }
+  }
+
+  return { label: "Não iniciado", color: "#94A3B8" }
+}
+
 function formatHours(totalSessionTime) {
   if (!totalSessionTime) return "0h"
 
@@ -61,10 +73,9 @@ function Dashboard({
   event,
   reloadCourses
 }) {
-  const [activeTab, setActiveTab] = useState("meus-cursos")
+  const [activeTab, setActiveTab] = useState("todos-cursos")
   const [progressData, setProgressData] = useState({})
   const [search, setSearch] = useState("")
-  const [page, setPage] = useState(1)
 
   const [publicCourses, setPublicCourses] = useState([])
   const [publicSearch, setPublicSearch] = useState("")
@@ -78,6 +89,10 @@ function Dashboard({
   })
   const [passwordError, setPasswordError] = useState("")
   const [passwordSuccess, setPasswordSuccess] = useState("")
+
+  const [deletePassword, setDeletePassword] = useState("")
+  const [deleteError, setDeleteError] = useState("")
+  const [deleting, setDeleting] = useState(false)
 
   // Cada evento pode trocar "Curso" por outra palavra (ex: "Módulo").
   // Tudo abaixo deriva dessa única palavra, pra manter a gramática consistente
@@ -117,10 +132,6 @@ function Dashboard({
   }, [courses, selectedStudent, API_URL])
 
   useEffect(() => {
-    setPage(1)
-  }, [search, activeTab])
-
-  useEffect(() => {
     async function loadPublicCourses() {
       if (!selectedStudent || activeTab !== "todos-cursos") return
 
@@ -144,43 +155,46 @@ function Dashboard({
     [courses]
   )
 
-  // "Meus cursos" mostra só o que ainda não foi concluído.
-  // Cursos concluídos saem daqui e passam a aparecer só na aba Conta.
-  const activeCourses = useMemo(
-    () => courses.filter(
-      course => !progressData[course.course_code]?.completed
-    ),
-    [courses, progressData]
-  )
-
+  // "Meus cursos" agora mostra tudo, dividido em duas seções:
+  // o que ainda está em andamento e o que já foi concluído.
   const filteredCourses = useMemo(() => {
-    return activeCourses.filter(course =>
+    return courses.filter(course =>
       course.title.toLowerCase().includes(search.toLowerCase())
     )
-  }, [activeCourses, search])
+  }, [courses, search])
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredCourses.length / COURSES_PER_PAGE)
+  const inProgressCourses = useMemo(
+    () => filteredCourses.filter(
+      course => !progressData[course.course_code]?.completed
+    ),
+    [filteredCourses, progressData]
   )
 
-  const pageCourses = filteredCourses.slice(
-    (page - 1) * COURSES_PER_PAGE,
-    page * COURSES_PER_PAGE
+  const completedCourses = useMemo(
+    () => filteredCourses.filter(
+      course => progressData[course.course_code]?.completed
+    ),
+    [filteredCourses, progressData]
   )
 
-  const completedCourses = courses.filter(
-    course => progressData[course.course_code]?.completed
-  )
+  // "Todos cursos" agora mostra tudo, mas os já inscritos perdem prioridade
+  // na ordenação: primeiro o que ainda não tem acesso, depois o que já está
+  // em andamento, e por último o que já foi concluído.
+  function getPublicPriority(course) {
+    const progress = progressData[course.course_code]
 
-  // "Todos cursos" só mostra o que o aluno ainda não tem acesso
+    if (progress?.completed) return 2
+    if (enrolledCodes.has(course.course_code)) return 1
+    return 0
+  }
+
   const availablePublicCourses = useMemo(() => {
-    return publicCourses.filter(
-      course =>
-        !enrolledCodes.has(course.course_code) &&
+    return publicCourses
+      .filter(course =>
         course.title.toLowerCase().includes(publicSearch.toLowerCase())
-    )
-  }, [publicCourses, enrolledCodes, publicSearch])
+      )
+      .sort((a, b) => getPublicPriority(a) - getPublicPriority(b))
+  }, [publicCourses, publicSearch, enrolledCodes, progressData])
 
   const publicTotalPages = Math.max(
     1,
@@ -210,10 +224,6 @@ function Dashboard({
     }
 
     await reloadCourses()
-
-    setPublicCourses(prev =>
-      prev.filter(c => c.course_code !== course.course_code)
-    )
   }
 
   async function handleChangePassword(e) {
@@ -256,34 +266,86 @@ function Dashboard({
     })
   }
 
-  function renderCourseCard(course, { showEnroll } = {}) {
+  async function handleDeleteAccount(e) {
+    e.preventDefault()
+    setDeleteError("")
+
+    if (!deletePassword) {
+      setDeleteError("Digite sua senha pra confirmar.")
+      return
+    }
+
+    const confirmed = window.confirm(
+      "Tem certeza que quer excluir sua conta? Isso remove seu acesso a todos os cursos e não pode ser desfeito."
+    )
+
+    if (!confirmed) return
+
+    setDeleting(true)
+
+    const response = await fetch(
+      `${API_URL}/students/${selectedStudent.student_code}/delete-account`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: deletePassword })
+      }
+    )
+
+    const data = await response.json()
+
+    setDeleting(false)
+
+    if (!data.success) {
+      setDeleteError(data.message || "Não foi possível excluir a conta.")
+      return
+    }
+
+    localStorage.removeItem("loggedStudent")
+    onLogout()
+  }
+
+  function renderCourseCard(course, { context = "meus" } = {}) {
     const progress = progressData[course.course_code]
     const percent = estimateProgress(progress)
+    const isMeus = context === "meus"
+
+    const isEnrolled = enrolledCodes.has(course.course_code)
+    const isCompleted = Boolean(progress?.completed)
+
+    let buttonLabel = "Inscrever"
+    let buttonAction = () => handleEnroll(course)
+    let buttonDisabled = enrollingCode === course.course_code
+    let buttonStyle = coursePillButton
+
+    if (!isMeus) {
+      if (isCompleted) {
+        buttonLabel = "Concluído"
+        buttonAction = () => onOpenCourse(course)
+        buttonDisabled = false
+        buttonStyle = { ...coursePillButton, opacity: 0.7 }
+      } else if (isEnrolled) {
+        buttonLabel = "Acessar"
+        buttonAction = () => onOpenCourse(course)
+        buttonDisabled = false
+      } else if (enrollingCode === course.course_code) {
+        buttonLabel = "Inscrevendo..."
+      }
+    }
 
     return (
-      <div key={course.id} style={courseCard}>
+      <div key={course.course_code} style={courseCard}>
         <div style={courseCardHeader}>
           <div>
             <p style={courseCardTitle}>{course.title}</p>
-            {!showEnroll && showProgress && (
+            {isMeus && showProgress && (
               <p style={courseCardSubtitle}>
                 {formatHours(progress?.total_session_time)}
               </p>
             )}
           </div>
 
-          {showEnroll ? (
-            <button
-              type="button"
-              onClick={() => handleEnroll(course)}
-              disabled={enrollingCode === course.course_code}
-              style={coursePillButton}
-            >
-              {enrollingCode === course.course_code
-                ? "Inscrevendo..."
-                : "Inscrever"}
-            </button>
-          ) : (
+          {isMeus ? (
             <button
               type="button"
               onClick={() => onOpenCourse(course)}
@@ -291,10 +353,19 @@ function Dashboard({
             >
               Acessar
             </button>
+          ) : (
+            <button
+              type="button"
+              onClick={buttonAction}
+              disabled={buttonDisabled}
+              style={buttonStyle}
+            >
+              {buttonLabel}
+            </button>
           )}
         </div>
 
-        {!showEnroll && showProgress && (
+        {isMeus && showProgress && (
           <div style={progressWrapper}>
             <p style={progressPercentLabel}>{percent}%</p>
             <div style={progressTrack}>
@@ -366,17 +437,33 @@ function Dashboard({
           />
         </div>
 
-        <div style={courseGrid}>
-          {pageCourses.map(c => renderCourseCard(c))}
+        <p style={{ ...sectionTitle, fontSize: "15px" }}>
+          {itemPlural} em andamento
+        </p>
 
-          {filteredCourses.length === 0 && (
+        <div style={courseGrid}>
+          {inProgressCourses.map(c => renderCourseCard(c))}
+
+          {inProgressCourses.length === 0 && (
             <p style={emptyStateText}>
-              Nenhum {itemSingularLower} encontrado.
+              Nenhum {itemSingularLower} em andamento no momento.
             </p>
           )}
         </div>
 
-        {renderPagination(page, totalPages, setPage)}
+        <p style={{ ...sectionTitle, fontSize: "15px" }}>
+          {itemPlural} concluídos
+        </p>
+
+        <div style={courseGrid}>
+          {completedCourses.map(c => renderCourseCard(c))}
+
+          {completedCourses.length === 0 && (
+            <p style={emptyStateText}>
+              Nenhum {itemSingularLower} concluído ainda.
+            </p>
+          )}
+        </div>
       </>
     )
   }
@@ -407,11 +494,11 @@ function Dashboard({
         </div>
 
         <div style={courseGrid}>
-          {pagePublicCourses.map(c => renderCourseCard(c, { showEnroll: true }))}
+          {pagePublicCourses.map(c => renderCourseCard(c, { context: "todos" }))}
 
           {availablePublicCourses.length === 0 && (
             <p style={emptyStateText}>
-              Nenhum {itemSingularLower} disponível pra inscrição no momento.
+              Nenhum {itemSingularLower} encontrado.
             </p>
           )}
         </div>
@@ -433,6 +520,61 @@ function Dashboard({
           <p style={{ margin: "4px 0 0 0", color: "#B9C2D0", fontSize: "14px" }}>
             {selectedStudent?.email}
           </p>
+        </div>
+
+        <p style={sectionTitle}>Frequência</p>
+
+        <div style={{ ...accountCard, maxWidth: "520px" }}>
+          {courses.length === 0 ? (
+            <p style={{ margin: 0, color: "#B9C2D0", fontSize: "14px" }}>
+              Você ainda não tem {itemPluralLower} atribuídos.
+            </p>
+          ) : (
+            courses.map(course => {
+              const status = getAttendanceStatus(
+                progressData[course.course_code]
+              )
+
+              return (
+                <div
+                  key={course.course_code}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "10px 0",
+                    borderBottom: "1px solid rgba(255,255,255,0.1)"
+                  }}
+                >
+                  <span style={{ color: "white", fontSize: "14px" }}>
+                    {course.title}
+                  </span>
+
+                  <span
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      fontSize: "13px",
+                      color: status.color,
+                      whiteSpace: "nowrap"
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: "8px",
+                        height: "8px",
+                        borderRadius: "999px",
+                        background: status.color,
+                        display: "inline-block"
+                      }}
+                    />
+                    {status.label}
+                  </span>
+                </div>
+              )
+            })
+          )}
         </div>
 
         <p style={sectionTitle}>Alterar senha</p>
@@ -468,28 +610,66 @@ function Dashboard({
             onChange={e =>
               setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })
             }
-            style={{ ...input, marginBottom: passwordError || passwordSuccess ? "8px" : "8px" }}
+            style={{ ...input, marginBottom: "24px" }}
           />
 
-          {passwordError && <p style={errorMessage}>{passwordError}</p>}
-          {passwordSuccess && <p style={successMessage}>{passwordSuccess}</p>}
+          {(passwordError || passwordSuccess) && (
+            <div style={{ marginTop: "-12px", marginBottom: "16px" }}>
+              {passwordError && <p style={{ ...errorMessage, margin: 0 }}>{passwordError}</p>}
+              {passwordSuccess && <p style={{ ...successMessage, margin: 0 }}>{passwordSuccess}</p>}
+            </div>
+          )}
 
           <button type="submit" style={{ ...buttonOutline, alignSelf: "flex-start" }}>
             Trocar senha
           </button>
         </form>
 
-        <p style={sectionTitle}>{itemPlural} concluídos</p>
+        <p style={{ ...sectionTitle, color: "#FF6B6B" }}>Excluir conta</p>
 
-        <div style={courseGrid}>
-          {completedCourses.map(c => renderCourseCard(c))}
+        <form
+          onSubmit={handleDeleteAccount}
+          style={{
+            ...accountCard,
+            display: "flex",
+            flexDirection: "column",
+            border: "1px solid rgba(255,107,107,0.4)"
+          }}
+        >
+          <p style={{ margin: "0 0 12px 0", color: "#B9C2D0", fontSize: "13px" }}>
+            Isso remove sua conta e seu acesso a todos os {itemPluralLower} de
+            forma permanente. Não tem como desfazer.
+          </p>
 
-          {completedCourses.length === 0 && (
-            <p style={emptyStateText}>
-              Nenhum {itemSingularLower} concluído ainda.
-            </p>
-          )}
-        </div>
+          <input
+            type="password"
+            placeholder="Digite sua senha pra confirmar"
+            value={deletePassword}
+            onChange={e => setDeletePassword(e.target.value)}
+            style={{ ...input, marginBottom: "8px" }}
+          />
+
+          {deleteError && <p style={{ ...errorMessage, marginBottom: "8px" }}>{deleteError}</p>}
+
+          <button
+            type="submit"
+            disabled={deleting}
+            style={{
+              alignSelf: "flex-start",
+              padding: "12px 26px",
+              borderRadius: "999px",
+              border: "1.5px solid #FF6B6B",
+              background: "transparent",
+              color: "#FF6B6B",
+              fontWeight: "bold",
+              fontSize: "14px",
+              cursor: deleting ? "default" : "pointer",
+              opacity: deleting ? 0.6 : 1
+            }}
+          >
+            {deleting ? "Excluindo..." : "Excluir minha conta"}
+          </button>
+        </form>
       </>
     )
   }

@@ -243,9 +243,12 @@ function App() {
     if (!selectedCourse || !selectedStudent || currentPage !== "player") return
 
     let currentSessionId = null
+    let cancelled = false
 
     startBackendSession().then(id => {
-      currentSessionId = id
+      if (!cancelled) {
+        currentSessionId = id
+      }
     })
 
     const api = new Scorm12API({
@@ -333,6 +336,18 @@ function App() {
     if (iframe) {
       iframe.onload = () => {
         iframe.contentWindow.API = api
+      }
+    }
+
+    return () => {
+      cancelled = true
+
+      if (iframe) {
+        iframe.onload = null
+      }
+
+      if (window.API === api) {
+        window.API = undefined
       }
     }
   }, [studentId, selectedCourse, currentPage])

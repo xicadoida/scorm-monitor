@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Date
 from database import Base
 
 
@@ -93,3 +93,34 @@ class ClassStudent(Base):
     id = Column(Integer, primary_key=True, index=True)
     class_id = Column(Integer, index=True)
     student_code = Column(String(100), index=True)
+
+class AttendanceModule(Base):
+    __tablename__ = "attendance_modules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(50))
+    event_id = Column(Integer, nullable=True, index=True)
+    position = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class AttendanceModulePart(Base):
+    __tablename__ = "attendance_module_parts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    module_id = Column(Integer, index=True)
+    course_code = Column(String(100), nullable=True)
+    label = Column(String(255), nullable=True)
+    date = Column(Date, nullable=True)
+    position = Column(Integer, default=0)
+
+
+class AttendanceRecord(Base):
+    __tablename__ = "attendance_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_code = Column(String(100), index=True)
+    part_id = Column(Integer, index=True)
+    # presente | falta | justificada | a_realizar
+    status = Column(String(20), default="a_realizar")
+    updated_at = Column(DateTime, default=datetime.utcnow)

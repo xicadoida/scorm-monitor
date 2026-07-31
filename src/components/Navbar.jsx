@@ -7,8 +7,8 @@ import {
 } from '../styles/theme'
 
 const DEFAULT_TABS = [
-  { key: "meus-cursos", label: "Meus Cursos" },
   { key: "todos-cursos", label: "Todos os Cursos" },
+  { key: "meus-cursos", label: "Meus Cursos" },
   { key: "conta", label: "Conta" }
 ]
 

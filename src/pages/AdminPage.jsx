@@ -188,6 +188,27 @@ function AdminPage({ API_URL, onBack }) {
     loadData()
   }
 
+  async function deleteStudent(student) {
+    const confirmed = window.confirm(
+      `Tem certeza que quer excluir o aluno "${student.name}"? Isso remove o acesso dele a todos os cursos e não pode ser desfeito.`
+    )
+
+    if (!confirmed) return
+
+    const response = await fetch(`${API_URL}/students/${student.student_code}`, {
+      method: "DELETE"
+    })
+
+    const data = await response.json()
+
+    if (!data.success) {
+      alert(data.message || "Não foi possível excluir o aluno.")
+      return
+    }
+
+    loadData()
+  }
+
   async function updateCourseEvent(course, eventId) {
     await fetch(`${API_URL}/courses/${course.course_code}`, {
       method: "PUT",
@@ -899,6 +920,7 @@ function AdminPage({ API_URL, onBack }) {
                   <th style={th}>Código</th>
                   <th style={th}>Nome</th>
                   <th style={th}>Email</th>
+                  <th style={th}>Ações</th>
                 </tr>
               </thead>
 
@@ -908,6 +930,14 @@ function AdminPage({ API_URL, onBack }) {
                     <td style={td}>{student.student_code}</td>
                     <td style={td}>{student.name}</td>
                     <td style={td}>{student.email}</td>
+                    <td style={td}>
+                      <button
+                        onClick={() => deleteStudent(student)}
+                        style={{ color: "#b91c1c" }}
+                      >
+                        Excluir
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

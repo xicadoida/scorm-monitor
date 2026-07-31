@@ -51,6 +51,10 @@ class ChangePasswordRequest(BaseModel):
     new_password: str
 
 
+class DeleteAccountRequest(BaseModel):
+    password: str
+
+
 class EventCreateRequest(BaseModel):
     name: str
     logo_url: Optional[str] = None
@@ -73,3 +77,32 @@ class EventUpdateRequest(BaseModel):
 
 class EventAddEmailsRequest(BaseModel):
     emails: list[str]
+
+class AttendanceModuleCreateRequest(BaseModel):
+    name: str
+    event_id: Optional[int] = None
+    position: Optional[int] = 0
+
+
+class AttendanceModuleUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    event_id: Optional[int] = None
+    position: Optional[int] = None
+
+
+class AttendanceModulePartCreateRequest(BaseModel):
+    course_code: Optional[str] = None
+    label: Optional[str] = None
+    date: Optional[str] = None
+    position: Optional[int] = 0
+
+
+class AttendanceModulePartUpdateRequest(BaseModel):
+    course_code: Optional[str] = None
+    label: Optional[str] = None
+    date: Optional[str] = None
+    position: Optional[int] = None
+
+
+class AttendanceRecordUpdateRequest(BaseModel):
+    status: str

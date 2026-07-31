@@ -232,8 +232,10 @@ def _compute_stats(statuses):
     faltas = sum(1 for s in statuses if s == "falta")
     a_realizar = sum(1 for s in statuses if s == "a_realizar")
 
-    realizados = presentes + faltas
-    frequencia = round((presentes / realizados) * 100) if realizados > 0 else None
+    # Aulas ainda pendentes entram no total esperado, mas nunca como presença.
+    # Assim, 1 presença e 1 aula a realizar resultam em 50% de frequência.
+    total_partes = presentes + faltas + a_realizar
+    frequencia = round((presentes / total_partes) * 100) if total_partes > 0 else None
 
     return {
         "frequencia": frequencia,

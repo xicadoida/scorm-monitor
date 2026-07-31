@@ -6,6 +6,31 @@ function AdminPage({ API_URL, onBack }) {
   const [students, setStudents] = useState([])
   const [courses, setCourses] = useState([])
   const [events, setEvents] = useState([])
+  const [attendanceModules, setAttendanceModules] = useState([])
+  const [attendanceModuleForm, setAttendanceModuleForm] = useState({
+    name: "",
+    event_id: "",
+    position: ""
+  })
+  const [attendancePartForm, setAttendancePartForm] = useState({
+    module_id: "",
+    course_code: "",
+    label: "",
+    date: "",
+    position: ""
+  })
+  const [attendanceRecordForm, setAttendanceRecordForm] = useState({
+    email: "",
+    part_id: "",
+    status: "presente"
+  })
+  const [attendanceEventRecordForm, setAttendanceEventRecordForm] = useState({
+    event_id: "",
+    part_id: "",
+    status: "presente",
+    student_codes: []
+  })
+  const [attendanceEventStudents, setAttendanceEventStudents] = useState([])
 
   const [studentForm, setStudentForm] = useState({
     student_code: "",
@@ -59,10 +84,14 @@ function AdminPage({ API_URL, onBack }) {
     const eventsResponse = await fetch(`${API_URL}/events`)
     const eventsData = await eventsResponse.json()
 
+    const attendanceResponse = await fetch(`${API_URL}/attendance/modules`)
+    const attendanceData = await attendanceResponse.json()
+
     setClasses(classesData)
     setStudents(studentsData)
     setCourses(coursesData)
     setEvents(eventsData)
+    setAttendanceModules(attendanceData)
   }
 
   useEffect(() => {
@@ -104,6 +133,27 @@ function AdminPage({ API_URL, onBack }) {
 
     loadEventEmails()
   }, [selectedEventId, API_URL])
+
+  useEffect(() => {
+    async function loadAttendanceEventStudents() {
+      if (!attendanceEventRecordForm.event_id) {
+        setAttendanceEventStudents([])
+        return
+      }
+
+      const response = await fetch(
+        `${API_URL}/events/${attendanceEventRecordForm.event_id}/emails`
+      )
+      const emails = await response.json()
+      const allowedEmails = new Set(emails.map(item => item.email.toLowerCase()))
+
+      setAttendanceEventStudents(
+        students.filter(student => allowedEmails.has(student.email.toLowerCase()))
+      )
+    }
+
+    loadAttendanceEventStudents()
+  }, [attendanceEventRecordForm.event_id, students, API_URL])
 
   async function createStudent(e) {
     e.preventDefault()
@@ -393,12 +443,152 @@ function AdminPage({ API_URL, onBack }) {
     setEventEmails(prev => prev.filter(e => e.email !== email))
   }
 
+  async function createAttendanceModule(e) {
+    e.preventDefault()
+    if (!attendanceModuleForm.name.trim()) return
+
+    await fetch(`${API_URL}/attendance/modules`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: attendanceModuleForm.name.trim(),
+        event_id: attendanceModuleForm.event_id ? Number(attendanceModuleForm.event_id) : null,
+        position: Number(attendanceModuleForm.position) || 0
+      })
+    })
+
+    setAttendanceModuleForm({ name: "", event_id: "", position: "" })
+    loadData()
+  }
+
+  async function createAttendancePart(e) {
+    e.preventDefault()
+    if (!attendancePartForm.module_id) {
+      alert("Selecione o módulo da parte.")
+      return
+    }
+
+    await fetch(`${API_URL}/attendance/modules/${attendancePartForm.module_id}/parts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        course_code: attendancePartForm.course_code || null,
+        label: attendancePartForm.label.trim() || null,
+        date: attendancePartForm.date || null,
+        position: Number(attendancePartForm.position) || 0
+      })
+    })
+
+    setAttendancePartForm({ module_id: attendancePartForm.module_id, course_code: "", label: "", date: "", position: "" })
+    loadData()
+  }
+
+  async function editAttendanceModule(module) {
+    const name = prompt("Nome do módulo:", module.name)
+    if (!name?.trim()) return
+
+    await fetch(`${API_URL}/attendance/modules/${module.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name.trim() })
+    })
+    loadData()
+  }
+
+  async function deleteAttendanceModule(module) {
+    if (!window.confirm(`Excluir "${module.name}" e todas as suas partes?`)) return
+    await fetch(`${API_URL}/attendance/modules/${module.id}`, { method: "DELETE" })
+    loadData()
+  }
+
+  async function editAttendancePart(part) {
+    const label = prompt("Nome da parte:", part.label || "")
+    if (label === null) return
+    const date = prompt("Data (AAAA-MM-DD):", part.date || "")
+    if (date === null) return
+
+    await fetch(`${API_URL}/attendance/parts/${part.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ label: label.trim() || null, date: date || null })
+    })
+    loadData()
+  }
+
+  async function deleteAttendancePart(part) {
+    if (!window.confirm(`Excluir a parte "${part.label}"?`)) return
+    await fetch(`${API_URL}/attendance/parts/${part.id}`, { method: "DELETE" })
+    loadData()
+  }
+
+  async function setManualAttendance(e) {
+    e.preventDefault()
+    if (!attendanceRecordForm.email.trim() || !attendanceRecordForm.part_id) {
+      alert("Informe o e-mail do aluno e a parte da chamada.")
+      return
+    }
+
+    const student = students.find(
+      item => item.email.toLowerCase() === attendanceRecordForm.email.trim().toLowerCase()
+    )
+
+    if (!student) {
+      alert("Não encontramos um aluno cadastrado com esse e-mail.")
+      return
+    }
+
+    const response = await fetch(
+      `${API_URL}/attendance/students/${student.student_code}/parts/${attendanceRecordForm.part_id}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: attendanceRecordForm.status })
+      }
+    )
+    const data = await response.json()
+
+    if (!data.success) {
+      alert(data.message || "Não foi possível registrar a presença.")
+      return
+    }
+
+    alert("Presença registrada.")
+  }
+
+  async function setEventAttendance(e) {
+    e.preventDefault()
+    const { part_id, status, student_codes } = attendanceEventRecordForm
+    if (!part_id || student_codes.length === 0) {
+      alert("Selecione a parte e pelo menos um aluno do evento.")
+      return
+    }
+
+    const responses = await Promise.all(student_codes.map(studentCode =>
+      fetch(`${API_URL}/attendance/students/${studentCode}/parts/${part_id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status })
+      })
+    ))
+
+    if (responses.some(response => !response.ok)) {
+      alert("Algumas presenças não puderam ser registradas.")
+      return
+    }
+
+    alert(`Presença registrada para ${student_codes.length} aluno(s).`)
+  }
+
   function eventNameFor(eventId) {
     if (!eventId) return "Público"
 
     const event = events.find(e => e.id === eventId)
     return event ? event.name : "Público"
   }
+
+  const attendanceParts = attendanceModules.flatMap(module =>
+    module.parts.map(part => ({ ...part, moduleName: module.name }))
+  )
 
   return (
     <div style={{
@@ -534,6 +724,89 @@ function AdminPage({ API_URL, onBack }) {
             Criar curso
           </button>
         </form>
+      </div>
+
+      <div style={containerStyle}>
+        <h2>Chamada e frequência</h2>
+        <p style={{ color: "#64748b", marginTop: "-8px" }}>
+          Crie os módulos e as partes que aparecerão na carteira de frequência dos alunos.
+        </p>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "24px", alignItems: "start" }}>
+          <form onSubmit={createAttendanceModule} style={subsectionStyle}>
+            <h3 style={subsectionTitle}>Novo módulo</h3>
+            <input placeholder="Ex.: Módulo 1" value={attendanceModuleForm.name} onChange={e => setAttendanceModuleForm({ ...attendanceModuleForm, name: e.target.value })} style={inputStyle} />
+            <select value={attendanceModuleForm.event_id} onChange={e => setAttendanceModuleForm({ ...attendanceModuleForm, event_id: e.target.value })} style={inputStyle}>
+              <option value="">Disponível para todos</option>
+              {events.map(event => <option key={event.id} value={event.id}>Evento: {event.name}</option>)}
+            </select>
+            <input type="number" min="0" placeholder="Ordem (opcional)" value={attendanceModuleForm.position} onChange={e => setAttendanceModuleForm({ ...attendanceModuleForm, position: e.target.value })} style={inputStyle} />
+            <button type="submit" style={primaryButtonStyle}>Criar módulo</button>
+          </form>
+
+          <form onSubmit={createAttendancePart} style={subsectionStyle}>
+            <h3 style={subsectionTitle}>Nova parte / aula</h3>
+            <select value={attendancePartForm.module_id} onChange={e => setAttendancePartForm({ ...attendancePartForm, module_id: e.target.value })} style={inputStyle}>
+              <option value="">Selecione o módulo</option>
+              {attendanceModules.map(module => <option key={module.id} value={module.id}>{module.name}</option>)}
+            </select>
+            <select value={attendancePartForm.course_code} onChange={e => setAttendancePartForm({ ...attendancePartForm, course_code: e.target.value })} style={inputStyle}>
+              <option value="">Curso vinculado (opcional)</option>
+              {courses.map(course => <option key={course.id} value={course.course_code}>{course.title}</option>)}
+            </select>
+            <input placeholder="Nome da parte (ex.: Parte 1)" value={attendancePartForm.label} onChange={e => setAttendancePartForm({ ...attendancePartForm, label: e.target.value })} style={inputStyle} />
+            <input type="date" value={attendancePartForm.date} onChange={e => setAttendancePartForm({ ...attendancePartForm, date: e.target.value })} style={inputStyle} />
+            <input type="number" min="0" placeholder="Ordem (opcional)" value={attendancePartForm.position} onChange={e => setAttendancePartForm({ ...attendancePartForm, position: e.target.value })} style={inputStyle} />
+            <button type="submit" style={primaryButtonStyle}>Adicionar parte</button>
+          </form>
+        </div>
+
+        <h3 style={{ margin: "28px 0 12px", color: "#1e293b" }}>Registrar presença manualmente</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "24px", alignItems: "start" }}>
+          <form onSubmit={setManualAttendance} style={subsectionStyle}>
+            <h4 style={subsectionTitle}>Por e-mail</h4>
+            <input type="email" placeholder="E-mail do aluno" value={attendanceRecordForm.email} onChange={e => setAttendanceRecordForm({ ...attendanceRecordForm, email: e.target.value })} style={inputStyle} />
+            <select value={attendanceRecordForm.part_id} onChange={e => setAttendanceRecordForm({ ...attendanceRecordForm, part_id: e.target.value })} style={inputStyle}>
+              <option value="">Selecione a parte / aula</option>
+              {attendanceParts.map(part => <option key={part.id} value={part.id}>{part.moduleName} — {part.label || "Parte"} {part.date ? `(${part.date})` : ""}</option>)}
+            </select>
+            <select value={attendanceRecordForm.status} onChange={e => setAttendanceRecordForm({ ...attendanceRecordForm, status: e.target.value })} style={inputStyle}>
+              <option value="presente">Presente</option><option value="falta">Falta</option><option value="justificada">Falta justificada</option><option value="a_realizar">A realizar</option>
+            </select>
+            <button type="submit" style={primaryButtonStyle}>Registrar por e-mail</button>
+          </form>
+
+          <form onSubmit={setEventAttendance} style={subsectionStyle}>
+            <h4 style={subsectionTitle}>Por alunos do evento</h4>
+            <select value={attendanceEventRecordForm.event_id} onChange={e => setAttendanceEventRecordForm({ event_id: e.target.value, part_id: "", status: "presente", student_codes: [] })} style={inputStyle}>
+              <option value="">Selecione o evento</option>
+              {events.map(event => <option key={event.id} value={event.id}>{event.name}</option>)}
+            </select>
+            <select value={attendanceEventRecordForm.part_id} onChange={e => setAttendanceEventRecordForm({ ...attendanceEventRecordForm, part_id: e.target.value })} style={inputStyle}>
+              <option value="">Selecione a parte / aula</option>
+              {attendanceParts.filter(part => { const module = attendanceModules.find(item => item.id === part.module_id); return !module?.event_id || String(module.event_id) === attendanceEventRecordForm.event_id }).map(part => <option key={part.id} value={part.id}>{part.moduleName} — {part.label || "Parte"} {part.date ? `(${part.date})` : ""}</option>)}
+            </select>
+            <select value={attendanceEventRecordForm.status} onChange={e => setAttendanceEventRecordForm({ ...attendanceEventRecordForm, status: e.target.value })} style={inputStyle}>
+              <option value="presente">Presente</option><option value="falta">Falta</option><option value="justificada">Falta justificada</option><option value="a_realizar">A realizar</option>
+            </select>
+            {attendanceEventRecordForm.event_id && <div style={{ maxHeight: "180px", overflowY: "auto", marginBottom: "12px", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "8px" }}>
+              {attendanceEventStudents.length === 0 ? <span style={{ color: "#64748b", fontSize: "13px" }}>Nenhum aluno cadastrado para os e-mails deste evento.</span> : attendanceEventStudents.map(student => <label key={student.id} style={{ display: "block", padding: "5px" }}><input type="checkbox" checked={attendanceEventRecordForm.student_codes.includes(student.student_code)} onChange={e => setAttendanceEventRecordForm({ ...attendanceEventRecordForm, student_codes: e.target.checked ? [...attendanceEventRecordForm.student_codes, student.student_code] : attendanceEventRecordForm.student_codes.filter(code => code !== student.student_code) })} /> {student.name} <span style={{ color: "#64748b", fontSize: "12px" }}>({student.email})</span></label>)}
+            </div>}
+            <button type="submit" style={primaryButtonStyle}>Registrar selecionados</button>
+          </form>
+        </div>
+
+        <div style={{ marginTop: "24px" }}>
+          {attendanceModules.length === 0 ? <p style={{ color: "#64748b" }}>Nenhum módulo de chamada criado ainda.</p> : attendanceModules.map(module => (
+            <div key={module.id} style={{ borderTop: "1px solid #e2e8f0", padding: "16px 0" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                <div><strong>{module.name}</strong><span style={{ marginLeft: "8px", color: "#64748b", fontSize: "13px" }}>{eventNameFor(module.event_id)} · {module.parts.length} partes</span></div>
+                <div><button onClick={() => editAttendanceModule(module)}>Editar módulo</button><button onClick={() => deleteAttendanceModule(module)} style={dangerButtonStyle}>Excluir módulo</button></div>
+              </div>
+              {module.parts.length > 0 && <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "12px" }}>{module.parts.map(part => <div key={part.id} style={{ padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "13px" }}><strong>{part.label}</strong>{part.date && <span style={{ color: "#64748b" }}> · {part.date}</span>}<button onClick={() => editAttendancePart(part)} style={{ marginLeft: "8px" }}>Editar</button><button onClick={() => deleteAttendancePart(part)} style={dangerButtonStyle}>×</button></div>)}</div>}
+            </div>
+          ))}
+        </div>
       </div>
 
       <div style={containerStyle}>
@@ -1073,8 +1346,32 @@ const containerStyle = {
 const inputStyle = {
   width: "100%",
   padding: "10px",
-  marginBottom: "12px"
+  marginBottom: "12px",
+  borderRadius: "8px",
+  border: "1px solid #cbd5e1",
+  boxSizing: "border-box"
 }
+
+const subsectionStyle = {
+  background: "#f8fafc",
+  border: "1px solid #e2e8f0",
+  borderRadius: "12px",
+  padding: "18px"
+}
+
+const subsectionTitle = { marginTop: 0, fontSize: "16px", color: "#1e293b" }
+
+const primaryButtonStyle = {
+  background: "#152A47",
+  color: "#fff",
+  border: "none",
+  borderRadius: "8px",
+  padding: "10px 14px",
+  cursor: "pointer",
+  fontWeight: "bold"
+}
+
+const dangerButtonStyle = { marginLeft: "8px", color: "#b91c1c" }
 const tableStyle = {
   width: "100%",
   borderCollapse: "collapse"

@@ -331,7 +331,6 @@ function Dashboard({
       : progress?.sessions_count > 0
         ? "Em andamento"
         : "Não iniciado"
-    const actionColor = course.color_primary || event?.color_primary || "var(--lms-navy, #152A47)"
 
     let buttonLabel = "Inscrever"
     let buttonAction = () => handleEnroll(course)
@@ -348,23 +347,16 @@ function Dashboard({
       }
     }
 
-    const actionButtonStyle = {
-      ...coursePillButton,
-      background: "#FFFFFF",
-      color: actionColor,
-      border: `1.5px solid ${actionColor}`
-    }
-
     return (
       <div key={course.course_code} style={courseCard}>
         <div style={courseCardHeader}>
-          <span style={{ ...courseCardSubtitle, fontWeight: "bold" }}>{status}</span>
+          <span style={{ ...courseCardSubtitle, color: "#FFFFFF", fontWeight: "bold" }}>{status}</span>
 
           {isMeus && !isCompleted ? (
             <button
               type="button"
               onClick={() => onOpenCourse(course)}
-              style={actionButtonStyle}
+              style={coursePillButton}
             >
               Acessar
             </button>
@@ -373,7 +365,7 @@ function Dashboard({
               type="button"
               onClick={buttonAction}
               disabled={buttonDisabled}
-              style={isEnrolled ? actionButtonStyle : buttonStyle}
+              style={buttonStyle}
             >
               {buttonLabel}
             </button>
@@ -661,13 +653,13 @@ function Dashboard({
           </div>
 
           {attendanceError ? <p style={{ padding: "24px 28px", color: "#E34B4B", margin: 0 }}>{attendanceError}</p> : !attendance ? <p style={{ padding: "24px 28px", color: "#718096", margin: 0 }}>Carregando frequência...</p> : <>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(70px, 1fr))", gap: "14px", padding: "20px 28px", borderBottom: "1px solid #E8ECF1" }}>
-              {[[`${attendance.stats.frequencia ?? "—"}${attendance.stats.frequencia != null ? "%" : ""}`, "Frequência"], [attendance.stats.presencas, "Presenças"], [attendance.stats.faltas, "Faltas"], [attendance.stats.a_realizar, "A realizar"]].map(([value, label]) => <div key={label}><strong style={{ fontSize: "25px" }}>{value}</strong><span style={{ display: "block", marginTop: "4px", color: "#718096", textTransform: "uppercase", fontSize: "10px", letterSpacing: "1px" }}>{label}</span></div>)}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(70px, 1fr))", gap: "14px", padding: "20px 28px", borderBottom: "1px solid #E8ECF1" }}>
+              {[[`${attendance.stats.frequencia ?? "—"}${attendance.stats.frequencia != null ? "%" : ""}`, "Frequência"], [attendance.stats.presencas, "Presenças"], [attendance.stats.a_realizar, "A realizar"]].map(([value, label]) => <div key={label}><strong style={{ fontSize: "25px" }}>{value}</strong><span style={{ display: "block", marginTop: "4px", color: "#718096", textTransform: "uppercase", fontSize: "10px", letterSpacing: "1px" }}>{label}</span></div>)}
             </div>
             <div style={{ padding: "14px 28px 22px" }}>
-              {attendance.modules.length === 0 ? <p style={{ color: "#718096", margin: "8px 0" }}>Nenhuma chamada disponível ainda.</p> : attendance.modules.map((module, index) => <div key={module.id} style={{ display: "grid", gridTemplateColumns: "58px minmax(0, 1fr) 48px", gap: "14px", alignItems: "center", padding: "12px 0" }}>
-                <div><strong style={{ fontSize: "14px" }}>{module.name || `M${index + 1}`}</strong><span style={{ display: "block", color: "#718096", fontSize: "10px" }}>{module.parts.length} {module.parts.length === 1 ? "parte" : "partes"}</span></div>
-                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>{module.parts.map(part => { const partStatus = attendanceStatuses[part.status] || attendanceStatuses.a_realizar; return <div key={part.id} title={part.label} style={{ width: "54px", minHeight: "42px", borderRadius: "8px", border: `1px solid ${partStatus.color}`, background: partStatus.background, color: partStatus.color, textAlign: "center", paddingTop: "3px", boxSizing: "border-box" }}><strong style={{ display: "block", lineHeight: 1 }}>{partStatus.symbol}</strong><span style={{ fontSize: "10px" }}>{formatAttendanceDate(part.date)}</span></div> })}</div>
+              {attendance.modules.length === 0 ? <p style={{ color: "#718096", margin: "8px 0" }}>Nenhuma chamada disponível ainda.</p> : attendance.modules.map((module, index) => <div key={module.id} style={{ display: "grid", gridTemplateColumns: "92px minmax(0, 1fr) 48px", gap: "14px", alignItems: "center", padding: "12px 0" }}>
+                <div><strong style={{ fontSize: "14px" }}>{module.name || `M${index + 1}`}</strong></div>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>{module.parts.map((part, partIndex) => { const partStatus = attendanceStatuses[part.status] || attendanceStatuses.a_realizar; return <div key={part.id} title={part.label} style={{ width: "82px", minHeight: "46px", borderRadius: "8px", border: `1px solid ${partStatus.color}`, background: partStatus.background, color: partStatus.color, textAlign: "center", paddingTop: "5px", boxSizing: "border-box" }}><strong style={{ display: "block", lineHeight: 1, fontSize: "11px" }}>{`Parte ${partIndex + 1}`}</strong><span style={{ fontSize: "10px" }}>{formatAttendanceDate(part.date)}</span></div> })}</div>
                 <strong style={{ color: module.percent == null ? "#718096" : module.percent >= 75 ? "#22B95E" : "#E34B4B", textAlign: "right", fontSize: "12px" }}>{module.percent == null ? "—" : `${module.percent}%`}</strong>
               </div>)}
             </div>

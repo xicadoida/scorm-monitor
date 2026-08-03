@@ -139,7 +139,9 @@ def get_progress(student_id: str, course_id: str):
 
     # "completed" histórico não pode vencer uma reprovação posterior.
     # A aprovação é o único estado que libera o cartão como concluído.
-    completed = latest_session.status == "passed"
+    # Uma aprovação anterior permanece válida quando o aluno reabre o curso
+    # para revisar ou inicia uma nova tentativa.
+    completed = any(session.status == "passed" for session in sessions)
 
     result = {
         "suspend_data": latest_session.suspend_data,

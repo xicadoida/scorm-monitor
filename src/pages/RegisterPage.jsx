@@ -68,8 +68,6 @@ function RegisterPage({ API_URL, onBackToLogin, event }) {
           style={logo}
         />
 
-        {event && <p style={{ color: "white", textAlign: "center", margin: "-8px 0 20px" }}>{event.name}</p>}
-
         <input
           placeholder="Nome completo"
           value={form.name}

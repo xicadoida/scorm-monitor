@@ -57,8 +57,6 @@ function LoginPage({ API_URL, onLogin, onGoToRegister, event }) {
           style={logo}
         />
 
-        {event && <p style={{ color: "white", textAlign: "center", margin: "-8px 0 20px" }}>{event.name}</p>}
-
         <input
           value={email}
           onChange={e => setEmail(e.target.value)}

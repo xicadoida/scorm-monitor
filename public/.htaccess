@@ -2,6 +2,9 @@
   RewriteEngine On
   RewriteBase /
 
+  # Pacotes SCORM têm seu próprio index e nunca devem cair no React.
+  RewriteRule ^scorm(/|$) - [L]
+
   # Não reescreve arquivos ou pastas que realmente existem (JS, CSS, imagens, /scorm/...)
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d

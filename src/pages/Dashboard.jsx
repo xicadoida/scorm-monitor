@@ -338,7 +338,7 @@ function Dashboard({
     let buttonStyle = coursePillButton
 
     if (!isMeus) {
-      if (isEnrolled && !isCompleted) {
+      if (isEnrolled) {
         buttonLabel = "Acessar"
         buttonAction = () => onOpenCourse(course)
         buttonDisabled = false
@@ -352,7 +352,7 @@ function Dashboard({
         <div style={courseCardHeader}>
           <span style={{ ...courseCardSubtitle, color: "#FFFFFF", fontWeight: "bold" }}>{status}</span>
 
-          {isMeus && !isCompleted ? (
+          {isMeus ? (
             <button
               type="button"
               onClick={() => onOpenCourse(course)}
@@ -360,7 +360,7 @@ function Dashboard({
             >
               Acessar
             </button>
-          ) : !isMeus && !isCompleted ? (
+          ) : !isMeus ? (
             <button
               type="button"
               onClick={buttonAction}

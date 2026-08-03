@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Scorm12API } from 'scorm-again'
+import { Scorm12API, Scorm2004API } from 'scorm-again'
 import Dashboard from './pages/Dashboard'
 import ReportPage from './pages/ReportPage'
 import LoginPage from './pages/LoginPage'
@@ -265,14 +265,36 @@ function App() {
 
     let currentSessionId = null
     let cancelled = false
+    let pendingSessionUpdate = {}
+
+    // O SCORM pode iniciar e devolver o resultado antes da resposta do
+    // endpoint /sessions/start. Guardamos esses dados para não perder
+    // aprovação, reprovação ou progresso nesse intervalo.
+    const sendSessionUpdate = (payload) => {
+      if (currentSessionId) {
+        updateBackendSession(currentSessionId, payload)
+      } else {
+        pendingSessionUpdate = { ...pendingSessionUpdate, ...payload }
+      }
+    }
 
     startBackendSession().then(id => {
       if (!cancelled) {
         currentSessionId = id
+        if (Object.keys(pendingSessionUpdate).length > 0) {
+          updateBackendSession(id, pendingSessionUpdate)
+          pendingSessionUpdate = {}
+        }
       }
     })
 
     const api = new Scorm12API({
+      autocommit: true,
+      logLevel: 1
+    })
+    // Os cursos antigos usam SCORM 1.2; os novos, com quiz, usam SCORM 2004.
+    // Os dois objetos precisam estar disponíveis para o pacote identificar a API certa.
+    const api2004 = new Scorm2004API({
       autocommit: true,
       logLevel: 1
     })
@@ -302,7 +324,7 @@ function App() {
         console.log("SCORM PROGRESS:", key, value)
       }
       if (key.includes("suspend_data")) {
-        updateBackendSession(currentSessionId, {
+        sendSessionUpdate({
           suspend_data: value
         })
       }
@@ -311,7 +333,7 @@ function App() {
         key.includes("lesson_location") ||
         key.includes("location")
       ) {
-        updateBackendSession(currentSessionId, {
+        sendSessionUpdate({
           lesson_location: value
         })
       }
@@ -323,7 +345,7 @@ function App() {
           const updated = { ...prev }
 
           if (isStatus) {
-            updateBackendSession(currentSessionId, {
+            sendSessionUpdate({
               status: value,
               completed: value === "passed"
             })  
@@ -337,7 +359,7 @@ function App() {
           }
 
           if (isSessionTime) {
-            updateBackendSession(currentSessionId, {
+            sendSessionUpdate({
             session_time: value
           })  
             updated.sessionTime = value
@@ -350,13 +372,68 @@ function App() {
       return originalSetValue(key, value)
     }
 
+    const originalGetValue2004 = api2004.GetValue.bind(api2004)
+    const originalSetValue2004 = api2004.SetValue.bind(api2004)
+
+    api2004.GetValue = function(key) {
+      if (key === "cmi.suspend_data") {
+        return savedProgressRef.current.suspend_data || originalGetValue2004(key)
+      }
+
+      if (key === "cmi.location") {
+        return savedProgressRef.current.lesson_location || originalGetValue2004(key)
+      }
+
+      return originalGetValue2004(key)
+    }
+
+    api2004.SetValue = function(key, value) {
+      if (key === "cmi.suspend_data") {
+        sendSessionUpdate({ suspend_data: value })
+      }
+
+      if (key === "cmi.location") {
+        sendSessionUpdate({ lesson_location: value })
+      }
+
+      // No SCORM 2004, aprovado/reprovado fica em success_status;
+      // completion_status sozinho não representa o resultado do quiz.
+      if (key === "cmi.success_status") {
+        console.info("[SCORM 2004] Resultado do quiz:", value)
+        sendSessionUpdate({
+          status: value,
+          completed: value === "passed"
+        })
+
+        setTrackingData(prev => ({
+          ...prev,
+          status: value,
+          completed: value === "passed",
+          ...(value === "passed" ? { completedAt: new Date().toLocaleString() } : {})
+        }))
+
+        if (value === "passed") {
+          saveCompletion(value)
+        }
+      }
+
+      if (key === "cmi.session_time") {
+        sendSessionUpdate({ session_time: value })
+        setTrackingData(prev => ({ ...prev, sessionTime: value }))
+      }
+
+      return originalSetValue2004(key, value)
+    }
+
     window.API = api
+    window.API_1484_11 = api2004
 
     const iframe = iframeRef.current
 
     if (iframe) {
       iframe.onload = () => {
         iframe.contentWindow.API = api
+        iframe.contentWindow.API_1484_11 = api2004
       }
     }
 
@@ -369,6 +446,9 @@ function App() {
 
       if (window.API === api) {
         window.API = undefined
+      }
+      if (window.API_1484_11 === api2004) {
+        window.API_1484_11 = undefined
       }
     }
   }, [studentId, selectedCourse, currentPage])

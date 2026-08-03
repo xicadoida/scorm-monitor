@@ -712,19 +712,40 @@ function AdminPage({ API_URL, onBack }) {
   )
 
   return (
-    <div style={{
+    <div className="admin-page" style={{
       minHeight: "100vh",
       background: "#f4f6fb",
-      padding: "32px",
+      padding: "28px 20px 48px",
       fontFamily: "Arial"
     }}>
-      <button onClick={onBack}>
-        Voltar
-      </button>
+      <style>{`
+        .admin-page * { box-sizing: border-box; }
+        .admin-page button { background: #152A47; color: #fff; border: 0; border-radius: 8px; padding: 10px 14px; font-weight: 700; cursor: pointer; }
+        .admin-page button:hover { filter: brightness(1.12); }
+        .admin-page button:disabled { opacity: .55; cursor: not-allowed; }
+        .admin-page table { min-width: 620px; }
+        .admin-page .admin-table-wrap { overflow-x: auto; }
+        .admin-page h2 { color: #152A47; margin: 0 0 7px; font-size: 21px; }
+        .admin-page h3 { color: #1e293b; }
+        .admin-page a.admin-nav-link { color: #334155; text-decoration: none; background: #fff; border: 1px solid #dbe4ef; padding: 9px 12px; border-radius: 999px; font-size: 14px; font-weight: 700; }
+        .admin-page a.admin-nav-link:hover { color: #fff; background: #152A47; border-color: #152A47; }
+      `}</style>
+      <main style={{ maxWidth: "1240px", margin: "0 auto" }}>
+      <header style={{ background: "linear-gradient(120deg, #152A47, #23466e)", color: "#fff", borderRadius: "18px", padding: "24px", marginBottom: "16px", boxShadow: "0 10px 24px rgba(21,42,71,.18)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+          <div><span style={{ fontSize: "12px", fontWeight: 700, letterSpacing: "1.2px", opacity: .75 }}>GESTÃO DA PLATAFORMA</span><h1 style={{ margin: "5px 0 0", fontSize: "28px" }}>Painel Administrativo</h1><p style={{ margin: "7px 0 0", opacity: .82 }}>Cadastre, organize e acompanhe alunos, cursos, eventos e presença.</p></div>
+          <button onClick={onBack} style={{ background: "#fff", color: "#152A47" }}>← Voltar ao painel</button>
+        </div>
+      </header>
+      <nav style={{ display: "flex", gap: "8px", flexWrap: "wrap", margin: "0 0 20px" }}>
+        <a className="admin-nav-link" href="#alunos">Alunos</a><a className="admin-nav-link" href="#cursos">Cursos</a><a className="admin-nav-link" href="#frequencia">Frequência</a><a className="admin-nav-link" href="#eventos">Eventos</a><a className="admin-nav-link" href="#turmas">Turmas e matrículas</a><a className="admin-nav-link" href="#cadastros">Listas cadastradas</a>
+      </nav>
 
-      <h1>Painel Administrativo</h1>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "12px", marginBottom: "-4px" }}>
+        {[['Alunos', students.length], ['Cursos', courses.length], ['Eventos', events.length], ['Módulos de presença', attendanceModules.length]].map(([label, value]) => <div key={label} style={{ background: "#e9f0f8", borderRadius: "12px", padding: "14px 16px", border: "1px solid #d7e2ee" }}><strong style={{ display: "block", color: "#152A47", fontSize: "24px" }}>{value}</strong><span style={{ color: "#526579", fontSize: "13px" }}>{label}</span></div>)}
+      </div>
 
-      <div style={containerStyle}>
+      <div id="alunos" style={containerStyle}>
         <h2>Cadastrar aluno</h2>
 
         <form onSubmit={createStudent}>
@@ -847,7 +868,7 @@ function AdminPage({ API_URL, onBack }) {
         </form>
       </div>
 
-      <div style={containerStyle}>
+      <div id="cursos" style={containerStyle}>
         <h2>Chamada e frequência</h2>
         <p style={{ color: "#64748b", marginTop: "-8px" }}>
           Crie os módulos e as partes que aparecerão na carteira de frequência dos alunos.
@@ -945,7 +966,7 @@ function AdminPage({ API_URL, onBack }) {
         </div>
       </div>
 
-      <div style={containerStyle}>
+      <div id="frequencia" style={containerStyle}>
         <h2>Eventos</h2>
         <p style={{ color: "#666", marginTop: "-8px" }}>
           Alunos com o email cadastrado num evento veem uma logo/cor diferente
@@ -1160,7 +1181,7 @@ function AdminPage({ API_URL, onBack }) {
         )}
       </div>
 
-      <div style={containerStyle}>
+      <div id="eventos" style={containerStyle}>
         <h2>Criar turma</h2>
 
         <form onSubmit={createClass}>
@@ -1182,7 +1203,7 @@ function AdminPage({ API_URL, onBack }) {
         </form>
       </div>
 
-      <div style={containerStyle}>
+      <div id="turmas" style={containerStyle}>
         <h2>Adicionar alunos à turma</h2>
 
         <form onSubmit={addStudentsToClass}>
@@ -1365,7 +1386,8 @@ function AdminPage({ API_URL, onBack }) {
             Matricular
           </button>
         </form>
-        <div style={containerStyle}>
+      </div>
+        <div id="cadastros" style={containerStyle}>
           <h2>Alunos cadastrados</h2>
 
           {students.length === 0 ? (
@@ -1495,7 +1517,7 @@ function AdminPage({ API_URL, onBack }) {
             </table>
           )}
         </div>
-      </div>
+    </main>
     </div>
     
   )

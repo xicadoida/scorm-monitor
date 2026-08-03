@@ -11,7 +11,7 @@ import {
   errorMessage
 } from '../styles/theme'
 
-function LoginPage({ API_URL, onLogin, onGoToRegister }) {
+function LoginPage({ API_URL, onLogin, onGoToRegister, event }) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
@@ -43,14 +43,21 @@ function LoginPage({ API_URL, onLogin, onGoToRegister }) {
     onLogin(data.student)
   }
 
+  const theme = event ? {
+    "--lms-login-primary": event.color_primary || "#152A47",
+    "--lms-login-secondary": event.color_secondary || "#EF4923"
+  } : {}
+
   return (
-    <div style={pageWrapper}>
-      <form onSubmit={handleLogin} style={card}>
+    <div style={{ ...pageWrapper, ...theme }}>
+      <form onSubmit={handleLogin} style={{ ...card, background: "var(--lms-login-primary, #152A47)" }}>
         <img
-          src="/logo-iaclube.png"
-          alt="iaclube.help - IA para todos"
+          src={event?.logo_url || "/logo-iaclube.png"}
+          alt={event ? event.name : "iaclube.help - IA para todos"}
           style={logo}
         />
+
+        {event && <p style={{ color: "white", textAlign: "center", margin: "-8px 0 20px" }}>{event.name}</p>}
 
         <input
           value={email}
@@ -82,7 +89,7 @@ function LoginPage({ API_URL, onLogin, onGoToRegister }) {
             Criar conta
           </button>
 
-          <button type="submit" style={buttonPrimary}>
+          <button type="submit" style={{ ...buttonPrimary, background: "var(--lms-login-secondary, #EF4923)" }}>
             Entrar
           </button>
         </div>

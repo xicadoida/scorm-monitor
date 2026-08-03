@@ -42,6 +42,7 @@ class Event(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255))
     logo_url = Column(String(500), nullable=True)
+    slug = Column(String(100), unique=True, nullable=True, index=True)
     color_primary = Column(String(20), nullable=True)
     color_secondary = Column(String(20), nullable=True)
     # nome usado no lugar de "Curso" nos textos da plataforma (ex: "Módulo")

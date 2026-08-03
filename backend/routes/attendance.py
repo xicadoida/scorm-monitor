@@ -8,6 +8,7 @@ from models import (
     AttendanceModulePart,
     AttendanceRecord,
     Course,
+    EventEmail,
     Student
 )
 from schemas import (
@@ -356,3 +357,88 @@ def set_attendance_status(
     db.close()
 
     return {"success": True}
+
+
+@router.get("/attendance/reports")
+def get_attendance_report(
+    event_id: int = None,
+    start_date: str = None,
+    end_date: str = None
+):
+    """Relatório consolidado de presença para alunos e partes de um período."""
+    db = SessionLocal()
+    start = _parse_date(start_date)
+    end = _parse_date(end_date)
+
+    students_query = db.query(Student)
+    if event_id is not None:
+        event_emails = [
+            entry.email.lower() for entry in db.query(EventEmail).filter(
+                EventEmail.event_id == event_id
+            ).all()
+        ]
+        students = [
+            student for student in students_query.all()
+            if student.email.lower() in event_emails
+        ]
+    else:
+        students = students_query.all()
+
+    modules_query = db.query(AttendanceModule)
+    if event_id is not None:
+        modules_query = modules_query.filter(
+            (AttendanceModule.event_id.is_(None)) |
+            (AttendanceModule.event_id == event_id)
+        )
+    modules = modules_query.order_by(AttendanceModule.position).all()
+
+    report_parts = []
+    for module in modules:
+        parts = db.query(AttendanceModulePart).filter(
+            AttendanceModulePart.module_id == module.id
+        ).order_by(AttendanceModulePart.position).all()
+        for part in parts:
+            if start and part.date and part.date < start:
+                continue
+            if end and part.date and part.date > end:
+                continue
+            report_parts.append((module, part))
+
+    student_codes = [student.student_code for student in students]
+    part_ids = [part.id for _, part in report_parts]
+    records = db.query(AttendanceRecord).filter(
+        AttendanceRecord.student_code.in_(student_codes),
+        AttendanceRecord.part_id.in_(part_ids)
+    ).all() if student_codes and part_ids else []
+    statuses = {(record.student_code, record.part_id): record.status for record in records}
+
+    rows = []
+    for student in students:
+        row_statuses = [statuses.get((student.student_code, part.id), "a_realizar") for _, part in report_parts]
+        rows.append({
+            "student_code": student.student_code,
+            "name": student.name,
+            "email": student.email,
+            "stats": _compute_stats(row_statuses),
+            "attendance": [
+                {
+                    "module": module.name,
+                    "part_id": part.id,
+                    "label": part.label,
+                    "date": part.date.isoformat() if part.date else None,
+                    "status": statuses.get((student.student_code, part.id), "a_realizar")
+                }
+                for module, part in report_parts
+            ]
+        })
+
+    db.close()
+    return {
+        "success": True,
+        "period": {"start_date": start_date, "end_date": end_date},
+        "parts": [
+            {"module": module.name, "id": part.id, "label": part.label, "date": part.date.isoformat() if part.date else None}
+            for module, part in report_parts
+        ],
+        "students": rows
+    }

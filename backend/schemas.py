@@ -60,6 +60,7 @@ class DeleteAccountRequest(BaseModel):
 class EventCreateRequest(BaseModel):
     name: str
     logo_url: Optional[str] = None
+    slug: Optional[str] = None
     color_primary: Optional[str] = None
     color_secondary: Optional[str] = None
     item_name: Optional[str] = None
@@ -70,6 +71,7 @@ class EventCreateRequest(BaseModel):
 class EventUpdateRequest(BaseModel):
     name: Optional[str] = None
     logo_url: Optional[str] = None
+    slug: Optional[str] = None
     color_primary: Optional[str] = None
     color_secondary: Optional[str] = None
     item_name: Optional[str] = None

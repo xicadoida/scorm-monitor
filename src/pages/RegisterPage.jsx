@@ -11,7 +11,7 @@ import {
   successMessage
 } from '../styles/theme'
 
-function RegisterPage({ API_URL, onBackToLogin }) {
+function RegisterPage({ API_URL, onBackToLogin, event }) {
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -54,14 +54,21 @@ function RegisterPage({ API_URL, onBackToLogin }) {
     setSuccess("Conta criada com sucesso. Volte para o login.")
   }
 
+  const theme = event ? {
+    "--lms-login-primary": event.color_primary || "#152A47",
+    "--lms-login-secondary": event.color_secondary || "#EF4923"
+  } : {}
+
   return (
-    <div style={pageWrapper}>
-      <form onSubmit={handleRegister} style={{ ...card, width: "380px" }}>
+    <div style={{ ...pageWrapper, ...theme }}>
+      <form onSubmit={handleRegister} style={{ ...card, width: "380px", background: "var(--lms-login-primary, #152A47)" }}>
         <img
-          src="/logo-iaclube.png"
-          alt="iaclube.help - IA para todos"
+          src={event?.logo_url || "/logo-iaclube.png"}
+          alt={event ? event.name : "iaclube.help - IA para todos"}
           style={logo}
         />
+
+        {event && <p style={{ color: "white", textAlign: "center", margin: "-8px 0 20px" }}>{event.name}</p>}
 
         <input
           placeholder="Nome completo"
@@ -101,7 +108,7 @@ function RegisterPage({ API_URL, onBackToLogin }) {
             Cancelar
           </button>
 
-          <button type="submit" style={buttonPrimary}>
+          <button type="submit" style={{ ...buttonPrimary, background: "var(--lms-login-secondary, #EF4923)" }}>
             Criar conta
           </button>
         </div>

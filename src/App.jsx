@@ -34,6 +34,7 @@ function App() {
 
   const [sessionId, setSessionId] = useState(null)
   const [loggedStudent, setLoggedStudent] = useState(null)
+  const [landingEvent, setLandingEvent] = useState(null)
   const [pendingCourseCode, setPendingCourseCode] = useState(null)
   const ADMIN_EMAILS = [
     "admin@admin.com"
@@ -150,16 +151,36 @@ function App() {
   }
   
   useEffect(() => {
-    const saved = localStorage.getItem("loggedStudent")
+    async function initializeApp() {
+      const pathSegment = window.location.pathname.split("/").filter(Boolean)[0]
 
-    if (saved) {
-      const student = JSON.parse(saved)
-      setLoggedStudent(student)
-      setSelectedStudent(student)
-      setCurrentPage("dashboard")
-    } else {
-      setCurrentPage("login")
+      if (pathSegment) {
+        try {
+          const response = await fetch(`${API_URL}/events/slug/${encodeURIComponent(pathSegment)}`)
+          const data = await response.json()
+          if (data.success) {
+            setLandingEvent(data.event)
+            setCurrentPage("login")
+            return
+          }
+        } catch {
+          // Se a API estiver indisponível, segue para a tela padrão.
+        }
+      }
+
+      const saved = localStorage.getItem("loggedStudent")
+
+      if (saved) {
+        const student = JSON.parse(saved)
+        setLoggedStudent(student)
+        setSelectedStudent(student)
+        setCurrentPage("dashboard")
+      } else {
+        setCurrentPage("login")
+      }
     }
+
+    initializeApp()
   }, [])
 
 
@@ -364,6 +385,7 @@ function App() {
     return (
       <RegisterPage
         API_URL={API_URL}
+        event={landingEvent}
         onBackToLogin={() => setCurrentPage("login")}
       />
     )
@@ -373,6 +395,7 @@ function App() {
     return (
       <LoginPage
         API_URL={API_URL}
+        event={landingEvent}
         onGoToRegister={() => setCurrentPage("register")}
         onLogin={(student) => {
           setLoggedStudent(student)

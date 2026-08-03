@@ -20,7 +20,7 @@ function AdminPage({ API_URL, onBack }) {
     position: ""
   })
   const [attendanceRecordForm, setAttendanceRecordForm] = useState({
-    email: "",
+    emails: "",
     part_id: "",
     status: "presente"
   })
@@ -31,6 +31,14 @@ function AdminPage({ API_URL, onBack }) {
     student_codes: []
   })
   const [attendanceEventStudents, setAttendanceEventStudents] = useState([])
+  const [attendanceReportForm, setAttendanceReportForm] = useState({
+    event_id: "",
+    period: "week",
+    reference_date: new Date().toISOString().slice(0, 10),
+    start_date: "",
+    end_date: ""
+  })
+  const [attendanceReport, setAttendanceReport] = useState(null)
 
   const [studentForm, setStudentForm] = useState({
     student_code: "",
@@ -60,6 +68,7 @@ function AdminPage({ API_URL, onBack }) {
   const [eventForm, setEventForm] = useState({
     name: "",
     logo_url: "",
+    slug: "",
     color_primary: "",
     color_secondary: "",
     item_name: "",
@@ -68,6 +77,8 @@ function AdminPage({ API_URL, onBack }) {
   })
 
   const [selectedEventId, setSelectedEventId] = useState("")
+  const [eventEditForm, setEventEditForm] = useState(null)
+  const [eventLogoFile, setEventLogoFile] = useState(null)
   const [eventEmails, setEventEmails] = useState([])
   const [emailsInput, setEmailsInput] = useState("")
 
@@ -376,6 +387,7 @@ function AdminPage({ API_URL, onBack }) {
     setEventForm({
       name: "",
       logo_url: "",
+      slug: "",
       color_primary: "",
       color_secondary: "",
       item_name: "",
@@ -441,6 +453,56 @@ function AdminPage({ API_URL, onBack }) {
     )
 
     setEventEmails(prev => prev.filter(e => e.email !== email))
+  }
+
+  function selectEventForEditing(event) {
+    setSelectedEventId(String(event.id))
+    setEventEditForm({
+      name: event.name || "",
+      slug: event.slug || "",
+      logo_url: event.logo_url || "",
+      color_primary: event.color_primary || "#152A47",
+      color_secondary: event.color_secondary || "#EF4923",
+      item_name: event.item_name || "",
+      show_progress: event.show_progress !== false,
+      show_footer: Boolean(event.show_footer)
+    })
+    setEventLogoFile(null)
+  }
+
+  async function saveEventChanges(e) {
+    e.preventDefault()
+    const response = await fetch(`${API_URL}/events/${selectedEventId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(eventEditForm)
+    })
+    const data = await response.json()
+    if (!data.success) {
+      alert(data.message || "Não foi possível salvar o evento.")
+      return
+    }
+    await loadData()
+    alert("Evento atualizado.")
+  }
+
+  async function uploadEventLogo(e) {
+    e.preventDefault()
+    if (!eventLogoFile) return
+    const formData = new FormData()
+    formData.append("file", eventLogoFile)
+    const response = await fetch(`${API_URL}/events/${selectedEventId}/logo`, {
+      method: "POST",
+      body: formData
+    })
+    const data = await response.json()
+    if (!data.success) {
+      alert(data.message || "Não foi possível enviar a logo.")
+      return
+    }
+    setEventEditForm({ ...eventEditForm, logo_url: data.logo_url })
+    setEventLogoFile(null)
+    await loadData()
   }
 
   async function createAttendanceModule(e) {
@@ -523,36 +585,47 @@ function AdminPage({ API_URL, onBack }) {
 
   async function setManualAttendance(e) {
     e.preventDefault()
-    if (!attendanceRecordForm.email.trim() || !attendanceRecordForm.part_id) {
-      alert("Informe o e-mail do aluno e a parte da chamada.")
+    if (!attendanceRecordForm.emails.trim() || !attendanceRecordForm.part_id) {
+      alert("Informe pelo menos um e-mail e a parte da chamada.")
       return
     }
 
-    const student = students.find(
-      item => item.email.toLowerCase() === attendanceRecordForm.email.trim().toLowerCase()
+    const emails = attendanceRecordForm.emails
+      .split(/[\n,]/)
+      .map(email => email.trim().toLowerCase())
+      .filter(Boolean)
+    const studentByEmail = new Map(
+      students.map(student => [student.email.toLowerCase(), student])
     )
+    const missingEmails = emails.filter(email => !studentByEmail.has(email))
+    const matchedStudents = [...new Map(
+      emails.filter(email => studentByEmail.has(email)).map(email => [
+        studentByEmail.get(email).student_code,
+        studentByEmail.get(email)
+      ])
+    ).values()]
 
-    if (!student) {
-      alert("Não encontramos um aluno cadastrado com esse e-mail.")
+    if (matchedStudents.length === 0) {
+      alert("Não encontramos alunos cadastrados para os e-mails informados.")
       return
     }
 
-    const response = await fetch(
-      `${API_URL}/attendance/students/${student.student_code}/parts/${attendanceRecordForm.part_id}`,
-      {
+    const responses = await Promise.all(matchedStudents.map(student =>
+      fetch(`${API_URL}/attendance/students/${student.student_code}/parts/${attendanceRecordForm.part_id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: attendanceRecordForm.status })
-      }
-    )
-    const data = await response.json()
+      })
+    ))
 
-    if (!data.success) {
-      alert(data.message || "Não foi possível registrar a presença.")
+    if (responses.some(response => !response.ok)) {
+      alert("Algumas presenças não puderam ser registradas.")
       return
     }
 
-    alert("Presença registrada.")
+    setAttendanceRecordForm({ emails: "", part_id: attendanceRecordForm.part_id, status: attendanceRecordForm.status })
+    const missingNote = missingEmails.length ? ` E-mails não encontrados: ${missingEmails.join(", ")}.` : ""
+    alert(`Presença registrada para ${matchedStudents.length} aluno(s).${missingNote}`)
   }
 
   async function setEventAttendance(e) {
@@ -577,6 +650,54 @@ function AdminPage({ API_URL, onBack }) {
     }
 
     alert(`Presença registrada para ${student_codes.length} aluno(s).`)
+  }
+
+  function getReportRange() {
+    if (attendanceReportForm.period === "custom") {
+      return { start: attendanceReportForm.start_date, end: attendanceReportForm.end_date }
+    }
+
+    const date = new Date(`${attendanceReportForm.reference_date}T12:00:00`)
+    if (attendanceReportForm.period === "month") {
+      const start = new Date(date.getFullYear(), date.getMonth(), 1)
+      const end = new Date(date.getFullYear(), date.getMonth() + 1, 0)
+      return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) }
+    }
+
+    const day = date.getDay() || 7
+    const start = new Date(date)
+    start.setDate(date.getDate() - day + 1)
+    const end = new Date(start)
+    end.setDate(start.getDate() + 6)
+    return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) }
+  }
+
+  async function loadAttendanceReport(e) {
+    e.preventDefault()
+    const range = getReportRange()
+    const params = new URLSearchParams({ start_date: range.start, end_date: range.end })
+    if (attendanceReportForm.event_id) params.set("event_id", attendanceReportForm.event_id)
+    const response = await fetch(`${API_URL}/attendance/reports?${params}`)
+    const data = await response.json()
+    if (!data.success) {
+      alert(data.message || "Não foi possível gerar o relatório.")
+      return
+    }
+    setAttendanceReport(data)
+  }
+
+  function exportAttendanceReport() {
+    if (!attendanceReport) return
+    const headers = ["Aluno", "E-mail", "Frequência", "Presenças", "A realizar"]
+    const rows = attendanceReport.students.map(student => [
+      student.name, student.email, `${student.stats.frequencia ?? 0}%`, student.stats.presencas, student.stats.a_realizar
+    ])
+    const csv = [headers, ...rows].map(row => row.map(value => `"${String(value ?? "").replaceAll('"', '""')}"`).join(",")).join("\r\n")
+    const link = document.createElement("a")
+    link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }))
+    link.download = "relatorio-frequencia.csv"
+    link.click()
+    URL.revokeObjectURL(link.href)
   }
 
   function eventNameFor(eventId) {
@@ -764,8 +885,8 @@ function AdminPage({ API_URL, onBack }) {
         <h3 style={{ margin: "28px 0 12px", color: "#1e293b" }}>Registrar presença manualmente</h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "24px", alignItems: "start" }}>
           <form onSubmit={setManualAttendance} style={subsectionStyle}>
-            <h4 style={subsectionTitle}>Por e-mail</h4>
-            <input type="email" placeholder="E-mail do aluno" value={attendanceRecordForm.email} onChange={e => setAttendanceRecordForm({ ...attendanceRecordForm, email: e.target.value })} style={inputStyle} />
+            <h4 style={subsectionTitle}>Por e-mails</h4>
+            <textarea placeholder="Cole os e-mails aqui, um por linha ou separados por vírgula" value={attendanceRecordForm.emails} onChange={e => setAttendanceRecordForm({ ...attendanceRecordForm, emails: e.target.value })} style={{ ...inputStyle, minHeight: "100px", resize: "vertical" }} />
             <select value={attendanceRecordForm.part_id} onChange={e => setAttendanceRecordForm({ ...attendanceRecordForm, part_id: e.target.value })} style={inputStyle}>
               <option value="">Selecione a parte / aula</option>
               {attendanceParts.map(part => <option key={part.id} value={part.id}>{part.moduleName} — {part.label || "Parte"} {part.date ? `(${part.date})` : ""}</option>)}
@@ -773,7 +894,7 @@ function AdminPage({ API_URL, onBack }) {
             <select value={attendanceRecordForm.status} onChange={e => setAttendanceRecordForm({ ...attendanceRecordForm, status: e.target.value })} style={inputStyle}>
               <option value="presente">Presente</option><option value="falta">Falta</option><option value="justificada">Falta justificada</option><option value="a_realizar">A realizar</option>
             </select>
-            <button type="submit" style={primaryButtonStyle}>Registrar por e-mail</button>
+            <button type="submit" style={primaryButtonStyle}>Registrar e-mails</button>
           </form>
 
           <form onSubmit={setEventAttendance} style={subsectionStyle}>
@@ -807,6 +928,21 @@ function AdminPage({ API_URL, onBack }) {
             </div>
           ))}
         </div>
+
+        <div style={{ ...subsectionStyle, marginTop: "28px" }}>
+          <h3 style={subsectionTitle}>Relatório de presença</h3>
+          <form onSubmit={loadAttendanceReport} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px", alignItems: "end" }}>
+            <label>Evento<select value={attendanceReportForm.event_id} onChange={e => setAttendanceReportForm({ ...attendanceReportForm, event_id: e.target.value })} style={inputStyle}><option value="">Todos os alunos</option>{events.map(event => <option key={event.id} value={event.id}>{event.name}</option>)}</select></label>
+            <label>Período<select value={attendanceReportForm.period} onChange={e => setAttendanceReportForm({ ...attendanceReportForm, period: e.target.value })} style={inputStyle}><option value="week">Semanal</option><option value="month">Mensal</option><option value="custom">Personalizado</option></select></label>
+            {attendanceReportForm.period === "custom" ? <><label>De<input type="date" value={attendanceReportForm.start_date} onChange={e => setAttendanceReportForm({ ...attendanceReportForm, start_date: e.target.value })} style={inputStyle} /></label><label>Até<input type="date" value={attendanceReportForm.end_date} onChange={e => setAttendanceReportForm({ ...attendanceReportForm, end_date: e.target.value })} style={inputStyle} /></label></> : <label>Data de referência<input type="date" value={attendanceReportForm.reference_date} onChange={e => setAttendanceReportForm({ ...attendanceReportForm, reference_date: e.target.value })} style={inputStyle} /></label>}
+            <button type="submit" style={primaryButtonStyle}>Gerar relatório</button>
+          </form>
+
+          {attendanceReport && <div style={{ marginTop: "20px", overflowX: "auto" }}>
+            <button type="button" onClick={exportAttendanceReport} style={primaryButtonStyle}>Exportar CSV</button>
+            <table style={{ ...tableStyle, marginTop: "12px" }}><thead><tr><th style={th}>Aluno</th><th style={th}>E-mail</th><th style={th}>Frequência</th><th style={th}>Presenças</th><th style={th}>A realizar</th></tr></thead><tbody>{attendanceReport.students.map(student => <tr key={student.student_code}><td style={td}>{student.name}</td><td style={td}>{student.email}</td><td style={td}>{student.stats.frequencia ?? "—"}{student.stats.frequencia != null ? "%" : ""}</td><td style={td}>{student.stats.presencas}</td><td style={td}>{student.stats.a_realizar}</td></tr>)}</tbody></table>
+          </div>}
+        </div>
       </div>
 
       <div style={containerStyle}>
@@ -832,6 +968,13 @@ function AdminPage({ API_URL, onBack }) {
             onChange={e =>
               setEventForm({ ...eventForm, logo_url: e.target.value })
             }
+            style={inputStyle}
+          />
+
+          <input
+            placeholder="Endereço público (ex.: arctel)"
+            value={eventForm.slug}
+            onChange={e => setEventForm({ ...eventForm, slug: e.target.value })}
             style={inputStyle}
           />
 
@@ -941,8 +1084,8 @@ function AdminPage({ API_URL, onBack }) {
                     />
                   </td>
                   <td style={td}>
-                    <button onClick={() => setSelectedEventId(String(ev.id))}>
-                      Gerenciar emails
+                    <button onClick={() => selectEventForEditing(ev)}>
+                      Editar evento
                     </button>
                     <button
                       onClick={() => deleteEvent(ev.id)}
@@ -959,6 +1102,25 @@ function AdminPage({ API_URL, onBack }) {
 
         {selectedEventId && (
           <div style={{ marginTop: "20px" }}>
+            {eventEditForm && <>
+              <h3>Configurações de "{eventEditForm.name}"</h3>
+              <form onSubmit={saveEventChanges} style={subsectionStyle}>
+                <input placeholder="Nome do evento" value={eventEditForm.name} onChange={e => setEventEditForm({ ...eventEditForm, name: e.target.value })} style={inputStyle} />
+                <input placeholder="Endereço público (ex.: arctel)" value={eventEditForm.slug} onChange={e => setEventEditForm({ ...eventEditForm, slug: e.target.value })} style={inputStyle} />
+                <input placeholder="URL da logo" value={eventEditForm.logo_url} onChange={e => setEventEditForm({ ...eventEditForm, logo_url: e.target.value })} style={inputStyle} />
+                <div style={{ display: "flex", gap: "12px", marginBottom: "12px" }}>
+                  <label style={{ flex: 1 }}>Cor principal<input type="color" value={eventEditForm.color_primary} onChange={e => setEventEditForm({ ...eventEditForm, color_primary: e.target.value })} style={{ display: "block", width: "100%", height: "36px" }} /></label>
+                  <label style={{ flex: 1 }}>Cor secundária<input type="color" value={eventEditForm.color_secondary} onChange={e => setEventEditForm({ ...eventEditForm, color_secondary: e.target.value })} style={{ display: "block", width: "100%", height: "36px" }} /></label>
+                </div>
+                <button type="submit" style={primaryButtonStyle}>Salvar configurações</button>
+              </form>
+              <form onSubmit={uploadEventLogo} style={{ ...subsectionStyle, marginTop: "12px" }}>
+                <strong>Enviar logo</strong>
+                <p style={{ color: "#64748b", fontSize: "13px" }}>Aceita PNG, JPG, WEBP, SVG e ICO.</p>
+                <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/x-icon,.ico" onChange={e => setEventLogoFile(e.target.files?.[0] || null)} style={inputStyle} />
+                <button type="submit" style={primaryButtonStyle} disabled={!eventLogoFile}>Enviar logo</button>
+              </form>
+            </>}
             <h3>
               Emails de "{eventNameFor(Number(selectedEventId))}"
             </h3>
@@ -1042,7 +1204,10 @@ function AdminPage({ API_URL, onBack }) {
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
             gap: "10px",
-            marginBottom: "16px"
+            marginBottom: "16px",
+            maxHeight: "380px",
+            overflowY: "auto",
+            paddingRight: "8px"
           }}>
             {students.map(student => {
               const alreadyInClass =
@@ -1055,7 +1220,10 @@ function AdminPage({ API_URL, onBack }) {
                 style={{
                   background: "#f4f6fb",
                   padding: "10px",
-                  borderRadius: "10px"
+                  borderRadius: "10px",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "8px"
                 }}
               >
                 <input
@@ -1079,19 +1247,17 @@ function AdminPage({ API_URL, onBack }) {
                   }}
                 />
 
-                {" "}
-                {student.name}
-
-                {alreadyInClass && (
-                  <span
-                    style={{
-                      color: "green",
-                      marginLeft: "8px"
-                    }}
-                  >
-                    ✓ Já está na turma
+                <span>
+                  <strong style={{ display: "block" }}>{student.name}</strong>
+                  <span style={{ display: "block", color: "#64748b", fontSize: "12px", marginTop: "3px" }}>
+                    {student.email}
                   </span>
-                )}
+                  {alreadyInClass && (
+                    <span style={{ color: "#15803d", fontSize: "12px" }}>
+                      ✓ Já está na turma
+                    </span>
+                  )}
+                </span>
               </label>
             )})}
           </div>

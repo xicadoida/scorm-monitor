@@ -1,6 +1,10 @@
 from datetime import datetime
+import ftplib
+import os
+import re
+import uuid
 
-from fastapi import APIRouter
+from fastapi import APIRouter, File, UploadFile
 
 from database import SessionLocal
 from models import Event, EventEmail
@@ -12,14 +16,47 @@ from schemas import (
 
 router = APIRouter()
 
+FTP_HOST = "147.93.37.72"
+FTP_USER = "u124251760.lms.iaclube.help"
+FTP_PASS = os.getenv("FTP_PASSWORD")
+FTP_LOGO_DIR = "/public_html/event-logos"
+PUBLIC_LOGO_URL = "https://lms.iaclube.help/event-logos"
+
+
+def _normalize_slug(value):
+    if not value:
+        return None
+    slug = re.sub(r"[^a-z0-9-]+", "-", value.strip().lower()).strip("-")
+    return slug or None
+
+
+def _serialize_event(event):
+    return {
+        "id": event.id,
+        "name": event.name,
+        "slug": event.slug,
+        "logo_url": event.logo_url,
+        "color_primary": event.color_primary,
+        "color_secondary": event.color_secondary,
+        "item_name": event.item_name,
+        "show_progress": event.show_progress,
+        "show_footer": event.show_footer
+    }
+
 
 @router.post("/events")
 def create_event(data: EventCreateRequest):
     db = SessionLocal()
+    slug = _normalize_slug(data.slug)
+
+    if slug and db.query(Event).filter(Event.slug == slug).first():
+        db.close()
+        return {"success": False, "message": "Esse endereço do evento já está em uso."}
 
     event = Event(
         name=data.name,
         logo_url=data.logo_url,
+        slug=slug,
         color_primary=data.color_primary,
         color_secondary=data.color_secondary,
         item_name=data.item_name,
@@ -33,16 +70,7 @@ def create_event(data: EventCreateRequest):
     db.refresh(event)
     db.close()
 
-    return {
-        "id": event.id,
-        "name": event.name,
-        "logo_url": event.logo_url,
-        "color_primary": event.color_primary,
-        "color_secondary": event.color_secondary,
-        "item_name": event.item_name,
-        "show_progress": event.show_progress,
-        "show_footer": event.show_footer
-    }
+    return _serialize_event(event)
 
 
 @router.get("/events")
@@ -51,22 +79,26 @@ def list_events():
     events = db.query(Event).all()
 
     result = [
-        {
-            "id": e.id,
-            "name": e.name,
-            "logo_url": e.logo_url,
-            "color_primary": e.color_primary,
-            "color_secondary": e.color_secondary,
-            "item_name": e.item_name,
-            "show_progress": e.show_progress,
-            "show_footer": e.show_footer,
-            "created_at": e.created_at
-        }
+        {**_serialize_event(e), "created_at": e.created_at}
         for e in events
     ]
 
     db.close()
     return result
+
+
+@router.get("/events/slug/{slug}")
+def get_event_by_slug(slug: str):
+    db = SessionLocal()
+    event = db.query(Event).filter(Event.slug == _normalize_slug(slug)).first()
+
+    if not event:
+        db.close()
+        return {"success": False, "message": "Evento não encontrado."}
+
+    result = _serialize_event(event)
+    db.close()
+    return {"success": True, "event": result}
 
 
 @router.put("/events/{event_id}")
@@ -84,6 +116,14 @@ def update_event(event_id: int, data: EventUpdateRequest):
 
     if data.logo_url is not None:
         event.logo_url = data.logo_url
+
+    if data.slug is not None:
+        slug = _normalize_slug(data.slug)
+        duplicate = db.query(Event).filter(Event.slug == slug, Event.id != event_id).first()
+        if duplicate:
+            db.close()
+            return {"success": False, "message": "Esse endereço do evento já está em uso."}
+        event.slug = slug
 
     if data.color_primary is not None:
         event.color_primary = data.color_primary
@@ -104,6 +144,44 @@ def update_event(event_id: int, data: EventUpdateRequest):
     db.close()
 
     return {"success": True}
+
+
+@router.post("/events/{event_id}/logo")
+async def upload_event_logo(event_id: int, file: UploadFile = File(...)):
+    allowed_types = {"image/png", "image/jpeg", "image/webp", "image/svg+xml", "image/x-icon"}
+    if file.content_type not in allowed_types:
+        return {"success": False, "message": "Envie uma imagem PNG, JPG, WEBP, SVG ou ICO."}
+
+    db = SessionLocal()
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        db.close()
+        return {"success": False, "message": "Evento não encontrado."}
+
+    extension = os.path.splitext(file.filename or "")[1].lower() or ".png"
+    filename = f"evento-{event_id}-{uuid.uuid4().hex[:12]}{extension}"
+    data = await file.read()
+
+    try:
+        ftp = ftplib.FTP()
+        ftp.connect(FTP_HOST, 21, timeout=15)
+        ftp.login(FTP_USER, FTP_PASS)
+        try:
+            ftp.mkd(FTP_LOGO_DIR)
+        except ftplib.error_perm:
+            pass
+        from io import BytesIO
+        ftp.storbinary(f"STOR {FTP_LOGO_DIR}/{filename}", BytesIO(data))
+        ftp.quit()
+    except Exception as error:
+        db.close()
+        return {"success": False, "message": f"Não foi possível enviar a logo: {error}"}
+
+    logo_url = f"{PUBLIC_LOGO_URL}/{filename}"
+    event.logo_url = logo_url
+    db.commit()
+    db.close()
+    return {"success": True, "logo_url": logo_url}
 
 
 @router.delete("/events/{event_id}")

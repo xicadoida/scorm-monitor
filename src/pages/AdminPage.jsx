@@ -706,9 +706,9 @@ function AdminPage({ API_URL, onBack }) {
 
   function exportAttendanceReport() {
     if (!attendanceReport) return
-    const headers = ["Aluno", "E-mail", "Frequência", "Presenças", "A realizar"]
+    const headers = ["Aluno", "E-mail", "Frequência", "Presenças", "Manual", "Atividade substitutiva", "A realizar"]
     const rows = attendanceReport.students.map(student => [
-      student.name, student.email, `${student.stats.frequencia ?? 0}%`, student.stats.presencas, student.stats.a_realizar
+      student.name, student.email, `${student.stats.frequencia ?? 0}%`, student.stats.presencas, student.sources?.manual || 0, student.sources?.atividade_substitutiva || 0, student.stats.a_realizar
     ])
     const csv = [headers, ...rows].map(row => row.map(value => `"${String(value ?? "").replaceAll('"', '""')}"`).join(",")).join("\r\n")
     const link = document.createElement("a")
@@ -716,6 +716,13 @@ function AdminPage({ API_URL, onBack }) {
     link.download = "relatorio-frequencia.csv"
     link.click()
     URL.revokeObjectURL(link.href)
+  }
+
+  function formatAttendanceSources(student) {
+    const manual = student.sources?.manual || 0
+    const substitute = student.sources?.atividade_substitutiva || 0
+    if (!manual && !substitute) return "—"
+    return [manual && `Manual: ${manual}`, substitute && `Atividade substitutiva: ${substitute}`].filter(Boolean).join(" · ")
   }
 
   function eventNameFor(eventId) {
@@ -1002,7 +1009,7 @@ function AdminPage({ API_URL, onBack }) {
 
           {attendanceReport && <div style={{ marginTop: "20px", overflowX: "auto" }}>
             <button type="button" onClick={exportAttendanceReport} style={primaryButtonStyle}>Exportar CSV</button>
-            <table style={{ ...tableStyle, marginTop: "12px" }}><thead><tr><th style={th}>Aluno</th><th style={th}>E-mail</th><th style={th}>Frequência</th><th style={th}>Presenças</th><th style={th}>A realizar</th></tr></thead><tbody>{attendanceReport.students.map(student => <tr key={student.student_code}><td style={td}>{student.name}</td><td style={td}>{student.email}</td><td style={td}>{student.stats.frequencia ?? "—"}{student.stats.frequencia != null ? "%" : ""}</td><td style={td}>{student.stats.presencas}</td><td style={td}>{student.stats.a_realizar}</td></tr>)}</tbody></table>
+            <table style={{ ...tableStyle, marginTop: "12px" }}><thead><tr><th style={th}>Aluno</th><th style={th}>E-mail</th><th style={th}>Frequência</th><th style={th}>Presenças</th><th style={th}>Origem das presenças</th><th style={th}>A realizar</th></tr></thead><tbody>{attendanceReport.students.map(student => <tr key={student.student_code}><td style={td}>{student.name}</td><td style={td}>{student.email}</td><td style={td}>{student.stats.frequencia ?? "—"}{student.stats.frequencia != null ? "%" : ""}</td><td style={td}>{student.stats.presencas}</td><td style={td}>{formatAttendanceSources(student)}</td><td style={td}>{student.stats.a_realizar}</td></tr>)}</tbody></table>
           </div>}
         </div>
       </div>

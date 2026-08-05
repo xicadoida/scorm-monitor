@@ -490,25 +490,51 @@ def get_attendance_report(
         AttendanceRecord.part_id.in_(part_ids)
     ).all() if student_codes and part_ids else []
     statuses = {(record.student_code, record.part_id): record.status for record in records}
+    course_codes = [part.course_code for _, part in report_parts if part.course_code]
+    passed_sessions = db.query(CourseSession).filter(
+        CourseSession.student_id.in_(student_codes),
+        CourseSession.course_id.in_(course_codes),
+        CourseSession.status == "passed"
+    ).all() if student_codes and course_codes else []
+    passed_courses_by_student = {}
+    for session in passed_sessions:
+        passed_courses_by_student.setdefault(session.student_id, set()).add(session.course_id)
 
     rows = []
     for student in students:
-        row_statuses = [statuses.get((student.student_code, part.id), "a_realizar") for _, part in report_parts]
+        row_attendance = []
+        manual_count = 0
+        substitute_count = 0
+        for module, part in report_parts:
+            manual_status = statuses.get((student.student_code, part.id), "a_realizar")
+            if manual_status in ("presente", "justificada", "falta"):
+                status = manual_status
+                source = "manual" if manual_status in ("presente", "justificada") else None
+            elif part.course_code and part.course_code in passed_courses_by_student.get(student.student_code, set()):
+                status = "atividade_substitutiva"
+                source = "atividade_substitutiva"
+            else:
+                status = manual_status
+                source = None
+            manual_count += source == "manual"
+            substitute_count += source == "atividade_substitutiva"
+            row_attendance.append({
+                "module": module.name,
+                "part_id": part.id,
+                "label": part.label,
+                "date": part.date.isoformat() if part.date else None,
+                "status": status,
+                "source": source
+            })
+
+        row_statuses = [item["status"] for item in row_attendance]
         rows.append({
             "student_code": student.student_code,
             "name": student.name,
             "email": student.email,
             "stats": _compute_stats(row_statuses),
-            "attendance": [
-                {
-                    "module": module.name,
-                    "part_id": part.id,
-                    "label": part.label,
-                    "date": part.date.isoformat() if part.date else None,
-                    "status": statuses.get((student.student_code, part.id), "a_realizar")
-                }
-                for module, part in report_parts
-            ]
+            "sources": {"manual": manual_count, "atividade_substitutiva": substitute_count},
+            "attendance": row_attendance
         })
 
     db.close()

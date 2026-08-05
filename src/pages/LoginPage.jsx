@@ -25,13 +25,13 @@ function LoginPage({ API_URL, onLogin, onGoToRegister, event }) {
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email, password, event_slug: event?.slug || null })
     })
 
     const data = await response.json()
 
     if (!data.success) {
-      setError("Aluno não encontrado.")
+      setError(data.message || "Não foi possível entrar.")
       return
     }
 

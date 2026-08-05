@@ -172,6 +172,12 @@ function App() {
 
       if (saved) {
         const student = JSON.parse(saved)
+        // Contas de evento não podem continuar autenticadas na área padrão.
+        if (student.event) {
+          localStorage.removeItem("loggedStudent")
+          setCurrentPage("login")
+          return
+        }
         setLoggedStudent(student)
         setSelectedStudent(student)
         setCurrentPage("dashboard")

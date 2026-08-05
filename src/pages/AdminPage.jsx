@@ -741,6 +741,12 @@ function AdminPage({ API_URL, onBack }) {
   const studentsInSelectedEvent = students
     .filter(student => eventEmails.some(item => item.email.toLowerCase() === student.email.toLowerCase()))
     .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
+  const standardStudents = students.filter(student => !student.event)
+
+  function renderStudentTable(studentList) {
+    if (studentList.length === 0) return <p style={{ color: "#64748b" }}>Nenhum aluno nesta lista.</p>
+    return <div className="admin-table-wrap"><table style={tableStyle}><thead><tr><th style={th}>Código</th><th style={th}>Nome</th><th style={th}>E-mail</th><th style={th}>Ações</th></tr></thead><tbody>{studentList.map(student => <tr key={student.id}><td style={td}>{student.student_code}</td><td style={td}>{student.name}</td><td style={td}>{student.email}</td><td style={td}><button className="danger-action" onClick={() => deleteStudent(student)}>Excluir</button></td></tr>)}</tbody></table></div>
+  }
 
   return (
     <div className="admin-page" style={{
@@ -761,6 +767,8 @@ function AdminPage({ API_URL, onBack }) {
         .admin-page h3 { color: #1e293b; }
         .admin-page a.admin-nav-link { color: #334155; text-decoration: none; background: #fff; border: 1px solid #dbe4ef; padding: 9px 12px; border-radius: 999px; font-size: 14px; font-weight: 700; }
         .admin-page a.admin-nav-link:hover { color: #fff; background: #152A47; border-color: #152A47; }
+        .admin-page details.admin-collapse { border: 1px solid #dbe4ef; border-radius: 10px; padding: 0 16px; background: #fff; }
+        .admin-page details.admin-collapse summary { cursor: pointer; padding: 14px 0; font-weight: 700; color: #152A47; }
       `}</style>
       <main style={{ maxWidth: "1240px", margin: "0 auto" }}>
       <header style={{ background: "linear-gradient(120deg, #152A47, #23466e)", color: "#fff", borderRadius: "18px", padding: "24px", marginBottom: "16px", boxShadow: "0 10px 24px rgba(21,42,71,.18)" }}>
@@ -970,7 +978,8 @@ function AdminPage({ API_URL, onBack }) {
           </form>
         </div>
 
-        <div style={{ marginTop: "24px" }}>
+        <details className="admin-collapse" open style={{ marginTop: "24px" }}>
+          <summary>Módulos e partes criados ({attendanceModules.length})</summary>
           {attendanceModules.length === 0 ? <p style={{ color: "#64748b" }}>Nenhum módulo de chamada criado ainda.</p> : attendanceModules.map(module => (
             <div key={module.id} style={{ borderTop: "1px solid #e2e8f0", padding: "16px 0" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
@@ -980,7 +989,7 @@ function AdminPage({ API_URL, onBack }) {
               {module.parts.length > 0 && <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "12px" }}>{module.parts.map(part => <div key={part.id} style={{ padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "13px" }}><strong>{part.label}</strong>{part.date && <span style={{ color: "#64748b" }}> · {part.date}</span>}<button onClick={() => editAttendancePart(part)} style={{ marginLeft: "8px" }}>Editar</button><button onClick={() => deleteAttendancePart(part)} style={dangerButtonStyle}>×</button></div>)}</div>}
             </div>
           ))}
-        </div>
+        </details>
 
         <div style={{ ...subsectionStyle, marginTop: "28px" }}>
           <h3 style={subsectionTitle}>Relatório de presença</h3>
@@ -1437,6 +1446,21 @@ function AdminPage({ API_URL, onBack }) {
       </div>
         <div id="cadastros" style={containerStyle}>
           <h2>Alunos cadastrados</h2>
+          <p style={{ color: "#64748b", marginTop: "-2px" }}>Separados por ambiente para não misturar a plataforma padrão com os eventos.</p>
+          <details className="admin-collapse" open>
+            <summary>Plataforma padrão ({standardStudents.length})</summary>
+            {renderStudentTable(standardStudents)}
+          </details>
+          {events.map(event => {
+            const eventStudents = students.filter(student => student.event?.id === event.id)
+            return <details key={event.id} className="admin-collapse" style={{ marginTop: "10px" }}>
+              <summary>{event.name} ({eventStudents.length})</summary>
+              {renderStudentTable(eventStudents)}
+            </details>
+          })}
+
+          <details className="admin-collapse" style={{ marginTop: "10px" }}>
+            <summary>Visão geral de todos os alunos ({students.length})</summary>
 
           {students.length === 0 ? (
             <p>Nenhum aluno cadastrado.</p>
@@ -1471,6 +1495,7 @@ function AdminPage({ API_URL, onBack }) {
               </tbody>
             </table>
           )}
+          </details>
         </div>
 
         <div style={containerStyle}>

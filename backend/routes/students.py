@@ -6,6 +6,7 @@ from database import SessionLocal
 from models import Student, Enrollment, CourseSession, ClassStudent
 from schemas import StudentCreateRequest, DeleteAccountRequest
 from security import verify_password
+from event_utils import get_event_for_email
 
 router = APIRouter()
 
@@ -45,7 +46,8 @@ def list_students():
             "id": s.id,
             "student_code": s.student_code,
             "name": s.name,
-            "email": s.email
+            "email": s.email,
+            "event": get_event_for_email(db, s.email)
         }
         for s in students
     ]

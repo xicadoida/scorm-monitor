@@ -40,7 +40,8 @@ function RegisterPage({ API_URL, onBackToLogin, event }) {
       body: JSON.stringify({
         name: form.name,
         email: form.email,
-        password: form.password
+        password: form.password,
+        event_slug: event?.slug || null
       })
     })
 

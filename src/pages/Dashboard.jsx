@@ -523,10 +523,11 @@ function Dashboard({
 
   function renderConta() {
     const attendanceStatuses = {
-      presente: { symbol: "✓", color: "#22B95E", background: "#E7F8ED" },
+      presente: { symbol: "Presença aula", color: "#63bf7f", background: "#EAF7EE" },
+      atividade_substitutiva: { symbol: "Atividade", color: "#497c7e", background: "#E8F0F0" },
       justificada: { symbol: "!", color: "#D88400", background: "#FFF5DF" },
       falta: { symbol: "×", color: "#E34B4B", background: "#FDEBEB" },
-      a_realizar: { symbol: "·", color: "#9AA8BA", background: "#FFFFFF" }
+      a_realizar: { symbol: "Não aferida", color: "#9AA8BA", background: "#FFFFFF" }
     }
     const formatAttendanceDate = value => {
       if (!value) return "—"
@@ -545,7 +546,7 @@ function Dashboard({
           <p style={{ margin: 0, fontWeight: "bold", fontSize: "16px" }}>
             {selectedStudent?.name}
           </p>
-          <p style={{ margin: "4px 0 0 0", color: "#B9C2D0", fontSize: "14px" }}>
+          <p style={{ margin: "4px 0 0 0", color: "rgba(255,255,255,0.9)", fontSize: "14px" }}>
             {selectedStudent?.email}
           </p>
         </div>
@@ -609,7 +610,7 @@ function Dashboard({
             border: "1px solid rgba(255,107,107,0.4)"
           }}
         >
-          <p style={{ margin: "0 0 12px 0", color: "#B9C2D0", fontSize: "13px" }}>
+          <p style={{ margin: "0 0 12px 0", color: "rgba(255,255,255,0.9)", fontSize: "13px" }}>
             Isso remove sua conta e seu acesso a todos os {itemPluralLower} de
             forma permanente. Não tem como desfazer.
           </p>
@@ -657,9 +658,12 @@ function Dashboard({
               {[[`${attendance.stats.frequencia ?? "—"}${attendance.stats.frequencia != null ? "%" : ""}`, "Frequência"], [attendance.stats.presencas, "Presenças"], [attendance.stats.a_realizar, "A realizar"]].map(([value, label]) => <div key={label}><strong style={{ fontSize: "25px" }}>{value}</strong><span style={{ display: "block", marginTop: "4px", color: "#718096", textTransform: "uppercase", fontSize: "10px", letterSpacing: "1px" }}>{label}</span></div>)}
             </div>
             <div style={{ padding: "14px 28px 22px" }}>
+              <div aria-label="Legenda da frequência" style={{ display: "flex", gap: "12px", flexWrap: "wrap", margin: "0 0 10px", fontSize: "11px", color: "#526579" }}>
+                {[['#63bf7f', 'Presença aula síncrona'], ['#497c7e', 'Atividade substitutiva'], ['#9aa8ba', 'Presença não aferida']].map(([color, label]) => <span key={label} style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}><i style={{ width: "9px", height: "9px", background: color, borderRadius: "50%", display: "inline-block" }} />{label}</span>)}
+              </div>
               {attendance.modules.length === 0 ? <p style={{ color: "#718096", margin: "8px 0" }}>Nenhuma chamada disponível ainda.</p> : attendance.modules.map((module, index) => <div key={module.id} style={{ display: "grid", gridTemplateColumns: "92px minmax(0, 1fr) 48px", gap: "14px", alignItems: "center", padding: "12px 0" }}>
                 <div><strong style={{ fontSize: "14px" }}>{module.name || `M${index + 1}`}</strong></div>
-                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>{module.parts.map((part, partIndex) => { const partStatus = attendanceStatuses[part.status] || attendanceStatuses.a_realizar; return <div key={part.id} title={part.label} style={{ width: "82px", minHeight: "46px", borderRadius: "8px", border: `1px solid ${partStatus.color}`, background: partStatus.background, color: partStatus.color, textAlign: "center", paddingTop: "5px", boxSizing: "border-box" }}><strong style={{ display: "block", lineHeight: 1, fontSize: "11px" }}>{`Parte ${partIndex + 1}`}</strong><span style={{ fontSize: "10px" }}>{formatAttendanceDate(part.date)}</span></div> })}</div>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>{module.parts.map((part, partIndex) => { const partStatus = attendanceStatuses[part.status] || attendanceStatuses.a_realizar; return <div key={part.id} title={part.label} style={{ width: "94px", minHeight: "46px", borderRadius: "8px", border: `1px solid ${partStatus.color}`, background: partStatus.background, color: partStatus.color, textAlign: "center", padding: "5px 3px 0", boxSizing: "border-box" }}><strong style={{ display: "block", lineHeight: 1, fontSize: "10px" }}>{partStatus.symbol}</strong><span style={{ fontSize: "10px" }}>{formatAttendanceDate(part.date)}</span></div> })}</div>
                 <strong style={{ color: module.percent == null ? "#718096" : module.percent >= 75 ? "#22B95E" : "#E34B4B", textAlign: "right", fontSize: "12px" }}>{module.percent == null ? "—" : `${module.percent}%`}</strong>
               </div>)}
             </div>

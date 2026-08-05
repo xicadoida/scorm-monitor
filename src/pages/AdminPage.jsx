@@ -80,6 +80,7 @@ function AdminPage({ API_URL, onBack }) {
   const [eventEditForm, setEventEditForm] = useState(null)
   const [eventLogoFile, setEventLogoFile] = useState(null)
   const [eventEmails, setEventEmails] = useState([])
+  const [eventProgressRows, setEventProgressRows] = useState([])
   const [emailsInput, setEmailsInput] = useState("")
 
   async function loadData() {
@@ -143,6 +144,23 @@ function AdminPage({ API_URL, onBack }) {
     }
 
     loadEventEmails()
+  }, [selectedEventId, API_URL])
+
+  useEffect(() => {
+    async function loadEventProgress() {
+      if (!selectedEventId) {
+        setEventProgressRows([])
+        return
+      }
+
+      const response = await fetch(
+        `${API_URL}/attendance/event-progress?event_id=${selectedEventId}`
+      )
+      const data = await response.json()
+      setEventProgressRows(data.rows || [])
+    }
+
+    loadEventProgress()
   }, [selectedEventId, API_URL])
 
   useEffect(() => {
@@ -710,6 +728,19 @@ function AdminPage({ API_URL, onBack }) {
   const attendanceParts = attendanceModules.flatMap(module =>
     module.parts.map(part => ({ ...part, moduleName: module.name }))
   )
+  const studentsForClassSelection = [...students].sort((a, b) => {
+    const aAlreadyInClass = classStudents.includes(a.student_code)
+    const bAlreadyInClass = classStudents.includes(b.student_code)
+
+    if (aAlreadyInClass !== bAlreadyInClass) {
+      return aAlreadyInClass ? -1 : 1
+    }
+
+    return a.name.localeCompare(b.name, "pt-BR")
+  })
+  const studentsInSelectedEvent = students
+    .filter(student => eventEmails.some(item => item.email.toLowerCase() === student.email.toLowerCase()))
+    .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
 
   return (
     <div className="admin-page" style={{
@@ -723,6 +754,7 @@ function AdminPage({ API_URL, onBack }) {
         .admin-page button { background: #152A47; color: #fff; border: 0; border-radius: 8px; padding: 10px 14px; font-weight: 700; cursor: pointer; }
         .admin-page button:hover { filter: brightness(1.12); }
         .admin-page button:disabled { opacity: .55; cursor: not-allowed; }
+        .admin-page button.danger-action { background: #fff1f2 !important; color: #b91c1c !important; border: 1px solid #fecdd3 !important; }
         .admin-page table { min-width: 620px; }
         .admin-page .admin-table-wrap { overflow-x: auto; }
         .admin-page h2 { color: #152A47; margin: 0 0 7px; font-size: 21px; }
@@ -1109,6 +1141,7 @@ function AdminPage({ API_URL, onBack }) {
                       Editar evento
                     </button>
                     <button
+                      className="danger-action"
                       onClick={() => deleteEvent(ev.id)}
                       style={{ marginLeft: "8px", color: "#b91c1c" }}
                     >
@@ -1168,6 +1201,7 @@ function AdminPage({ API_URL, onBack }) {
                     {item.email}
                     {" "}
                     <button
+                      className="danger-action"
                       onClick={() => removeEmailFromEvent(item.email)}
                       style={{ color: "#b91c1c" }}
                     >
@@ -1177,6 +1211,18 @@ function AdminPage({ API_URL, onBack }) {
                 ))}
               </ul>
             )}
+
+            <div style={{ ...subsectionStyle, marginTop: "20px" }}>
+              <h3 style={subsectionTitle}>Pessoas cadastradas neste evento</h3>
+              <p style={{ color: "#64748b", fontSize: "13px", marginTop: 0 }}>Somente pessoas que já criaram conta na plataforma.</p>
+              {studentsInSelectedEvent.length === 0 ? <p>Nenhuma pessoa cadastrada ainda.</p> : <div className="admin-table-wrap"><table style={tableStyle}><thead><tr><th style={th}>Nome</th><th style={th}>E-mail</th></tr></thead><tbody>{studentsInSelectedEvent.map(student => <tr key={student.student_code}><td style={td}>{student.name}</td><td style={td}>{student.email}</td></tr>)}</tbody></table></div>}
+            </div>
+
+            <div style={{ ...subsectionStyle, marginTop: "20px" }}>
+              <h3 style={subsectionTitle}>Quem fez atividades substitutivas</h3>
+              <p style={{ color: "#64748b", fontSize: "13px", marginTop: 0 }}>Mostra apenas quem iniciou ou concluiu o curso vinculado a uma parte do módulo.</p>
+              {eventProgressRows.length === 0 ? <p>Nenhuma atividade iniciada ainda.</p> : <div className="admin-table-wrap"><table style={tableStyle}><thead><tr><th style={th}>Nome</th><th style={th}>E-mail</th><th style={th}>Módulo</th><th style={th}>Data</th><th style={th}>Estado</th><th style={th}>Presença-aula</th></tr></thead><tbody>{eventProgressRows.map((row, index) => <tr key={`${row.student_code}-${row.module}-${index}`}><td style={td}>{row.name}</td><td style={td}>{row.email}</td><td style={td}>{row.module}</td><td style={td}>{row.date || "—"}</td><td style={td}>{row.state}</td><td style={td}>{row.attendance_class}</td></tr>)}</tbody></table></div>}
+            </div>
           </div>
         )}
       </div>
@@ -1230,7 +1276,7 @@ function AdminPage({ API_URL, onBack }) {
             overflowY: "auto",
             paddingRight: "8px"
           }}>
-            {students.map(student => {
+            {studentsForClassSelection.map(student => {
               const alreadyInClass =
                 classStudents.includes(student.student_code)
 
@@ -1240,6 +1286,8 @@ function AdminPage({ API_URL, onBack }) {
                 key={student.id}
                 style={{
                   background: "#f4f6fb",
+                  opacity: alreadyInClass ? 0.58 : 1,
+                  border: alreadyInClass ? "1px solid #d9e3ef" : "1px solid transparent",
                   padding: "10px",
                   borderRadius: "10px",
                   display: "flex",
@@ -1411,6 +1459,7 @@ function AdminPage({ API_URL, onBack }) {
                     <td style={td}>{student.email}</td>
                     <td style={td}>
                       <button
+                        className="danger-action"
                         onClick={() => deleteStudent(student)}
                         style={{ color: "#b91c1c" }}
                       >
@@ -1505,6 +1554,7 @@ function AdminPage({ API_URL, onBack }) {
                       </button>
 
                       <button
+                        className="danger-action"
                         onClick={() => deleteCourse(course)}
                         style={{ marginLeft: "8px", color: "#b91c1c" }}
                       >
@@ -1559,7 +1609,12 @@ const primaryButtonStyle = {
   fontWeight: "bold"
 }
 
-const dangerButtonStyle = { marginLeft: "8px", color: "#b91c1c" }
+const dangerButtonStyle = {
+  marginLeft: "8px",
+  background: "#fff1f2",
+  color: "#b91c1c",
+  border: "1px solid #fecdd3"
+}
 const tableStyle = {
   width: "100%",
   borderCollapse: "collapse"

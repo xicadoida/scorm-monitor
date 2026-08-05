@@ -8,6 +8,7 @@ from models import (
     AttendanceModulePart,
     AttendanceRecord,
     Course,
+    CourseSession,
     EventEmail,
     Student
 )
@@ -229,7 +230,7 @@ def delete_part(part_id: int):
 
 
 def _compute_stats(statuses):
-    presentes = sum(1 for s in statuses if s in ("presente", "justificada"))
+    presentes = sum(1 for s in statuses if s in ("presente", "justificada", "atividade_substitutiva"))
     faltas = sum(1 for s in statuses if s == "falta")
     a_realizar = sum(1 for s in statuses if s == "a_realizar")
 
@@ -278,6 +279,12 @@ def get_student_attendance(student_code: str):
     ).all()
 
     records_by_part = {r.part_id: r.status for r in records}
+    passed_course_codes = {
+        session.course_id for session in db.query(CourseSession).filter(
+            CourseSession.student_id == student_code,
+            CourseSession.status == "passed"
+        ).all()
+    }
 
     all_statuses = []
     result_modules = []
@@ -291,7 +298,16 @@ def get_student_attendance(student_code: str):
         module_statuses = []
 
         for part in parts:
-            status = records_by_part.get(part.id, "a_realizar")
+            # A presença lançada pela equipe sempre tem prioridade. Sem ela,
+            # aprovação no curso vinculado à parte vale como atividade
+            # substitutiva, mas não altera o registro manual no banco.
+            manual_status = records_by_part.get(part.id, "a_realizar")
+            if manual_status in ("presente", "justificada", "falta"):
+                status = manual_status
+            elif part.course_code and part.course_code in passed_course_codes:
+                status = "atividade_substitutiva"
+            else:
+                status = manual_status
             module_statuses.append(status)
             all_statuses.append(status)
 
@@ -357,6 +373,69 @@ def set_attendance_status(
     db.close()
 
     return {"success": True}
+
+
+@router.get("/attendance/event-progress")
+def get_event_progress(event_id: int):
+    """Acompanhamento de atividades substitutivas por aluno e módulo."""
+    db = SessionLocal()
+    event_emails = {
+        entry.email.lower() for entry in db.query(EventEmail).filter(
+            EventEmail.event_id == event_id
+        ).all()
+    }
+    students = [student for student in db.query(Student).all() if student.email.lower() in event_emails]
+    student_codes = [student.student_code for student in students]
+
+    modules = db.query(AttendanceModule).filter(
+        (AttendanceModule.event_id.is_(None)) |
+        (AttendanceModule.event_id == event_id)
+    ).order_by(AttendanceModule.position).all()
+    parts_with_courses = []
+    for module in modules:
+        for part in db.query(AttendanceModulePart).filter(
+            AttendanceModulePart.module_id == module.id,
+            AttendanceModulePart.course_code.isnot(None)
+        ).order_by(AttendanceModulePart.position).all():
+            parts_with_courses.append((module, part))
+
+    course_codes = [part.course_code for _, part in parts_with_courses]
+    sessions = db.query(CourseSession).filter(
+        CourseSession.student_id.in_(student_codes),
+        CourseSession.course_id.in_(course_codes)
+    ).all() if student_codes and course_codes else []
+    sessions_by_student_course = {}
+    for session in sessions:
+        key = (session.student_id, session.course_id)
+        sessions_by_student_course.setdefault(key, []).append(session)
+
+    part_ids = [part.id for _, part in parts_with_courses]
+    records = db.query(AttendanceRecord).filter(
+        AttendanceRecord.student_code.in_(student_codes),
+        AttendanceRecord.part_id.in_(part_ids)
+    ).all() if student_codes and part_ids else []
+    records_by_key = {(record.student_code, record.part_id): record.status for record in records}
+
+    rows = []
+    for student in students:
+        for module, part in parts_with_courses:
+            attempts = sessions_by_student_course.get((student.student_code, part.course_code), [])
+            if not attempts:
+                continue
+            state = "concluído" if any(attempt.status == "passed" for attempt in attempts) else "em andamento"
+            manual_status = records_by_key.get((student.student_code, part.id), "a_realizar")
+            rows.append({
+                "student_code": student.student_code,
+                "name": student.name,
+                "email": student.email,
+                "module": module.name,
+                "date": part.date.isoformat() if part.date else None,
+                "state": state,
+                "attendance_class": "presente" if manual_status in ("presente", "justificada") else "não lançada"
+            })
+
+    db.close()
+    return {"success": True, "rows": rows}
 
 
 @router.get("/attendance/reports")

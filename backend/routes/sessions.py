@@ -3,7 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter
 
 from database import SessionLocal
-from models import CourseSession
+from models import CourseSession, Student
 from schemas import (
     SessionStartRequest,
     SessionUpdateRequest
@@ -87,6 +87,7 @@ def list_sessions():
     db = SessionLocal()
 
     sessions = db.query(CourseSession).all()
+    students = {student.student_code: student for student in db.query(Student).all()}
 
     result = [
         {
@@ -94,6 +95,8 @@ def list_sessions():
             "lesson_location": s.lesson_location,
             "id": s.id,
             "student_id": s.student_id,
+            "student_name": students.get(s.student_id).name if s.student_id in students else s.student_id,
+            "student_email": students.get(s.student_id).email if s.student_id in students else "",
             "course_id": s.course_id,
             "status": s.status,
             "completed": s.completed,

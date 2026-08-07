@@ -541,6 +541,23 @@ function AdminPage({ API_URL, onBack }) {
     loadData()
   }
 
+  async function editStudentName(student) {
+    const name = window.prompt("Nome do aluno:", student.name)
+    if (name === null || !name.trim()) return
+
+    const response = await fetch(`${API_URL}/students/${student.student_code}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name.trim() })
+    })
+    const data = await response.json()
+    if (!data.success) {
+      alert(data.message || "Não foi possível alterar o nome.")
+      return
+    }
+    loadData()
+  }
+
   async function createAttendancePart(e) {
     e.preventDefault()
     if (!attendancePartForm.module_id) {
@@ -706,9 +723,9 @@ function AdminPage({ API_URL, onBack }) {
 
   function exportAttendanceReport() {
     if (!attendanceReport) return
-    const headers = ["Aluno", "E-mail", "Frequência", "Presenças", "Manual", "Atividade substitutiva", "A realizar"]
+    const headers = ["Aluno", "E-mail", "Frequência", "Presenças", "Registros de presença", "A realizar"]
     const rows = attendanceReport.students.map(student => [
-      student.name, student.email, `${student.stats.frequencia ?? 0}%`, student.stats.presencas, student.sources?.manual || 0, student.sources?.atividade_substitutiva || 0, student.stats.a_realizar
+      student.name, student.email, `${student.stats.frequencia ?? 0}%`, student.stats.presencas, formatAttendanceSources(student, " | "), student.stats.a_realizar
     ])
     const csv = [headers, ...rows].map(row => row.map(value => `"${String(value ?? "").replaceAll('"', '""')}"`).join(",")).join("\r\n")
     const link = document.createElement("a")
@@ -718,11 +735,15 @@ function AdminPage({ API_URL, onBack }) {
     URL.revokeObjectURL(link.href)
   }
 
-  function formatAttendanceSources(student) {
-    const manual = student.sources?.manual || 0
-    const substitute = student.sources?.atividade_substitutiva || 0
-    if (!manual && !substitute) return "—"
-    return [manual && `Manual: ${manual}`, substitute && `Atividade substitutiva: ${substitute}`].filter(Boolean).join(" · ")
+  function formatAttendanceSources(student, separator = "\n") {
+    const entries = student.attendance?.filter(item => item.source && item.received_at) || []
+    if (entries.length === 0) return "—"
+    return entries.map(item => {
+      const date = new Date(item.received_at)
+      const formattedDate = Number.isNaN(date.getTime()) ? item.received_at : date.toLocaleDateString("pt-BR")
+      const source = item.source === "manual" ? "Manual" : "Atividade substitutiva"
+      return `${formattedDate} — ${source}`
+    }).join(separator)
   }
 
   function eventNameFor(eventId) {
@@ -752,7 +773,7 @@ function AdminPage({ API_URL, onBack }) {
 
   function renderStudentTable(studentList) {
     if (studentList.length === 0) return <p style={{ color: "#64748b" }}>Nenhum aluno nesta lista.</p>
-    return <div className="admin-table-wrap"><table style={tableStyle}><thead><tr><th style={th}>Código</th><th style={th}>Nome</th><th style={th}>E-mail</th><th style={th}>Ações</th></tr></thead><tbody>{studentList.map(student => <tr key={student.id}><td style={td}>{student.student_code}</td><td style={td}>{student.name}</td><td style={td}>{student.email}</td><td style={td}><button className="danger-action" onClick={() => deleteStudent(student)}>Excluir</button></td></tr>)}</tbody></table></div>
+    return <div className="admin-table-wrap"><table style={tableStyle}><thead><tr><th style={th}>Código</th><th style={th}>Nome</th><th style={th}>E-mail</th><th style={th}>Ações</th></tr></thead><tbody>{studentList.map(student => <tr key={student.id}><td style={td}>{student.student_code}</td><td style={td}>{student.name}</td><td style={td}>{student.email}</td><td style={td}><button onClick={() => editStudentName(student)}>Editar nome</button><button className="danger-action" onClick={() => deleteStudent(student)} style={{ marginLeft: "8px" }}>Excluir</button></td></tr>)}</tbody></table></div>
   }
 
   return (
@@ -1009,7 +1030,7 @@ function AdminPage({ API_URL, onBack }) {
 
           {attendanceReport && <div style={{ marginTop: "20px", overflowX: "auto" }}>
             <button type="button" onClick={exportAttendanceReport} style={primaryButtonStyle}>Exportar CSV</button>
-            <table style={{ ...tableStyle, marginTop: "12px" }}><thead><tr><th style={th}>Aluno</th><th style={th}>E-mail</th><th style={th}>Frequência</th><th style={th}>Presenças</th><th style={th}>Origem das presenças</th><th style={th}>A realizar</th></tr></thead><tbody>{attendanceReport.students.map(student => <tr key={student.student_code}><td style={td}>{student.name}</td><td style={td}>{student.email}</td><td style={td}>{student.stats.frequencia ?? "—"}{student.stats.frequencia != null ? "%" : ""}</td><td style={td}>{student.stats.presencas}</td><td style={td}>{formatAttendanceSources(student)}</td><td style={td}>{student.stats.a_realizar}</td></tr>)}</tbody></table>
+            <table style={{ ...tableStyle, marginTop: "12px" }}><thead><tr><th style={th}>Aluno</th><th style={th}>E-mail</th><th style={th}>Frequência</th><th style={th}>Presenças</th><th style={th}>Data e origem da presença</th><th style={th}>A realizar</th></tr></thead><tbody>{attendanceReport.students.map(student => <tr key={student.student_code}><td style={td}>{student.name}</td><td style={td}>{student.email}</td><td style={td}>{student.stats.frequencia ?? "—"}{student.stats.frequencia != null ? "%" : ""}</td><td style={td}>{student.stats.presencas}</td><td style={{ ...td, whiteSpace: "pre-line", minWidth: "190px" }}>{formatAttendanceSources(student)}</td><td style={td}>{student.stats.a_realizar}</td></tr>)}</tbody></table>
           </div>}
         </div>
       </div>

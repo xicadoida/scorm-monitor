@@ -29,6 +29,10 @@ class StudentCreateRequest(BaseModel):
     email: str
 
 
+class StudentUpdateRequest(BaseModel):
+    name: Optional[str] = None
+
+
 class EnrollmentCreateRequest(BaseModel):
     student_code: str
     course_code: str

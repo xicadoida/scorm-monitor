@@ -79,7 +79,7 @@ function ReportPage({ API_URL, onBack }) {
   const filteredSessions = sessions.filter(session => {
     const matchesStudent =
       studentFilter === "" ||
-      session.student_id.toLowerCase().includes(studentFilter.toLowerCase())
+      `${session.student_name || ""} ${session.student_email || ""}`.toLowerCase().includes(studentFilter.toLowerCase())
 
     const matchesCourse =
       courseFilter === "" ||
@@ -107,10 +107,11 @@ function ReportPage({ API_URL, onBack }) {
       session => session.status === "passed"
     )
 
-    const headers = ["Aluno", "Curso", "Status", "Tempo", "Início", "Conclusão"]
+    const headers = ["Nome", "E-mail", "Curso", "Status", "Tempo", "Início", "Conclusão"]
     const escapeCsv = value => `"${String(value ?? "-").replaceAll('"', '""')}"`
     const rows = completed.map(session => [
-      session.student_id,
+      session.student_name,
+      session.student_email,
       session.course_id,
       formatStatus(session.status),
       formatSessionTime(session.session_time),
@@ -205,7 +206,8 @@ function ReportPage({ API_URL, onBack }) {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ textAlign: "left", borderBottom: "1px solid #ddd" }}>
-              <th style={th}>Aluno</th>
+              <th style={th}>Nome</th>
+              <th style={th}>E-mail</th>
               <th style={th}>Curso</th>
               <th style={th}>Status</th>
               <th style={th}>Concluiu</th>
@@ -222,7 +224,8 @@ function ReportPage({ API_URL, onBack }) {
               )
               .map(session => (
               <tr key={session.id} style={{ borderBottom: "1px solid #eee" }}>
-                <td style={td}>{session.student_id}</td>
+                <td style={td}>{session.student_name}</td>
+                <td style={td}>{session.student_email}</td>
                 <td style={td}>{session.course_id}</td>
                 <td style={td}>{formatStatus(session.status)}</td>
                 <td style={td}>{formatCompleted(session.completed)}</td>

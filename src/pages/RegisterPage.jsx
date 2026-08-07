@@ -52,7 +52,7 @@ function RegisterPage({ API_URL, onBackToLogin, event }) {
       return
     }
 
-    setSuccess("Conta criada com sucesso. Volte para o login.")
+    onBackToLogin()
   }
 
   const theme = event ? {

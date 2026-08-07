@@ -489,7 +489,7 @@ def get_attendance_report(
         AttendanceRecord.student_code.in_(student_codes),
         AttendanceRecord.part_id.in_(part_ids)
     ).all() if student_codes and part_ids else []
-    statuses = {(record.student_code, record.part_id): record.status for record in records}
+    records_by_key = {(record.student_code, record.part_id): record for record in records}
     course_codes = [part.course_code for _, part in report_parts if part.course_code]
     passed_sessions = db.query(CourseSession).filter(
         CourseSession.student_id.in_(student_codes),
@@ -498,7 +498,10 @@ def get_attendance_report(
     ).all() if student_codes and course_codes else []
     passed_courses_by_student = {}
     for session in passed_sessions:
-        passed_courses_by_student.setdefault(session.student_id, set()).add(session.course_id)
+        key = (session.student_id, session.course_id)
+        existing = passed_courses_by_student.get(key)
+        if not existing or (session.completed_at or session.updated_at) > (existing.completed_at or existing.updated_at):
+            passed_courses_by_student[key] = session
 
     rows = []
     for student in students:
@@ -506,16 +509,21 @@ def get_attendance_report(
         manual_count = 0
         substitute_count = 0
         for module, part in report_parts:
-            manual_status = statuses.get((student.student_code, part.id), "a_realizar")
+            record = records_by_key.get((student.student_code, part.id))
+            manual_status = record.status if record else "a_realizar"
             if manual_status in ("presente", "justificada", "falta"):
                 status = manual_status
                 source = "manual" if manual_status in ("presente", "justificada") else None
-            elif part.course_code and part.course_code in passed_courses_by_student.get(student.student_code, set()):
+                received_at = record.updated_at if source else None
+            elif part.course_code and (student.student_code, part.course_code) in passed_courses_by_student:
                 status = "atividade_substitutiva"
                 source = "atividade_substitutiva"
+                passed_session = passed_courses_by_student[(student.student_code, part.course_code)]
+                received_at = passed_session.completed_at or passed_session.updated_at
             else:
                 status = manual_status
                 source = None
+                received_at = None
             manual_count += source == "manual"
             substitute_count += source == "atividade_substitutiva"
             row_attendance.append({
@@ -524,7 +532,8 @@ def get_attendance_report(
                 "label": part.label,
                 "date": part.date.isoformat() if part.date else None,
                 "status": status,
-                "source": source
+                "source": source,
+                "received_at": received_at.isoformat() if received_at else None
             })
 
         row_statuses = [item["status"] for item in row_attendance]

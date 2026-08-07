@@ -4,7 +4,7 @@ from fastapi import APIRouter
 
 from database import SessionLocal
 from models import Student, Enrollment, CourseSession, ClassStudent
-from schemas import StudentCreateRequest, DeleteAccountRequest
+from schemas import StudentCreateRequest, StudentUpdateRequest, DeleteAccountRequest
 from security import verify_password
 from event_utils import get_event_for_email
 
@@ -55,6 +55,27 @@ def list_students():
     db.close()
 
     return result
+
+
+@router.put("/students/{student_code}")
+def update_student(student_code: str, data: StudentUpdateRequest):
+    db = SessionLocal()
+    student = db.query(Student).filter(Student.student_code == student_code).first()
+
+    if not student:
+        db.close()
+        return {"success": False, "message": "Aluno não encontrado."}
+
+    if data.name is not None:
+        name = data.name.strip()
+        if not name:
+            db.close()
+            return {"success": False, "message": "O nome não pode ficar vazio."}
+        student.name = name
+
+    db.commit()
+    db.close()
+    return {"success": True}
 
 
 def _delete_student_cascade(db, student_code):

@@ -514,7 +514,14 @@ def get_attendance_report(
             if manual_status in ("presente", "justificada", "falta"):
                 status = manual_status
                 source = "manual" if manual_status in ("presente", "justificada") else None
-                received_at = record.updated_at if source else None
+                # Para presença manual, a data relevante no relatório é a
+                # data da aula/parte. O horário do lançamento só é usado
+                # quando a parte ainda não tem uma data configurada.
+                received_at = (
+                    datetime.combine(part.date, datetime.min.time())
+                    if source and part.date
+                    else (record.updated_at if source else None)
+                )
             elif part.course_code and (student.student_code, part.course_code) in passed_courses_by_student:
                 status = "atividade_substitutiva"
                 source = "atividade_substitutiva"

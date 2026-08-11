@@ -67,7 +67,8 @@ async def upload_course(
     course_code: str = Form(...),
     file: UploadFile = File(...),
     event_id: Optional[int] = Form(None),
-    color_primary: Optional[str] = Form(None)
+    color_primary: Optional[str] = Form(None),
+    passing_score: Optional[int] = Form(80)
 ):
     with tempfile.TemporaryDirectory() as tmp_dir:
         zip_path = os.path.join(tmp_dir, file.filename)
@@ -127,6 +128,7 @@ async def upload_course(
             active=True,
             event_id=event_id,
             color_primary=color_primary,
+            passing_score=passing_score or 80,
             created_at=datetime.utcnow()
         )
 
@@ -142,6 +144,7 @@ async def upload_course(
             "scorm_path": course.scorm_path,
             "event_id": course.event_id,
             "color_primary": course.color_primary,
+            "passing_score": course.passing_score,
             "message": "Course uploaded successfully"
         }
 
@@ -157,6 +160,7 @@ def create_course(data: CourseCreateRequest):
         active=True,
         event_id=data.event_id,
         color_primary=data.color_primary,
+        passing_score=data.passing_score or 80,
         created_at=datetime.utcnow()
     )
 
@@ -173,6 +177,7 @@ def create_course(data: CourseCreateRequest):
         "active": course.active,
         "event_id": course.event_id,
         "color_primary": course.color_primary
+        ,"passing_score": course.passing_score
     }
 
 
@@ -190,6 +195,7 @@ def list_courses():
             "active": c.active,
             "event_id": c.event_id,
             "color_primary": c.color_primary,
+            "passing_score": c.passing_score,
             "created_at": c.created_at
         }
         for c in courses
@@ -227,6 +233,7 @@ def list_public_courses(email: str):
             "active": c.active,
             "event_id": c.event_id,
             "color_primary": c.color_primary
+            ,"passing_score": c.passing_score
         }
         for c in courses
     ]
@@ -260,6 +267,12 @@ def update_course(course_code: str, data: CourseUpdateRequest):
     if data.color_primary is not None:
         course.color_primary = data.color_primary
 
+    if data.passing_score is not None:
+        if data.passing_score < 0 or data.passing_score > 100:
+            db.close()
+            return {"success": False, "message": "A nota mínima deve ficar entre 0 e 100."}
+        course.passing_score = data.passing_score
+
     db.commit()
     db.refresh(course)
     db.close()
@@ -273,6 +286,7 @@ def update_course(course_code: str, data: CourseUpdateRequest):
         "active": course.active,
         "event_id": course.event_id,
         "color_primary": course.color_primary
+        ,"passing_score": course.passing_score
     }
 
 

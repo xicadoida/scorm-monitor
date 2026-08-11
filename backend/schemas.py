@@ -13,6 +13,7 @@ class SessionUpdateRequest(BaseModel):
     completed: Optional[bool] = None
     suspend_data: Optional[str] = None
     lesson_location: Optional[str] = None
+    score_raw: Optional[float] = None
 
 
 class CourseCreateRequest(BaseModel):
@@ -21,6 +22,7 @@ class CourseCreateRequest(BaseModel):
     scorm_path: str
     event_id: Optional[int] = None
     color_primary: Optional[str] = None
+    passing_score: Optional[int] = 80
 
 
 class StudentCreateRequest(BaseModel):
@@ -42,6 +44,7 @@ class CourseUpdateRequest(BaseModel):
     active: Optional[bool] = None
     event_id: Optional[int] = None
     color_primary: Optional[str] = None
+    passing_score: Optional[int] = None
 
 class ClassCreateRequest(BaseModel):
     name: str

@@ -3,7 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter
 
 from database import SessionLocal
-from models import CourseSession, Student
+from models import CourseSession, Student, Course
 from schemas import (
     SessionStartRequest,
     SessionUpdateRequest
@@ -48,21 +48,39 @@ def update_session(session_id: int, data: SessionUpdateRequest):
         return {"error": "Session not found"}
 
     if data.status is not None:
-        session.status = data.status
-
         # O SCORM pode informar "completed" antes de o questionário ser
         # corrigido. Somente aprovação encerra o acesso do aluno ao curso.
         if data.status == "passed":
+            session.status = "passed"
             session.completed = True
             session.completed_at = datetime.utcnow()
         elif data.status == "failed":
             session.completed = False
             session.completed_at = None
+            if session.status != "passed":
+                session.status = "failed"
+        elif not (data.status == "completed" and session.status == "passed"):
+            session.status = data.status
 
     if data.session_time is not None:
         session.session_time = data.session_time
 
-    if data.completed is not None:
+    if data.score_raw is not None:
+        session.score_raw = data.score_raw
+        course = db.query(Course).filter(Course.course_code == session.course_id).first()
+        passing_score = course.passing_score if course and course.passing_score is not None else 80
+        # Esses SCORMs enviam nota em uma escala de 0 a 100. Como não enviam
+        # "failed", a nota mínima configurada no curso decide o resultado.
+        if data.score_raw >= passing_score:
+            session.status = "passed"
+            session.completed = True
+            session.completed_at = datetime.utcnow()
+        elif session.status != "passed":
+            session.status = "failed"
+            session.completed = False
+            session.completed_at = None
+
+    if data.completed is not None and not (session.status == "passed" and not data.completed):
         session.completed = data.completed
         if data.completed:
             session.completed_at = datetime.utcnow()
@@ -101,6 +119,7 @@ def list_sessions():
             "status": s.status,
             "completed": s.completed,
             "session_time": s.session_time,
+            "score_raw": s.score_raw,
             "started_at": s.started_at,
             "updated_at": s.updated_at,
             "completed_at": s.completed_at,

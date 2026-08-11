@@ -345,6 +345,7 @@ function App() {
       }
       const isStatus = key === "cmi.core.lesson_status"
       const isSessionTime = key === "cmi.core.session_time"
+      const isScore = key === "cmi.core.score.raw"
 
       if (isStatus || isSessionTime) {
         setTrackingData(prev => {
@@ -373,6 +374,11 @@ function App() {
 
           return updated
         })
+      }
+
+      if (isScore && !Number.isNaN(Number(value))) {
+        console.info("[SCORM 1.2] Nota do quiz:", value)
+        sendSessionUpdate({ score_raw: Number(value) })
       }
 
       return originalSetValue(key, value)
@@ -426,6 +432,11 @@ function App() {
       if (key === "cmi.session_time") {
         sendSessionUpdate({ session_time: value })
         setTrackingData(prev => ({ ...prev, sessionTime: value }))
+      }
+
+      if (key === "cmi.score.raw" && !Number.isNaN(Number(value))) {
+        console.info("[SCORM 2004] Nota do quiz:", value)
+        sendSessionUpdate({ score_raw: Number(value) })
       }
 
       return originalSetValue2004(key, value)

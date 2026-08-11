@@ -12,6 +12,7 @@ class CourseSession(Base):
     status = Column(String(50), default="not_attempted")
     completed = Column(Boolean, default=False)
     session_time = Column(String(50), default="")
+    score_raw = Column(Integer, nullable=True)
     suspend_data = Column(String(5000), default="")
     lesson_location = Column(String(255), default="")
     started_at = Column(DateTime, default=datetime.utcnow)
@@ -34,6 +35,7 @@ class Course(Base):
     event_id = Column(Integer, nullable=True, index=True)
     # Cor usada nos elementos de ação do cartão deste curso.
     color_primary = Column(String(20), nullable=True)
+    passing_score = Column(Integer, default=80)
 
 
 class Event(Base):

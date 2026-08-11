@@ -51,7 +51,8 @@ function AdminPage({ API_URL, onBack }) {
     course_code: "",
     file: null,
     event_id: "",
-    color_primary: "#152A47"
+    color_primary: "#152A47",
+    passing_score: 80
   })
 
   const [enrollmentForm, setEnrollmentForm] = useState({
@@ -221,6 +222,8 @@ function AdminPage({ API_URL, onBack }) {
       formData.append("color_primary", courseForm.color_primary)
     }
 
+    formData.append("passing_score", courseForm.passing_score || 80)
+
     const response = await fetch(`${API_URL}/courses/upload`, {
         method: "POST",
         body: formData
@@ -240,7 +243,8 @@ function AdminPage({ API_URL, onBack }) {
         course_code: "",
         file: null,
         event_id: "",
-        color_primary: "#152A47"
+        color_primary: "#152A47",
+        passing_score: 80
     })
 
     loadData()
@@ -918,6 +922,11 @@ function AdminPage({ API_URL, onBack }) {
             />
           </label>
 
+          <label style={{ display: "block", marginBottom: "12px", color: "#374151" }}>
+            Nota mínima para aprovação (0 a 100)
+            <input type="number" min="0" max="100" value={courseForm.passing_score} onChange={e => setCourseForm({ ...courseForm, passing_score: e.target.value })} style={{ ...inputStyle, marginTop: "6px", marginBottom: 0 }} />
+          </label>
+
           <input
             type="file"
             accept=".zip"
@@ -1539,6 +1548,7 @@ function AdminPage({ API_URL, onBack }) {
                   <th style={th}>Título</th>
                   <th style={th}>Status</th>
                   <th style={th}>Evento</th>
+                  <th style={th}>Nota mínima</th>
                   <th style={th}>Ações</th>
                   
                 </tr>
@@ -1564,6 +1574,7 @@ function AdminPage({ API_URL, onBack }) {
                         ))}
                       </select>
                     </td>
+                    <td style={td}>{course.passing_score ?? 80}%</td>
                     <td style={td}>
                       <button
                         onClick={async () => {
@@ -1585,6 +1596,27 @@ function AdminPage({ API_URL, onBack }) {
                         }}
                       >
                         Editar nome
+                      </button>
+
+                      <button
+                        onClick={async () => {
+                          const newScore = prompt("Nota mínima para aprovação (0 a 100):", course.passing_score ?? 80)
+                          if (newScore === null || newScore === "") return
+                          const score = Number(newScore)
+                          if (!Number.isFinite(score) || score < 0 || score > 100) {
+                            alert("Informe uma nota entre 0 e 100.")
+                            return
+                          }
+                          await fetch(`${API_URL}/courses/${course.course_code}`, {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ passing_score: score })
+                          })
+                          loadData()
+                        }}
+                        style={{ marginLeft: "8px" }}
+                      >
+                        Editar nota
                       </button>
 
                       <button

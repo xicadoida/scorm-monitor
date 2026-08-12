@@ -299,6 +299,7 @@ function App() {
       const match = key.match(/^cmi\.interactions\.(\d+)\.result$/)
       if (!match || !["correct", "incorrect"].includes(String(value).toLowerCase())) return
       interactionResults.set(match[1], String(value).toLowerCase())
+      console.info("[SCORM] Resposta capturada:", match[1], value)
     }
 
     startBackendSession().then(id => {
@@ -396,7 +397,7 @@ function App() {
 
       if (key === "cmi.core.lesson_status" && ["completed", "passed"].includes(value)) {
         clearTimeout(completionTimer)
-        completionTimer = setTimeout(sendCalculatedQuizScore, 300)
+        completionTimer = setTimeout(sendCalculatedQuizScore, 1000)
       }
 
       if (isScore && !Number.isNaN(Number(value))) {
@@ -451,11 +452,19 @@ function App() {
         if (value === "passed") {
           saveCompletion(value)
         }
+
+        // Alguns pacotes só declaram sucesso e não escrevem completion_status
+        // depois do quiz. A nota calculada pelas interações precisa rodar nos
+        // dois casos para substituir esse "passed" incorreto quando necessário.
+        if (["passed", "failed"].includes(String(value).toLowerCase())) {
+          clearTimeout(completionTimer)
+          completionTimer = setTimeout(sendCalculatedQuizScore, 1000)
+        }
       }
 
       if (key === "cmi.completion_status" && value === "completed") {
         clearTimeout(completionTimer)
-        completionTimer = setTimeout(sendCalculatedQuizScore, 300)
+        completionTimer = setTimeout(sendCalculatedQuizScore, 1000)
       }
 
       if (key === "cmi.session_time") {

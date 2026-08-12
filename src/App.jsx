@@ -272,6 +272,8 @@ function App() {
     let currentSessionId = null
     let cancelled = false
     let pendingSessionUpdate = {}
+    const interactionResults = new Map()
+    let completionTimer = null
 
     // O SCORM pode iniciar e devolver o resultado antes da resposta do
     // endpoint /sessions/start. Guardamos esses dados para não perder
@@ -282,6 +284,21 @@ function App() {
       } else {
         pendingSessionUpdate = { ...pendingSessionUpdate, ...payload }
       }
+    }
+
+    const sendCalculatedQuizScore = () => {
+      const results = [...interactionResults.values()]
+      if (results.length === 0) return
+      const correct = results.filter(result => result === "correct").length
+      const score = (correct / results.length) * 100
+      console.info("[SCORM] Nota calculada pelas questões:", score, `${correct}/${results.length}`)
+      sendSessionUpdate({ score_raw: score })
+    }
+
+    const rememberInteraction = (key, value) => {
+      const match = key.match(/^cmi\.interactions\.(\d+)\.result$/)
+      if (!match || !["correct", "incorrect"].includes(String(value).toLowerCase())) return
+      interactionResults.set(match[1], String(value).toLowerCase())
     }
 
     startBackendSession().then(id => {
@@ -322,6 +339,7 @@ function App() {
     }
 
     api.LMSSetValue = function(key, value) {
+      rememberInteraction(key, value)
       if (
         key.includes("suspend_data") ||
         key.includes("lesson_location") ||
@@ -376,6 +394,11 @@ function App() {
         })
       }
 
+      if (key === "cmi.core.lesson_status" && ["completed", "passed"].includes(value)) {
+        clearTimeout(completionTimer)
+        completionTimer = setTimeout(sendCalculatedQuizScore, 300)
+      }
+
       if (isScore && !Number.isNaN(Number(value))) {
         console.info("[SCORM 1.2] Nota do quiz:", value)
         sendSessionUpdate({ score_raw: Number(value) })
@@ -400,6 +423,7 @@ function App() {
     }
 
     api2004.SetValue = function(key, value) {
+      rememberInteraction(key, value)
       if (key === "cmi.suspend_data") {
         sendSessionUpdate({ suspend_data: value })
       }
@@ -429,6 +453,11 @@ function App() {
         }
       }
 
+      if (key === "cmi.completion_status" && value === "completed") {
+        clearTimeout(completionTimer)
+        completionTimer = setTimeout(sendCalculatedQuizScore, 300)
+      }
+
       if (key === "cmi.session_time") {
         sendSessionUpdate({ session_time: value })
         setTrackingData(prev => ({ ...prev, sessionTime: value }))
@@ -456,6 +485,7 @@ function App() {
 
     return () => {
       cancelled = true
+      clearTimeout(completionTimer)
 
       if (iframe) {
         iframe.onload = null

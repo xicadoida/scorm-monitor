@@ -727,10 +727,10 @@ function AdminPage({ API_URL, onBack }) {
 
   function exportAttendanceReport() {
     if (!attendanceReport) return
-    const headers = ["Aluno", "E-mail", "Frequência", "Presenças", "Registros de presença", "A realizar"]
-    const rows = attendanceReport.students.map(student => [
-      student.name, student.email, `${student.stats.frequencia ?? 0}%`, student.stats.presencas, formatAttendanceSources(student, " | "), student.stats.a_realizar
-    ])
+    const headers = ["Aluno", "E-mail", "Módulo", "Parte", "Data da aula", "Origem da presença"]
+    const rows = attendanceReport.students.flatMap(student => attendanceEntriesFor(student).map(entry => [
+      student.name, student.email, entry.module, entry.label || "Parte", entry.date, entry.source
+    ]))
     const csv = [headers, ...rows].map(row => row.map(value => `"${String(value ?? "").replaceAll('"', '""')}"`).join(",")).join("\r\n")
     const link = document.createElement("a")
     link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }))
@@ -739,15 +739,19 @@ function AdminPage({ API_URL, onBack }) {
     URL.revokeObjectURL(link.href)
   }
 
+  function attendanceEntriesFor(student) {
+    return (student.attendance || []).flatMap(item => (item.presence_entries || []).map(entry => ({
+      module: item.module,
+      label: item.label,
+      date: item.date ? new Date(`${item.date}T12:00:00`).toLocaleDateString("pt-BR") : "—",
+      source: entry.source === "manual" ? "Manual" : "Atividade substitutiva"
+    })))
+  }
+
   function formatAttendanceSources(student, separator = "\n") {
-    const entries = student.attendance?.filter(item => item.source && item.received_at) || []
+    const entries = attendanceEntriesFor(student)
     if (entries.length === 0) return "—"
-    return entries.map(item => {
-      const date = new Date(item.received_at)
-      const formattedDate = Number.isNaN(date.getTime()) ? item.received_at : date.toLocaleDateString("pt-BR")
-      const source = item.source === "manual" ? "Manual" : "Atividade substitutiva"
-      return `${formattedDate} — ${source}`
-    }).join(separator)
+    return entries.map(entry => `${entry.date} — ${entry.module} — ${entry.label || "Parte"} — ${entry.source}`).join(separator)
   }
 
   function eventNameFor(eventId) {

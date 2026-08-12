@@ -511,6 +511,25 @@ def get_attendance_report(
         for module, part in report_parts:
             record = records_by_key.get((student.student_code, part.id))
             manual_status = record.status if record else "a_realizar"
+            passed_session = passed_courses_by_student.get((student.student_code, part.course_code)) if part.course_code else None
+            presence_entries = []
+            if manual_status in ("presente", "justificada"):
+                manual_date = datetime.combine(part.date, datetime.min.time()) if part.date else record.updated_at
+                presence_entries.append({
+                    "source": "manual",
+                    "received_at": manual_date.isoformat() if manual_date else None
+                })
+            if passed_session:
+                # O relatório é organizado pela data da aula/parte. Se ela
+                # não foi configurada, cai para a data da conclusão.
+                automatic_date = (
+                    datetime.combine(part.date, datetime.min.time())
+                    if part.date else (passed_session.completed_at or passed_session.updated_at)
+                )
+                presence_entries.append({
+                    "source": "atividade_substitutiva",
+                    "received_at": automatic_date.isoformat() if automatic_date else None
+                })
             if manual_status in ("presente", "justificada", "falta"):
                 status = manual_status
                 source = "manual" if manual_status in ("presente", "justificada") else None
@@ -522,7 +541,7 @@ def get_attendance_report(
                     if source and part.date
                     else (record.updated_at if source else None)
                 )
-            elif part.course_code and (student.student_code, part.course_code) in passed_courses_by_student:
+            elif passed_session:
                 status = "atividade_substitutiva"
                 source = "atividade_substitutiva"
                 passed_session = passed_courses_by_student[(student.student_code, part.course_code)]
@@ -540,7 +559,8 @@ def get_attendance_report(
                 "date": part.date.isoformat() if part.date else None,
                 "status": status,
                 "source": source,
-                "received_at": received_at.isoformat() if received_at else None
+                "received_at": received_at.isoformat() if received_at else None,
+                "presence_entries": presence_entries
             })
 
         row_statuses = [item["status"] for item in row_attendance]

@@ -75,7 +75,7 @@ def update_session(session_id: int, data: SessionUpdateRequest):
             session.status = "passed"
             session.completed = True
             session.completed_at = datetime.utcnow()
-        elif session.status != "passed":
+        else:
             session.status = "failed"
             session.completed = False
             session.completed_at = None

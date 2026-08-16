@@ -297,9 +297,12 @@ function App() {
 
     const rememberInteraction = (key, value) => {
       const match = key.match(/^cmi\.interactions\.(\d+)\.result$/)
-      if (!match || !["correct", "incorrect"].includes(String(value).toLowerCase())) return
-      interactionResults.set(match[1], String(value).toLowerCase())
-      console.info("[SCORM] Resposta capturada:", match[1], value)
+      const normalizedResult = String(value).toLowerCase() === "wrong"
+        ? "incorrect"
+        : String(value).toLowerCase()
+      if (!match || !["correct", "incorrect"].includes(normalizedResult)) return
+      interactionResults.set(match[1], normalizedResult)
+      console.info("[SCORM] Resposta capturada:", match[1], normalizedResult)
     }
 
     startBackendSession().then(id => {

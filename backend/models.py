@@ -36,6 +36,23 @@ class Course(Base):
     # Cor usada nos elementos de ação do cartão deste curso.
     color_primary = Column(String(20), nullable=True)
     passing_score = Column(Integer, default=80)
+    # Metadados usados pelo catálogo público. São opcionais para preservar os
+    # cursos existentes, que podem ser enriquecidos aos poucos pelo admin.
+    tool = Column(String(255), nullable=True)
+    duration_hours = Column(Integer, nullable=True)
+    catalog_url = Column(String(500), nullable=True)
+    thumbnail_url = Column(String(500), nullable=True)
+    short_description = Column(String(500), nullable=True)
+    catalog_status = Column(String(30), default="active")
+    updated_at = Column(DateTime, default=datetime.utcnow)
+
+
+class CatalogState(Base):
+    """Registro único com a versão atual do catálogo público."""
+    __tablename__ = "catalog_state"
+
+    id = Column(Integer, primary_key=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
 class Event(Base):

@@ -23,6 +23,12 @@ class CourseCreateRequest(BaseModel):
     event_id: Optional[int] = None
     color_primary: Optional[str] = None
     passing_score: Optional[int] = 80
+    tool: Optional[str] = None
+    duration_hours: Optional[int] = None
+    catalog_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
+    short_description: Optional[str] = None
+    catalog_status: Optional[str] = "active"
 
 
 class StudentCreateRequest(BaseModel):
@@ -45,6 +51,12 @@ class CourseUpdateRequest(BaseModel):
     event_id: Optional[int] = None
     color_primary: Optional[str] = None
     passing_score: Optional[int] = None
+    tool: Optional[str] = None
+    duration_hours: Optional[int] = None
+    catalog_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
+    short_description: Optional[str] = None
+    catalog_status: Optional[str] = None
 
 class ClassCreateRequest(BaseModel):
     name: str

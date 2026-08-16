@@ -4,6 +4,7 @@ from fastapi import APIRouter, File, Form, UploadFile
 from database import SessionLocal
 from models import Course, Enrollment, CourseSession
 from schemas import CourseCreateRequest, CourseUpdateRequest
+from catalog_utils import touch_catalog
 
 import os
 import zipfile
@@ -17,6 +18,7 @@ FTP_USER = "u124251760.lms.iaclube.help"
 FTP_PASS = os.getenv("FTP_PASSWORD")
 FTP_BASE_DIR = "/public_html/scorm"
 PUBLIC_BASE_URL = "https://lms.iaclube.help/scorm"
+CATALOG_STATUSES = {"active", "coming_soon", "completed"}
 
 
 def remove_dir_ftp(ftp, remote_dir):
@@ -68,8 +70,16 @@ async def upload_course(
     file: UploadFile = File(...),
     event_id: Optional[int] = Form(None),
     color_primary: Optional[str] = Form(None),
-    passing_score: Optional[int] = Form(80)
+    passing_score: Optional[int] = Form(80),
+    tool: Optional[str] = Form(None),
+    duration_hours: Optional[int] = Form(None),
+    catalog_url: Optional[str] = Form(None),
+    thumbnail_url: Optional[str] = Form(None),
+    short_description: Optional[str] = Form(None),
+    catalog_status: Optional[str] = Form("active")
 ):
+    if catalog_status not in CATALOG_STATUSES:
+        return {"success": False, "message": "Status de catálogo inválido."}
     with tempfile.TemporaryDirectory() as tmp_dir:
         zip_path = os.path.join(tmp_dir, file.filename)
 
@@ -129,10 +139,17 @@ async def upload_course(
             event_id=event_id,
             color_primary=color_primary,
             passing_score=passing_score or 80,
+            tool=tool,
+            duration_hours=duration_hours,
+            catalog_url=catalog_url,
+            thumbnail_url=thumbnail_url,
+            short_description=short_description,
+            catalog_status=catalog_status,
             created_at=datetime.utcnow()
         )
 
         db.add(course)
+        touch_catalog(db)
         db.commit()
         db.refresh(course)
         db.close()
@@ -145,12 +162,16 @@ async def upload_course(
             "event_id": course.event_id,
             "color_primary": course.color_primary,
             "passing_score": course.passing_score,
+            "catalog_status": course.catalog_status,
             "message": "Course uploaded successfully"
         }
 
 
 @router.post("/courses")
 def create_course(data: CourseCreateRequest):
+    if data.catalog_status not in CATALOG_STATUSES:
+        return {"success": False, "message": "Status de catálogo inválido."}
+
     db = SessionLocal()
 
     course = Course(
@@ -161,10 +182,17 @@ def create_course(data: CourseCreateRequest):
         event_id=data.event_id,
         color_primary=data.color_primary,
         passing_score=data.passing_score or 80,
+        tool=data.tool,
+        duration_hours=data.duration_hours,
+        catalog_url=data.catalog_url,
+        thumbnail_url=data.thumbnail_url,
+        short_description=data.short_description,
+        catalog_status=data.catalog_status,
         created_at=datetime.utcnow()
     )
 
     db.add(course)
+    touch_catalog(db)
     db.commit()
     db.refresh(course)
     db.close()
@@ -177,7 +205,13 @@ def create_course(data: CourseCreateRequest):
         "active": course.active,
         "event_id": course.event_id,
         "color_primary": course.color_primary
-        ,"passing_score": course.passing_score
+        ,"passing_score": course.passing_score,
+        "tool": course.tool,
+        "duration_hours": course.duration_hours,
+        "catalog_url": course.catalog_url,
+        "thumbnail_url": course.thumbnail_url,
+        "short_description": course.short_description,
+        "catalog_status": course.catalog_status,
     }
 
 
@@ -196,6 +230,12 @@ def list_courses():
             "event_id": c.event_id,
             "color_primary": c.color_primary,
             "passing_score": c.passing_score,
+            "tool": c.tool,
+            "duration_hours": c.duration_hours,
+            "catalog_url": c.catalog_url,
+            "thumbnail_url": c.thumbnail_url,
+            "short_description": c.short_description,
+            "catalog_status": c.catalog_status,
             "created_at": c.created_at
         }
         for c in courses
@@ -273,6 +313,23 @@ def update_course(course_code: str, data: CourseUpdateRequest):
             return {"success": False, "message": "A nota mínima deve ficar entre 0 e 100."}
         course.passing_score = data.passing_score
 
+    if data.duration_hours is not None and data.duration_hours < 0:
+        db.close()
+        return {"success": False, "message": "A carga horária não pode ser negativa."}
+
+    if data.catalog_status is not None:
+        if data.catalog_status not in CATALOG_STATUSES:
+            db.close()
+            return {"success": False, "message": "Status de catálogo inválido."}
+        course.catalog_status = data.catalog_status
+
+    for field in ("tool", "duration_hours", "catalog_url", "thumbnail_url", "short_description"):
+        value = getattr(data, field)
+        if value is not None:
+            setattr(course, field, value)
+
+    course.updated_at = datetime.utcnow()
+    touch_catalog(db)
     db.commit()
     db.refresh(course)
     db.close()
@@ -286,7 +343,13 @@ def update_course(course_code: str, data: CourseUpdateRequest):
         "active": course.active,
         "event_id": course.event_id,
         "color_primary": course.color_primary
-        ,"passing_score": course.passing_score
+        ,"passing_score": course.passing_score,
+        "tool": course.tool,
+        "duration_hours": course.duration_hours,
+        "catalog_url": course.catalog_url,
+        "thumbnail_url": course.thumbnail_url,
+        "short_description": course.short_description,
+        "catalog_status": course.catalog_status,
     }
 
 
@@ -312,6 +375,7 @@ def delete_course(course_code: str):
     ).delete()
 
     db.delete(course)
+    touch_catalog(db)
     db.commit()
     db.close()
 

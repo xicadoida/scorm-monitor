@@ -15,6 +15,7 @@ from routes.classes import router as classes_router
 from routes.auth import router as auth_router
 from routes.events import router as events_router
 from routes.attendance import router as attendance_router
+from routes.catalog import router as catalog_router
 
 
 app = FastAPI()
@@ -27,10 +28,16 @@ app.include_router(auth_router)
 app.include_router(classes_router)
 app.include_router(events_router)
 app.include_router(attendance_router)
+app.include_router(catalog_router)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "https://lms.iaclube.help"],
+    allow_origins=[
+        "http://localhost:5173",
+        "https://lms.iaclube.help",
+        "https://iaclube.help",
+        "https://www.iaclube.help",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

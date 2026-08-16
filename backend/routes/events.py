@@ -8,6 +8,7 @@ from fastapi import APIRouter, File, UploadFile
 
 from database import SessionLocal
 from models import Event, EventEmail
+from catalog_utils import touch_catalog
 from schemas import (
     EventCreateRequest,
     EventUpdateRequest,
@@ -66,6 +67,7 @@ def create_event(data: EventCreateRequest):
     )
 
     db.add(event)
+    touch_catalog(db)
     db.commit()
     db.refresh(event)
     db.close()
@@ -140,6 +142,7 @@ def update_event(event_id: int, data: EventUpdateRequest):
     if data.show_footer is not None:
         event.show_footer = data.show_footer
 
+    touch_catalog(db)
     db.commit()
     db.close()
 
@@ -179,6 +182,7 @@ async def upload_event_logo(event_id: int, file: UploadFile = File(...)):
 
     logo_url = f"{PUBLIC_LOGO_URL}/{filename}"
     event.logo_url = logo_url
+    touch_catalog(db)
     db.commit()
     db.close()
     return {"success": True, "logo_url": logo_url}
@@ -191,6 +195,7 @@ def delete_event(event_id: int):
     db.query(EventEmail).filter(EventEmail.event_id == event_id).delete()
     db.query(Event).filter(Event.id == event_id).delete()
 
+    touch_catalog(db)
     db.commit()
     db.close()
 

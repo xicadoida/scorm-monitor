@@ -4,6 +4,9 @@ function AdminPage({ API_URL, onBack }) {
   const [selectedEnrollmentClass, setSelectedEnrollmentClass] = useState("")
   const [selectedEnrollmentCourse, setSelectedEnrollmentCourse] = useState("")
   const [students, setStudents] = useState([])
+  const [passwordResetTarget, setPasswordResetTarget] = useState(null)
+  const [newStudentPassword, setNewStudentPassword] = useState("")
+  const [confirmStudentPassword, setConfirmStudentPassword] = useState("")
   const [courses, setCourses] = useState([])
   const [events, setEvents] = useState([])
   const [attendanceModules, setAttendanceModules] = useState([])
@@ -562,6 +565,39 @@ function AdminPage({ API_URL, onBack }) {
     loadData()
   }
 
+  async function resetStudentPassword(e) {
+    e.preventDefault()
+    if (!passwordResetTarget) return
+
+    if (newStudentPassword.length < 6) {
+      alert("A senha precisa ter pelo menos 6 caracteres.")
+      return
+    }
+    if (newStudentPassword !== confirmStudentPassword) {
+      alert("A confirmação da senha não confere.")
+      return
+    }
+
+    const response = await fetch(
+      `${API_URL}/students/${passwordResetTarget.student_code}/reset-password`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ new_password: newStudentPassword })
+      }
+    )
+    const data = await response.json()
+    if (!data.success) {
+      alert(data.message || "Não foi possível redefinir a senha.")
+      return
+    }
+
+    alert(`Senha de ${passwordResetTarget.name} redefinida com sucesso.`)
+    setPasswordResetTarget(null)
+    setNewStudentPassword("")
+    setConfirmStudentPassword("")
+  }
+
   async function createAttendancePart(e) {
     e.preventDefault()
     if (!attendancePartForm.module_id) {
@@ -781,7 +817,7 @@ function AdminPage({ API_URL, onBack }) {
 
   function renderStudentTable(studentList) {
     if (studentList.length === 0) return <p style={{ color: "#64748b" }}>Nenhum aluno nesta lista.</p>
-    return <div className="admin-table-wrap"><table style={tableStyle}><thead><tr><th style={th}>Código</th><th style={th}>Nome</th><th style={th}>E-mail</th><th style={th}>Ações</th></tr></thead><tbody>{studentList.map(student => <tr key={student.id}><td style={td}>{student.student_code}</td><td style={td}>{student.name}</td><td style={td}>{student.email}</td><td style={td}><button onClick={() => editStudentName(student)}>Editar nome</button><button className="danger-action" onClick={() => deleteStudent(student)} style={{ marginLeft: "8px" }}>Excluir</button></td></tr>)}</tbody></table></div>
+    return <div className="admin-table-wrap"><table style={tableStyle}><thead><tr><th style={th}>Código</th><th style={th}>Nome</th><th style={th}>E-mail</th><th style={th}>Ações</th></tr></thead><tbody>{studentList.map(student => <tr key={student.id}><td style={td}>{student.student_code}</td><td style={td}>{student.name}</td><td style={td}>{student.email}</td><td style={td}><button onClick={() => editStudentName(student)}>Editar nome</button><button onClick={() => setPasswordResetTarget(student)} style={{ marginLeft: "8px" }}>Redefinir senha</button><button className="danger-action" onClick={() => deleteStudent(student)} style={{ marginLeft: "8px" }}>Excluir</button></td></tr>)}</tbody></table></div>
   }
 
   return (
@@ -791,6 +827,20 @@ function AdminPage({ API_URL, onBack }) {
       padding: "28px 20px 48px",
       fontFamily: "Arial"
     }}>
+      {passwordResetTarget && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, .55)", zIndex: 20, display: "grid", placeItems: "center", padding: "20px" }}>
+          <form onSubmit={resetStudentPassword} style={{ background: "#fff", borderRadius: "14px", padding: "24px", width: "min(100%, 420px)", boxShadow: "0 16px 45px rgba(0,0,0,.25)" }}>
+            <h2 style={{ marginTop: 0, color: "#152A47" }}>Redefinir senha</h2>
+            <p style={{ color: "#475569" }}>{passwordResetTarget.name}<br />{passwordResetTarget.email}</p>
+            <input type="password" required minLength="6" value={newStudentPassword} onChange={e => setNewStudentPassword(e.target.value)} placeholder="Nova senha (mínimo 6 caracteres)" style={{ width: "100%", padding: "11px", marginBottom: "10px" }} />
+            <input type="password" required minLength="6" value={confirmStudentPassword} onChange={e => setConfirmStudentPassword(e.target.value)} placeholder="Confirmar nova senha" style={{ width: "100%", padding: "11px", marginBottom: "18px" }} />
+            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+              <button type="button" onClick={() => { setPasswordResetTarget(null); setNewStudentPassword(""); setConfirmStudentPassword("") }}>Cancelar</button>
+              <button type="submit">Salvar nova senha</button>
+            </div>
+          </form>
+        </div>
+      )}
       <style>{`
         .admin-page * { box-sizing: border-box; }
         .admin-page button { background: #152A47; color: #fff; border: 0; border-radius: 8px; padding: 10px 14px; font-weight: 700; cursor: pointer; }
@@ -1523,10 +1573,12 @@ function AdminPage({ API_URL, onBack }) {
                     <td style={td}>{student.name}</td>
                     <td style={td}>{student.email}</td>
                     <td style={td}>
+                      <button onClick={() => editStudentName(student)}>Editar nome</button>
+                      <button onClick={() => setPasswordResetTarget(student)} style={{ marginLeft: "8px" }}>Redefinir senha</button>
                       <button
                         className="danger-action"
                         onClick={() => deleteStudent(student)}
-                        style={{ color: "#b91c1c" }}
+                        style={{ marginLeft: "8px", color: "#b91c1c" }}
                       >
                         Excluir
                       </button>

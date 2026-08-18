@@ -4,8 +4,13 @@ from fastapi import APIRouter
 
 from database import SessionLocal
 from models import Student, Enrollment, CourseSession, ClassStudent
-from schemas import StudentCreateRequest, StudentUpdateRequest, DeleteAccountRequest
-from security import verify_password
+from schemas import (
+    StudentCreateRequest,
+    StudentUpdateRequest,
+    AdminResetPasswordRequest,
+    DeleteAccountRequest,
+)
+from security import hash_password, verify_password
 from event_utils import get_event_for_email
 
 router = APIRouter()
@@ -76,6 +81,25 @@ def update_student(student_code: str, data: StudentUpdateRequest):
     db.commit()
     db.close()
     return {"success": True}
+
+
+@router.post("/students/{student_code}/reset-password")
+def reset_student_password(student_code: str, data: AdminResetPasswordRequest):
+    """Redefinição feita exclusivamente pela área administrativa."""
+    password = data.new_password.strip()
+    if len(password) < 6:
+        return {"success": False, "message": "A senha precisa ter pelo menos 6 caracteres."}
+
+    db = SessionLocal()
+    student = db.query(Student).filter(Student.student_code == student_code).first()
+    if not student:
+        db.close()
+        return {"success": False, "message": "Aluno não encontrado."}
+
+    student.password_hash = hash_password(password)
+    db.commit()
+    db.close()
+    return {"success": True, "message": "Senha redefinida com sucesso."}
 
 
 def _delete_student_cascade(db, student_code):

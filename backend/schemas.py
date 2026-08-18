@@ -41,6 +41,10 @@ class StudentUpdateRequest(BaseModel):
     name: Optional[str] = None
 
 
+class AdminResetPasswordRequest(BaseModel):
+    new_password: str
+
+
 class EnrollmentCreateRequest(BaseModel):
     student_code: str
     course_code: str

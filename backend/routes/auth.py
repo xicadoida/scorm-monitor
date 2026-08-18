@@ -1,6 +1,7 @@
 import uuid
 from fastapi import APIRouter
 from pydantic import BaseModel
+from sqlalchemy import func
 
 from database import SessionLocal
 from models import Student, Event
@@ -45,9 +46,10 @@ def _check_event_access(db, email, event_slug):
 @router.post("/auth/login")
 def login(data: LoginRequest):
     db = SessionLocal()
+    email = data.email.strip().lower()
 
     student = db.query(Student).filter(
-        Student.email == data.email
+        func.lower(Student.email) == email
     ).first()
 
     if not student:
@@ -86,9 +88,10 @@ def login(data: LoginRequest):
 @router.post("/auth/register")
 def register(data: RegisterRequest):
     db = SessionLocal()
+    email = data.email.strip().lower()
 
     existing_student = db.query(Student).filter(
-        Student.email == data.email
+        func.lower(Student.email) == email
     ).first()
 
     if existing_student:
@@ -98,7 +101,7 @@ def register(data: RegisterRequest):
             "message": "Este email já está cadastrado."
         }
 
-    allowed, message = _check_event_access(db, data.email, data.event_slug)
+    allowed, message = _check_event_access(db, email, data.event_slug)
     if not allowed:
         db.close()
         return {"success": False, "message": message}
@@ -106,7 +109,7 @@ def register(data: RegisterRequest):
     student = Student(
         student_code=f"aluno_{uuid.uuid4().hex[:8]}",
         name=data.name,
-        email=data.email,
+        email=email,
         password_hash=hash_password(data.password)
     )
 

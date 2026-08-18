@@ -4,7 +4,6 @@ import {
   card,
   logo,
   input,
-  linkText,
   buttonRow,
   buttonPrimary,
   buttonOutline,
@@ -71,10 +70,6 @@ function LoginPage({ API_URL, onLogin, onGoToRegister, event }) {
           placeholder="Senha"
           style={input}
         />
-
-        <button type="button" style={linkText}>
-          Esqueci a senha
-        </button>
 
         {error && <p style={errorMessage}>{error}</p>}
 

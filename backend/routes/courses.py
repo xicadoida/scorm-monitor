@@ -167,6 +167,89 @@ async def upload_course(
         }
 
 
+@router.post("/courses/{course_code}/replace-file")
+async def replace_course_file(course_code: str, file: UploadFile = File(...)):
+    """Substitui somente o pacote SCORM, preservando todos os vínculos do curso."""
+    db = SessionLocal()
+    course = db.query(Course).filter(Course.course_code == course_code).first()
+    if not course:
+        db.close()
+        return {"success": False, "message": "Curso não encontrado."}
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        filename = os.path.basename(file.filename or "curso.zip")
+        zip_path = os.path.join(tmp_dir, filename)
+
+        try:
+            with open(zip_path, "wb") as buffer:
+                buffer.write(await file.read())
+
+            with zipfile.ZipFile(zip_path, "r") as zip_ref:
+                zip_ref.extractall(tmp_dir)
+        except (OSError, zipfile.BadZipFile):
+            db.close()
+            return {"success": False, "message": "Envie um arquivo ZIP SCORM válido."}
+
+        manifest_files = []
+        for root, _, files in os.walk(tmp_dir):
+            for name in files:
+                if name == "imsmanifest.xml":
+                    manifest_files.append(os.path.join(root, name))
+
+        if len(manifest_files) != 1:
+            db.close()
+            message = (
+                "Arquivo inválido: nenhum imsmanifest.xml encontrado."
+                if not manifest_files
+                else "Arquivo inválido: o ZIP contém mais de um pacote SCORM."
+            )
+            return {"success": False, "message": message}
+
+        scorm_root = os.path.dirname(manifest_files[0])
+        launcher_path = os.path.join(scorm_root, "scormdriver", "indexAPI.html")
+        if not os.path.exists(launcher_path):
+            db.close()
+            return {
+                "success": False,
+                "message": "Arquivo inválido: scormdriver/indexAPI.html não encontrado."
+            }
+
+        ftp = None
+        try:
+            ftp = ftplib.FTP()
+            ftp.connect(FTP_HOST, 21, timeout=10)
+            ftp.login(FTP_USER, FTP_PASS)
+
+            # Limpa arquivos antigos que poderiam permanecer no pacote novo.
+            # O course_code não muda, portanto matrículas, sessões, conclusões
+            # e vínculos de frequência continuam apontando para o mesmo curso.
+            remote_course_dir = f"{FTP_BASE_DIR}/{course_code}"
+            remove_dir_ftp(ftp, remote_course_dir)
+            upload_dir_ftp(ftp, scorm_root, remote_course_dir)
+        except Exception as error:
+            db.close()
+            return {
+                "success": False,
+                "message": f"Não foi possível enviar o novo SCORM: {error}"
+            }
+        finally:
+            if ftp:
+                try:
+                    ftp.quit()
+                except Exception:
+                    pass
+
+    course.updated_at = datetime.utcnow()
+    touch_catalog(db)
+    db.commit()
+    db.close()
+
+    return {
+        "success": True,
+        "message": "Arquivo SCORM substituído. Progresso, conclusões e presenças foram preservados."
+    }
+
+
 @router.post("/courses")
 def create_course(data: CourseCreateRequest):
     if data.catalog_status not in CATALOG_STATUSES:

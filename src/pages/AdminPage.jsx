@@ -253,6 +253,31 @@ function AdminPage({ API_URL, onBack }) {
     loadData()
     }
 
+  async function replaceCourseFile(course, file) {
+    if (!file) return
+
+    const confirmed = window.confirm(
+      `Trocar o arquivo SCORM de "${course.title}"? Matrículas, conclusões e presenças serão mantidas.`
+    )
+    if (!confirmed) return
+
+    const formData = new FormData()
+    formData.append("file", file)
+
+    const response = await fetch(
+      `${API_URL}/courses/${encodeURIComponent(course.course_code)}/replace-file`,
+      { method: "POST", body: formData }
+    )
+    const data = await response.json()
+
+    if (!data.success) {
+      alert(data.message || "Não foi possível trocar o arquivo SCORM.")
+      return
+    }
+
+    alert(data.message)
+  }
+
   async function deleteCourse(course) {
     const confirmed = window.confirm(
       `Tem certeza que quer excluir o curso "${course.title}"? Essa ação não pode ser desfeita e vai remover o acesso de todos os alunos matriculados.`
@@ -847,6 +872,8 @@ function AdminPage({ API_URL, onBack }) {
         .admin-page button:hover { filter: brightness(1.12); }
         .admin-page button:disabled { opacity: .55; cursor: not-allowed; }
         .admin-page button.danger-action { background: #fff1f2 !important; color: #b91c1c !important; border: 1px solid #fecdd3 !important; }
+        .admin-page .admin-file-action { display: inline-block; background: #152A47; color: #fff; border: 0; border-radius: 8px; padding: 10px 14px; font-weight: 700; cursor: pointer; }
+        .admin-page .admin-file-action:hover { filter: brightness(1.12); }
         .admin-page table { min-width: 620px; }
         .admin-page .admin-table-wrap { overflow-x: auto; }
         .admin-page h2 { color: #152A47; margin: 0 0 7px; font-size: 21px; }
@@ -1674,6 +1701,20 @@ function AdminPage({ API_URL, onBack }) {
                       >
                         Editar nota
                       </button>
+
+                      <label className="admin-file-action" style={{ marginLeft: "8px" }}>
+                        Trocar SCORM
+                        <input
+                          type="file"
+                          accept=".zip,application/zip"
+                          hidden
+                          onChange={e => {
+                            const selectedFile = e.target.files?.[0]
+                            replaceCourseFile(course, selectedFile)
+                            e.target.value = ""
+                          }}
+                        />
+                      </label>
 
                       <button
                         onClick={async () => {

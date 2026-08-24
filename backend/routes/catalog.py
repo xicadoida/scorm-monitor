@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
+from fastapi.responses import JSONResponse
 
 from catalog_utils import touch_catalog
 from database import SessionLocal
@@ -11,6 +12,16 @@ router = APIRouter()
 
 CATALOG_STATUSES = {"active", "coming_soon", "completed"}
 SAO_PAULO = ZoneInfo("America/Sao_Paulo")
+PUBLIC_CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+}
+
+
+def public_catalog_response(payload):
+    """O catálogo é público e pode ser consumido por qualquer site."""
+    return JSONResponse(content=payload, headers=PUBLIC_CORS_HEADERS)
 
 
 def catalog_datetime(value):
@@ -55,10 +66,10 @@ def get_catalog():
         state = get_catalog_state(db)
         events = {event.id: event.name for event in db.query(Event).all()}
         courses = db.query(Course).order_by(Course.created_at.desc()).all()
-        return {
+        return public_catalog_response({
             "updated_at": catalog_datetime(state.updated_at),
             "courses": [serialize_catalog_course(course, events) for course in courses],
-        }
+        })
     finally:
         db.close()
 
@@ -68,6 +79,12 @@ def get_catalog_last_update():
     db = SessionLocal()
     try:
         state = get_catalog_state(db)
-        return {"updated_at": catalog_datetime(state.updated_at)}
+        return public_catalog_response({"updated_at": catalog_datetime(state.updated_at)})
     finally:
         db.close()
+
+
+@router.options("/catalog")
+@router.options("/catalog/last-update")
+def catalog_options():
+    return Response(status_code=204, headers=PUBLIC_CORS_HEADERS)

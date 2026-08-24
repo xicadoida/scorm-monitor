@@ -151,6 +151,7 @@ def get_progress(student_id: str, course_id: str):
             "completed": False,
             "last_status": "not_attempted",
             "sessions_count": 0,
+            "access_count": 0,
             "total_session_time": ""
         }
 
@@ -173,6 +174,9 @@ def get_progress(student_id: str, course_id: str):
         "completed": completed,
         "last_status": latest_session.status,
         "sessions_count": len(sessions),
+        # Nome explícito para integrações externas. Cada sessão criada quando
+        # o aluno abre o curso representa um acesso ao pacote SCORM.
+        "access_count": len(sessions),
         "total_session_time": latest_session.session_time
     }
 

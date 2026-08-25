@@ -55,7 +55,9 @@ function AdminPage({ API_URL, onBack }) {
     file: null,
     event_id: "",
     color_primary: "#152A47",
-    passing_score: 80
+    passing_score: 80,
+    tool: "",
+    duration_hours: ""
   })
 
   const [enrollmentForm, setEnrollmentForm] = useState({
@@ -226,6 +228,12 @@ function AdminPage({ API_URL, onBack }) {
     }
 
     formData.append("passing_score", courseForm.passing_score || 80)
+    if (courseForm.tool.trim()) {
+      formData.append("tool", courseForm.tool.trim())
+    }
+    if (courseForm.duration_hours !== "") {
+      formData.append("duration_hours", courseForm.duration_hours)
+    }
 
     const response = await fetch(`${API_URL}/courses/upload`, {
         method: "POST",
@@ -247,7 +255,9 @@ function AdminPage({ API_URL, onBack }) {
         file: null,
         event_id: "",
         color_primary: "#152A47",
-        passing_score: 80
+        passing_score: 80,
+        tool: "",
+        duration_hours: ""
     })
 
     loadData()
@@ -1009,6 +1019,18 @@ function AdminPage({ API_URL, onBack }) {
           </label>
 
           <input
+            placeholder="Ferramenta de IA (ex.: ChatGPT, Canva, Gemini)"
+            value={courseForm.tool}
+            onChange={e => setCourseForm({ ...courseForm, tool: e.target.value })}
+            style={inputStyle}
+          />
+
+          <label style={{ display: "block", marginBottom: "12px", color: "#374151" }}>
+            Carga horária (em horas)
+            <input type="number" min="1" step="1" placeholder="Ex.: 4" value={courseForm.duration_hours} onChange={e => setCourseForm({ ...courseForm, duration_hours: e.target.value })} style={{ ...inputStyle, marginTop: "6px", marginBottom: 0 }} />
+          </label>
+
+          <input
             type="file"
             accept=".zip"
             onChange={e =>
@@ -1632,6 +1654,8 @@ function AdminPage({ API_URL, onBack }) {
                   <th style={th}>Status</th>
                   <th style={th}>Evento</th>
                   <th style={th}>Nota mínima</th>
+                  <th style={th}>Ferramenta</th>
+                  <th style={th}>Carga horária</th>
                   <th style={th}>Ações</th>
                   
                 </tr>
@@ -1658,6 +1682,8 @@ function AdminPage({ API_URL, onBack }) {
                       </select>
                     </td>
                     <td style={td}>{course.passing_score ?? 80}%</td>
+                    <td style={td}>{course.tool || "Não informada"}</td>
+                    <td style={td}>{course.duration_hours ? `${course.duration_hours}h` : "Não informada"}</td>
                     <td style={td}>
                       <button
                         onClick={async () => {
@@ -1700,6 +1726,43 @@ function AdminPage({ API_URL, onBack }) {
                         style={{ marginLeft: "8px" }}
                       >
                         Editar nota
+                      </button>
+
+                      <button
+                        onClick={async () => {
+                          const tool = prompt("Ferramenta de IA relacionada ao curso:", course.tool || "")
+                          if (tool === null) return
+                          await fetch(`${API_URL}/courses/${course.course_code}`, {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ tool: tool.trim() })
+                          })
+                          loadData()
+                        }}
+                        style={{ marginLeft: "8px" }}
+                      >
+                        Editar ferramenta
+                      </button>
+
+                      <button
+                        onClick={async () => {
+                          const value = prompt("Carga horária do curso, em horas:", course.duration_hours ?? "")
+                          if (value === null || value === "") return
+                          const duration = Number(value)
+                          if (!Number.isInteger(duration) || duration < 1) {
+                            alert("Informe uma quantidade inteira de horas maior que zero.")
+                            return
+                          }
+                          await fetch(`${API_URL}/courses/${course.course_code}`, {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ duration_hours: duration })
+                          })
+                          loadData()
+                        }}
+                        style={{ marginLeft: "8px" }}
+                      >
+                        Editar duração
                       </button>
 
                       <label className="admin-file-action" style={{ marginLeft: "8px" }}>

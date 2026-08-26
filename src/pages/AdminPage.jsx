@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react'
 
+const TABS = [
+  { key: "alunos", label: "Alunos" },
+  { key: "cursos", label: "Cursos" },
+  { key: "turmas", label: "Turmas e matrículas" },
+  { key: "frequencia", label: "Frequência" },
+  { key: "eventos", label: "Eventos" }
+]
+
 function AdminPage({ API_URL, onBack }) {
+  const [activeTab, setActiveTab] = useState("alunos")
   const [selectedEnrollmentClass, setSelectedEnrollmentClass] = useState("")
   const [selectedEnrollmentCourse, setSelectedEnrollmentCourse] = useState("")
   const [students, setStudents] = useState([])
@@ -59,6 +68,10 @@ function AdminPage({ API_URL, onBack }) {
     tool: "",
     duration_hours: ""
   })
+
+  const [courseSearch, setCourseSearch] = useState("")
+  const [courseDetailCode, setCourseDetailCode] = useState(null)
+  const [courseEditForm, setCourseEditForm] = useState(null)
 
   const [enrollmentForm, setEnrollmentForm] = useState({
     student_code: "",
@@ -293,7 +306,7 @@ function AdminPage({ API_URL, onBack }) {
       `Tem certeza que quer excluir o curso "${course.title}"? Essa ação não pode ser desfeita e vai remover o acesso de todos os alunos matriculados.`
     )
 
-    if (!confirmed) return
+    if (!confirmed) return false
 
     const response = await fetch(`${API_URL}/courses/${course.course_code}`, {
       method: "DELETE"
@@ -303,7 +316,7 @@ function AdminPage({ API_URL, onBack }) {
 
     if (!data.success) {
       alert(data.message || "Não foi possível excluir o curso.")
-      return
+      return false
     }
 
     if (data.ftp_warning) {
@@ -313,6 +326,7 @@ function AdminPage({ API_URL, onBack }) {
     }
 
     loadData()
+    return true
   }
 
   async function deleteStudent(student) {
@@ -336,18 +350,61 @@ function AdminPage({ API_URL, onBack }) {
     loadData()
   }
 
-  async function updateCourseEvent(course, eventId) {
+  function openCourseDetail(course) {
+    setCourseDetailCode(course.course_code)
+    setCourseEditForm({
+      title: course.title,
+      event_id: course.event_id || "",
+      passing_score: course.passing_score ?? 80,
+      tool: course.tool || "",
+      duration_hours: course.duration_hours ?? ""
+    })
+  }
+
+  function closeCourseDetail() {
+    setCourseDetailCode(null)
+    setCourseEditForm(null)
+  }
+
+  async function toggleCourseActive(course) {
     await fetch(`${API_URL}/courses/${course.course_code}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        event_id: eventId ? Number(eventId) : 0
-      })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ active: !course.active })
     })
 
     loadData()
+  }
+
+  async function saveCourseEdits(e) {
+    e.preventDefault()
+
+    const score = Number(courseEditForm.passing_score)
+    if (!Number.isFinite(score) || score < 0 || score > 100) {
+      alert("Informe uma nota entre 0 e 100.")
+      return
+    }
+
+    if (courseEditForm.duration_hours !== "" &&
+        (!Number.isInteger(Number(courseEditForm.duration_hours)) || Number(courseEditForm.duration_hours) < 1)) {
+      alert("Informe uma quantidade inteira de horas maior que zero.")
+      return
+    }
+
+    await fetch(`${API_URL}/courses/${courseDetailCode}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: courseEditForm.title,
+        event_id: courseEditForm.event_id ? Number(courseEditForm.event_id) : 0,
+        passing_score: score,
+        tool: courseEditForm.tool.trim(),
+        duration_hours: courseEditForm.duration_hours === "" ? null : Number(courseEditForm.duration_hours)
+      })
+    })
+
+    await loadData()
+    closeCourseDetail()
   }
 
   async function createClass(e) {
@@ -850,65 +907,25 @@ function AdminPage({ API_URL, onBack }) {
     .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
   const standardStudents = students.filter(student => !student.event)
 
+  const filteredCourses = courses
+    .filter(course => {
+      const query = courseSearch.trim().toLowerCase()
+      if (!query) return true
+      const eventName = eventNameFor(course.event_id).toLowerCase()
+      return [course.title, course.course_code, course.tool, eventName]
+        .some(value => (value || "").toLowerCase().includes(query))
+    })
+    .sort((a, b) => a.title.localeCompare(b.title, "pt-BR"))
+
   function renderStudentTable(studentList) {
     if (studentList.length === 0) return <p style={{ color: "#64748b" }}>Nenhum aluno nesta lista.</p>
     return <div className="admin-table-wrap"><table style={tableStyle}><thead><tr><th style={th}>Código</th><th style={th}>Nome</th><th style={th}>E-mail</th><th style={th}>Ações</th></tr></thead><tbody>{studentList.map(student => <tr key={student.id}><td style={td}>{student.student_code}</td><td style={td}>{student.name}</td><td style={td}>{student.email}</td><td style={td}><button onClick={() => editStudentName(student)}>Editar nome</button><button onClick={() => setPasswordResetTarget(student)} style={{ marginLeft: "8px" }}>Redefinir senha</button><button className="danger-action" onClick={() => deleteStudent(student)} style={{ marginLeft: "8px" }}>Excluir</button></td></tr>)}</tbody></table></div>
   }
 
-  return (
-    <div className="admin-page" style={{
-      minHeight: "100vh",
-      background: "#f4f6fb",
-      padding: "28px 20px 48px",
-      fontFamily: "Arial"
-    }}>
-      {passwordResetTarget && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, .55)", zIndex: 20, display: "grid", placeItems: "center", padding: "20px" }}>
-          <form onSubmit={resetStudentPassword} style={{ background: "#fff", borderRadius: "14px", padding: "24px", width: "min(100%, 420px)", boxShadow: "0 16px 45px rgba(0,0,0,.25)" }}>
-            <h2 style={{ marginTop: 0, color: "#152A47" }}>Redefinir senha</h2>
-            <p style={{ color: "#475569" }}>{passwordResetTarget.name}<br />{passwordResetTarget.email}</p>
-            <input type="password" required minLength="6" value={newStudentPassword} onChange={e => setNewStudentPassword(e.target.value)} placeholder="Nova senha (mínimo 6 caracteres)" style={{ width: "100%", padding: "11px", marginBottom: "10px" }} />
-            <input type="password" required minLength="6" value={confirmStudentPassword} onChange={e => setConfirmStudentPassword(e.target.value)} placeholder="Confirmar nova senha" style={{ width: "100%", padding: "11px", marginBottom: "18px" }} />
-            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-              <button type="button" onClick={() => { setPasswordResetTarget(null); setNewStudentPassword(""); setConfirmStudentPassword("") }}>Cancelar</button>
-              <button type="submit">Salvar nova senha</button>
-            </div>
-          </form>
-        </div>
-      )}
-      <style>{`
-        .admin-page * { box-sizing: border-box; }
-        .admin-page button { background: #152A47; color: #fff; border: 0; border-radius: 8px; padding: 10px 14px; font-weight: 700; cursor: pointer; }
-        .admin-page button:hover { filter: brightness(1.12); }
-        .admin-page button:disabled { opacity: .55; cursor: not-allowed; }
-        .admin-page button.danger-action { background: #fff1f2 !important; color: #b91c1c !important; border: 1px solid #fecdd3 !important; }
-        .admin-page .admin-file-action { display: inline-block; background: #152A47; color: #fff; border: 0; border-radius: 8px; padding: 10px 14px; font-weight: 700; cursor: pointer; }
-        .admin-page .admin-file-action:hover { filter: brightness(1.12); }
-        .admin-page table { min-width: 620px; }
-        .admin-page .admin-table-wrap { overflow-x: auto; }
-        .admin-page h2 { color: #152A47; margin: 0 0 7px; font-size: 21px; }
-        .admin-page h3 { color: #1e293b; }
-        .admin-page a.admin-nav-link { color: #334155; text-decoration: none; background: #fff; border: 1px solid #dbe4ef; padding: 9px 12px; border-radius: 999px; font-size: 14px; font-weight: 700; }
-        .admin-page a.admin-nav-link:hover { color: #fff; background: #152A47; border-color: #152A47; }
-        .admin-page details.admin-collapse { border: 1px solid #dbe4ef; border-radius: 10px; padding: 0 16px; background: #fff; }
-        .admin-page details.admin-collapse summary { cursor: pointer; padding: 14px 0; font-weight: 700; color: #152A47; }
-      `}</style>
-      <main style={{ maxWidth: "1240px", margin: "0 auto" }}>
-      <header style={{ background: "linear-gradient(120deg, #152A47, #23466e)", color: "#fff", borderRadius: "18px", padding: "24px", marginBottom: "16px", boxShadow: "0 10px 24px rgba(21,42,71,.18)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
-          <div><span style={{ fontSize: "12px", fontWeight: 700, letterSpacing: "1.2px", opacity: .75 }}>GESTÃO DA PLATAFORMA</span><h1 style={{ margin: "5px 0 0", fontSize: "28px" }}>Painel Administrativo</h1><p style={{ margin: "7px 0 0", opacity: .82 }}>Cadastre, organize e acompanhe alunos, cursos, eventos e presença.</p></div>
-          <button onClick={onBack} style={{ background: "#fff", color: "#152A47" }}>← Voltar ao painel</button>
-        </div>
-      </header>
-      <nav style={{ display: "flex", gap: "8px", flexWrap: "wrap", margin: "0 0 20px" }}>
-        <a className="admin-nav-link" href="#alunos">Alunos</a><a className="admin-nav-link" href="#cursos">Cursos</a><a className="admin-nav-link" href="#frequencia">Frequência</a><a className="admin-nav-link" href="#eventos">Eventos</a><a className="admin-nav-link" href="#turmas">Turmas e matrículas</a><a className="admin-nav-link" href="#cadastros">Listas cadastradas</a>
-      </nav>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "12px", marginBottom: "-4px" }}>
-        {[['Alunos', students.length], ['Cursos', courses.length], ['Eventos', events.length], ['Módulos de presença', attendanceModules.length]].map(([label, value]) => <div key={label} style={{ background: "#e9f0f8", borderRadius: "12px", padding: "14px 16px", border: "1px solid #d7e2ee" }}><strong style={{ display: "block", color: "#152A47", fontSize: "24px" }}>{value}</strong><span style={{ color: "#526579", fontSize: "13px" }}>{label}</span></div>)}
-      </div>
-
-      <div id="alunos" style={containerStyle}>
+  function renderAlunosTab() {
+    return (
+      <>
+      <div style={containerStyle}>
         <h2>Cadastrar aluno</h2>
 
         <form onSubmit={createStudent}>
@@ -954,6 +971,126 @@ function AdminPage({ API_URL, onBack }) {
         </form>
       </div>
 
+      <div style={containerStyle}>
+        <h2>Matricular aluno</h2>
+
+        <form onSubmit={createEnrollment}>
+          <select
+            value={enrollmentForm.student_code}
+            onChange={e =>
+              setEnrollmentForm({
+                ...enrollmentForm,
+                student_code: e.target.value
+              })
+            }
+            style={inputStyle}
+          >
+            <option value="">
+              Selecione aluno
+            </option>
+
+            {students.map(student => (
+              <option
+                key={student.id}
+                value={student.student_code}
+              >
+                {student.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={enrollmentForm.course_code}
+            onChange={e =>
+              setEnrollmentForm({
+                ...enrollmentForm,
+                course_code: e.target.value
+              })
+            }
+            style={inputStyle}
+          >
+            <option value="">
+              Selecione curso
+            </option>
+
+            {courses.map(course => (
+              <option
+                key={course.id}
+                value={course.course_code}
+              >
+                {course.title}
+              </option>
+            ))}
+          </select>
+
+          <button type="submit">
+            Matricular
+          </button>
+        </form>
+      </div>
+
+        <div style={containerStyle}>
+          <h2>Alunos cadastrados</h2>
+          <p style={{ color: "#64748b", marginTop: "-2px" }}>Separados por ambiente para não misturar a plataforma padrão com os eventos.</p>
+          <details className="admin-collapse" open>
+            <summary>Plataforma padrão ({standardStudents.length})</summary>
+            {renderStudentTable(standardStudents)}
+          </details>
+          {events.map(event => {
+            const eventStudents = students.filter(student => student.event?.id === event.id)
+            return <details key={event.id} className="admin-collapse" style={{ marginTop: "10px" }}>
+              <summary>{event.name} ({eventStudents.length})</summary>
+              {renderStudentTable(eventStudents)}
+            </details>
+          })}
+
+          <details className="admin-collapse" style={{ marginTop: "10px" }}>
+            <summary>Visão geral de todos os alunos ({students.length})</summary>
+
+          {students.length === 0 ? (
+            <p>Nenhum aluno cadastrado.</p>
+          ) : (
+            <table style={tableStyle}>
+              <thead>
+                <tr>
+                  <th style={th}>Código</th>
+                  <th style={th}>Nome</th>
+                  <th style={th}>Email</th>
+                  <th style={th}>Ações</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {students.map(student => (
+                  <tr key={student.id}>
+                    <td style={td}>{student.student_code}</td>
+                    <td style={td}>{student.name}</td>
+                    <td style={td}>{student.email}</td>
+                    <td style={td}>
+                      <button onClick={() => editStudentName(student)}>Editar nome</button>
+                      <button onClick={() => setPasswordResetTarget(student)} style={{ marginLeft: "8px" }}>Redefinir senha</button>
+                      <button
+                        className="danger-action"
+                        onClick={() => deleteStudent(student)}
+                        style={{ marginLeft: "8px", color: "#b91c1c" }}
+                      >
+                        Excluir
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          </details>
+        </div>
+      </>
+    )
+  }
+
+  function renderCursosTab() {
+    return (
+      <>
       <div style={containerStyle}>
         <h2>Cadastrar curso</h2>
 
@@ -1048,7 +1185,310 @@ function AdminPage({ API_URL, onBack }) {
         </form>
       </div>
 
-      <div id="cursos" style={containerStyle}>
+        <div style={containerStyle}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginBottom: "16px" }}>
+            <h2 style={{ margin: 0 }}>Cursos cadastrados</h2>
+            <input
+              value={courseSearch}
+              onChange={e => setCourseSearch(e.target.value)}
+              placeholder="Pesquisar por título, código, evento ou ferramenta"
+              style={{ ...inputStyle, width: "280px", marginBottom: 0 }}
+            />
+          </div>
+
+          {courses.length === 0 ? (
+            <p style={{ color: "#64748b" }}>Nenhum curso cadastrado.</p>
+          ) : filteredCourses.length === 0 ? (
+            <p style={{ color: "#64748b" }}>Nenhum curso encontrado para "{courseSearch}".</p>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "14px" }}>
+              {filteredCourses.map(course => (
+                <button
+                  key={course.id}
+                  type="button"
+                  className="admin-course-card"
+                  onClick={() => openCourseDetail(course)}
+                >
+                  <span style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px" }}>
+                    <strong style={{ fontSize: "15px", color: "#152A47" }}>{course.title}</strong>
+                    <span
+                      title={course.active ? "Ativo" : "Inativo"}
+                      style={{ width: "10px", height: "10px", marginTop: "4px", flexShrink: 0, borderRadius: "999px", background: course.active ? "#22c55e" : "#cbd5e1" }}
+                    />
+                  </span>
+                  <span className="admin-event-badge">{eventNameFor(course.event_id)}</span>
+                  <span style={{ display: "block", marginTop: "8px", color: "#94a3b8", fontSize: "12px" }}>{course.course_code}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {courseDetailCode && courseEditForm && (() => {
+          const course = courses.find(c => c.course_code === courseDetailCode)
+          if (!course) return null
+
+          return (
+            <div
+              style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, .55)", zIndex: 20, display: "grid", placeItems: "center", padding: "20px" }}
+              onClick={closeCourseDetail}
+            >
+              <div
+                style={{ background: "#fff", borderRadius: "14px", padding: "24px", width: "min(100%, 480px)", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 16px 45px rgba(0,0,0,.25)" }}
+                onClick={e => e.stopPropagation()}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
+                  <h2 style={{ margin: 0 }}>{course.title}</h2>
+                  <button type="button" onClick={closeCourseDetail} style={{ background: "transparent", color: "#64748b", padding: "4px 8px" }}>✕</button>
+                </div>
+
+                <div style={{ display: "flex", gap: "10px", alignItems: "center", margin: "8px 0 20px" }}>
+                  <span className="admin-event-badge" style={{ marginTop: 0 }}>{eventNameFor(course.event_id)}</span>
+                  <span style={{ fontSize: "12px", fontWeight: 700, color: course.active ? "#22c55e" : "#94a3b8" }}>{course.active ? "● Ativo" : "● Inativo"}</span>
+                  <span style={{ fontSize: "12px", color: "#94a3b8" }}>{course.course_code}</span>
+                </div>
+
+                <form onSubmit={saveCourseEdits}>
+                  <input
+                    placeholder="Título"
+                    value={courseEditForm.title}
+                    onChange={e => setCourseEditForm({ ...courseEditForm, title: e.target.value })}
+                    style={inputStyle}
+                  />
+
+                  <select
+                    value={courseEditForm.event_id}
+                    onChange={e => setCourseEditForm({ ...courseEditForm, event_id: e.target.value })}
+                    style={inputStyle}
+                  >
+                    <option value="">Público</option>
+
+                    {events.map(ev => (
+                      <option key={ev.id} value={ev.id}>
+                        {ev.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <label style={{ display: "block", marginBottom: "12px", color: "#374151" }}>
+                    Nota mínima para aprovação (0 a 100)
+                    <input type="number" min="0" max="100" value={courseEditForm.passing_score} onChange={e => setCourseEditForm({ ...courseEditForm, passing_score: e.target.value })} style={{ ...inputStyle, marginTop: "6px", marginBottom: 0 }} />
+                  </label>
+
+                  <input
+                    placeholder="Ferramenta de IA (ex.: ChatGPT, Canva, Gemini)"
+                    value={courseEditForm.tool}
+                    onChange={e => setCourseEditForm({ ...courseEditForm, tool: e.target.value })}
+                    style={inputStyle}
+                  />
+
+                  <label style={{ display: "block", marginBottom: "16px", color: "#374151" }}>
+                    Carga horária (em horas)
+                    <input type="number" min="1" step="1" placeholder="Ex.: 4" value={courseEditForm.duration_hours} onChange={e => setCourseEditForm({ ...courseEditForm, duration_hours: e.target.value })} style={{ ...inputStyle, marginTop: "6px", marginBottom: 0 }} />
+                  </label>
+
+                  <button type="submit">Salvar alterações</button>
+                </form>
+
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "20px", paddingTop: "16px", borderTop: "1px solid #e2e8f0" }}>
+                  <label className="admin-file-action">
+                    Trocar SCORM
+                    <input
+                      type="file"
+                      accept=".zip,application/zip"
+                      hidden
+                      onChange={e => {
+                        const selectedFile = e.target.files?.[0]
+                        replaceCourseFile(course, selectedFile)
+                        e.target.value = ""
+                      }}
+                    />
+                  </label>
+
+                  <button type="button" onClick={() => toggleCourseActive(course)}>
+                    {course.active ? "Desativar" : "Ativar"}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="danger-action"
+                    onClick={async () => {
+                      const deleted = await deleteCourse(course)
+                      if (deleted) closeCourseDetail()
+                    }}
+                  >
+                    Excluir
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        })()}
+      </>
+    )
+  }
+
+  function renderTurmasTab() {
+    return (
+      <>
+      <div style={containerStyle}>
+        <h2>Criar turma</h2>
+
+        <form onSubmit={createClass}>
+          <input
+            placeholder="Nome da turma"
+            value={classForm.name}
+            onChange={e =>
+              setClassForm({
+                ...classForm,
+                name: e.target.value
+              })
+            }
+            style={inputStyle}
+          />
+
+          <button type="submit">
+            Criar turma
+          </button>
+        </form>
+      </div>
+
+      <div style={containerStyle}>
+        <h2>Adicionar alunos à turma</h2>
+
+        <form onSubmit={addStudentsToClass}>
+          <select
+            value={selectedClassId}
+            onChange={e => setSelectedClassId(e.target.value)}
+            style={inputStyle}
+          >
+            <option value="">Selecione uma turma</option>
+
+            {classes.map(classGroup => (
+              <option key={classGroup.id} value={classGroup.id}>
+                {classGroup.name}
+              </option>
+            ))}
+          </select>
+
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: "10px",
+            marginBottom: "16px",
+            maxHeight: "380px",
+            overflowY: "auto",
+            paddingRight: "8px"
+          }}>
+            {studentsForClassSelection.map(student => {
+              const alreadyInClass =
+                classStudents.includes(student.student_code)
+
+              return (
+              
+              <label
+                key={student.id}
+                style={{
+                  background: "#f4f6fb",
+                  opacity: alreadyInClass ? 0.58 : 1,
+                  border: alreadyInClass ? "1px solid #d9e3ef" : "1px solid transparent",
+                  padding: "10px",
+                  borderRadius: "10px",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "8px"
+                }}
+              >
+                <input
+                  
+                  type="checkbox"
+                  checked={selectedStudentCodes.includes(student.student_code)}
+                  disabled={alreadyInClass}
+                  onChange={e => {
+                    if (e.target.checked) {
+                      setSelectedStudentCodes([
+                        ...selectedStudentCodes,
+                        student.student_code
+                      ])
+                    } else {
+                      setSelectedStudentCodes(
+                        selectedStudentCodes.filter(
+                          code => code !== student.student_code
+                        )
+                      )
+                    }
+                  }}
+                />
+
+                <span>
+                  <strong style={{ display: "block" }}>{student.name}</strong>
+                  <span style={{ display: "block", color: "#64748b", fontSize: "12px", marginTop: "3px" }}>
+                    {student.email}
+                  </span>
+                  {alreadyInClass && (
+                    <span style={{ color: "#15803d", fontSize: "12px" }}>
+                      ✓ Já está na turma
+                    </span>
+                  )}
+                </span>
+              </label>
+            )})}
+          </div>
+
+          <button type="submit">
+            Adicionar selecionados
+          </button>
+        </form>
+      </div>
+      <div style={containerStyle}>
+        <h2>Matricular turma em curso</h2>
+
+        <form onSubmit={enrollClassInCourse}>
+
+          <select
+            value={selectedEnrollmentClass}
+            onChange={e => setSelectedEnrollmentClass(e.target.value)}
+            style={inputStyle}
+          >
+            <option value="">Selecione uma turma</option>
+
+            {classes.map(classGroup => (
+              <option key={classGroup.id} value={classGroup.id}>
+                {classGroup.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={selectedEnrollmentCourse}
+            onChange={e => setSelectedEnrollmentCourse(e.target.value)}
+            style={inputStyle}
+          >
+            <option value="">Selecione um curso</option>
+
+            {courses.map(course => (
+              <option
+                key={course.id}
+                value={course.course_code}
+              >
+                {course.title}
+              </option>
+            ))}
+          </select>
+
+          <button type="submit">
+            Matricular turma
+          </button>
+
+        </form>
+      </div>
+      </>
+    )
+  }
+
+  function renderFrequenciaTab() {
+    return (
+      <div style={containerStyle}>
         <h2>Chamada e frequência</h2>
         <p style={{ color: "#64748b", marginTop: "-8px" }}>
           Crie os módulos e as partes que aparecerão na carteira de frequência dos alunos.
@@ -1063,7 +1503,7 @@ function AdminPage({ API_URL, onBack }) {
               {events.map(event => <option key={event.id} value={event.id}>Evento: {event.name}</option>)}
             </select>
             <input type="number" min="0" placeholder="Ordem (opcional)" value={attendanceModuleForm.position} onChange={e => setAttendanceModuleForm({ ...attendanceModuleForm, position: e.target.value })} style={inputStyle} />
-            <button type="submit" style={primaryButtonStyle}>Criar módulo</button>
+            <button type="submit">Criar módulo</button>
           </form>
 
           <form onSubmit={createAttendancePart} style={subsectionStyle}>
@@ -1079,7 +1519,7 @@ function AdminPage({ API_URL, onBack }) {
             <input placeholder="Nome da parte (ex.: Parte 1)" value={attendancePartForm.label} onChange={e => setAttendancePartForm({ ...attendancePartForm, label: e.target.value })} style={inputStyle} />
             <input type="date" value={attendancePartForm.date} onChange={e => setAttendancePartForm({ ...attendancePartForm, date: e.target.value })} style={inputStyle} />
             <input type="number" min="0" placeholder="Ordem (opcional)" value={attendancePartForm.position} onChange={e => setAttendancePartForm({ ...attendancePartForm, position: e.target.value })} style={inputStyle} />
-            <button type="submit" style={primaryButtonStyle}>Adicionar parte</button>
+            <button type="submit">Adicionar parte</button>
           </form>
         </div>
 
@@ -1095,7 +1535,7 @@ function AdminPage({ API_URL, onBack }) {
             <select value={attendanceRecordForm.status} onChange={e => setAttendanceRecordForm({ ...attendanceRecordForm, status: e.target.value })} style={inputStyle}>
               <option value="presente">Presente</option><option value="falta">Falta</option><option value="justificada">Falta justificada</option><option value="a_realizar">A realizar</option>
             </select>
-            <button type="submit" style={primaryButtonStyle}>Registrar e-mails</button>
+            <button type="submit">Registrar e-mails</button>
           </form>
 
           <form onSubmit={setEventAttendance} style={subsectionStyle}>
@@ -1114,7 +1554,7 @@ function AdminPage({ API_URL, onBack }) {
             {attendanceEventRecordForm.event_id && <div style={{ maxHeight: "180px", overflowY: "auto", marginBottom: "12px", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "8px" }}>
               {attendanceEventStudents.length === 0 ? <span style={{ color: "#64748b", fontSize: "13px" }}>Nenhum aluno cadastrado para os e-mails deste evento.</span> : attendanceEventStudents.map(student => <label key={student.id} style={{ display: "block", padding: "5px" }}><input type="checkbox" checked={attendanceEventRecordForm.student_codes.includes(student.student_code)} onChange={e => setAttendanceEventRecordForm({ ...attendanceEventRecordForm, student_codes: e.target.checked ? [...attendanceEventRecordForm.student_codes, student.student_code] : attendanceEventRecordForm.student_codes.filter(code => code !== student.student_code) })} /> {student.name} <span style={{ color: "#64748b", fontSize: "12px" }}>({student.email})</span></label>)}
             </div>}
-            <button type="submit" style={primaryButtonStyle}>Registrar selecionados</button>
+            <button type="submit">Registrar selecionados</button>
           </form>
         </div>
 
@@ -1124,9 +1564,9 @@ function AdminPage({ API_URL, onBack }) {
             <div key={module.id} style={{ borderTop: "1px solid #e2e8f0", padding: "16px 0" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
                 <div><strong>{module.name}</strong><span style={{ marginLeft: "8px", color: "#64748b", fontSize: "13px" }}>{eventNameFor(module.event_id)} · {module.parts.length} partes</span></div>
-                <div><button onClick={() => editAttendanceModule(module)}>Editar módulo</button><button onClick={() => deleteAttendanceModule(module)} style={dangerButtonStyle}>Excluir módulo</button></div>
+                <div><button onClick={() => editAttendanceModule(module)}>Editar módulo</button><button onClick={() => deleteAttendanceModule(module)} className="danger-action">Excluir módulo</button></div>
               </div>
-              {module.parts.length > 0 && <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "12px" }}>{module.parts.map(part => <div key={part.id} style={{ padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "13px" }}><strong>{part.label}</strong>{part.date && <span style={{ color: "#64748b" }}> · {part.date}</span>}<button onClick={() => editAttendancePart(part)} style={{ marginLeft: "8px" }}>Editar</button><button onClick={() => deleteAttendancePart(part)} style={dangerButtonStyle}>×</button></div>)}</div>}
+              {module.parts.length > 0 && <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "12px" }}>{module.parts.map(part => <div key={part.id} style={{ padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "13px" }}><strong>{part.label}</strong>{part.date && <span style={{ color: "#64748b" }}> · {part.date}</span>}<button onClick={() => editAttendancePart(part)} style={{ marginLeft: "8px" }}>Editar</button><button onClick={() => deleteAttendancePart(part)} className="danger-action">×</button></div>)}</div>}
             </div>
           ))}
         </details>
@@ -1137,17 +1577,21 @@ function AdminPage({ API_URL, onBack }) {
             <label>Evento<select value={attendanceReportForm.event_id} onChange={e => setAttendanceReportForm({ ...attendanceReportForm, event_id: e.target.value })} style={inputStyle}><option value="">Todos os alunos</option>{events.map(event => <option key={event.id} value={event.id}>{event.name}</option>)}</select></label>
             <label>Período<select value={attendanceReportForm.period} onChange={e => setAttendanceReportForm({ ...attendanceReportForm, period: e.target.value })} style={inputStyle}><option value="week">Semanal</option><option value="month">Mensal</option><option value="custom">Personalizado</option></select></label>
             {attendanceReportForm.period === "custom" ? <><label>De<input type="date" value={attendanceReportForm.start_date} onChange={e => setAttendanceReportForm({ ...attendanceReportForm, start_date: e.target.value })} style={inputStyle} /></label><label>Até<input type="date" value={attendanceReportForm.end_date} onChange={e => setAttendanceReportForm({ ...attendanceReportForm, end_date: e.target.value })} style={inputStyle} /></label></> : <label>Data de referência<input type="date" value={attendanceReportForm.reference_date} onChange={e => setAttendanceReportForm({ ...attendanceReportForm, reference_date: e.target.value })} style={inputStyle} /></label>}
-            <button type="submit" style={primaryButtonStyle}>Gerar relatório</button>
+            <button type="submit">Gerar relatório</button>
           </form>
 
           {attendanceReport && <div style={{ marginTop: "20px", overflowX: "auto" }}>
-            <button type="button" onClick={exportAttendanceReport} style={primaryButtonStyle}>Exportar CSV</button>
+            <button type="button" onClick={exportAttendanceReport}>Exportar CSV</button>
             <table style={{ ...tableStyle, marginTop: "12px" }}><thead><tr><th style={th}>Aluno</th><th style={th}>E-mail</th><th style={th}>Frequência</th><th style={th}>Presenças</th><th style={th}>Data e origem da presença</th><th style={th}>A realizar</th></tr></thead><tbody>{attendanceReport.students.map(student => <tr key={student.student_code}><td style={td}>{student.name}</td><td style={td}>{student.email}</td><td style={td}>{student.stats.frequencia ?? "—"}{student.stats.frequencia != null ? "%" : ""}</td><td style={td}>{student.stats.presencas}</td><td style={{ ...td, whiteSpace: "pre-line", minWidth: "190px" }}>{formatAttendanceSources(student)}</td><td style={td}>{student.stats.a_realizar}</td></tr>)}</tbody></table>
           </div>}
         </div>
       </div>
+    )
+  }
 
-      <div id="frequencia" style={containerStyle}>
+  function renderEventosTab() {
+    return (
+      <div style={containerStyle}>
         <h2>Eventos</h2>
         <p style={{ color: "#666", marginTop: "-8px" }}>
           Alunos com o email cadastrado num evento veem uma logo/cor diferente
@@ -1315,13 +1759,13 @@ function AdminPage({ API_URL, onBack }) {
                   <label style={{ flex: 1 }}>Cor principal<input type="color" value={eventEditForm.color_primary} onChange={e => setEventEditForm({ ...eventEditForm, color_primary: e.target.value })} style={{ display: "block", width: "100%", height: "36px" }} /></label>
                   <label style={{ flex: 1 }}>Cor secundária<input type="color" value={eventEditForm.color_secondary} onChange={e => setEventEditForm({ ...eventEditForm, color_secondary: e.target.value })} style={{ display: "block", width: "100%", height: "36px" }} /></label>
                 </div>
-                <button type="submit" style={primaryButtonStyle}>Salvar configurações</button>
+                <button type="submit">Salvar configurações</button>
               </form>
               <form onSubmit={uploadEventLogo} style={{ ...subsectionStyle, marginTop: "12px" }}>
                 <strong>Enviar logo</strong>
                 <p style={{ color: "#64748b", fontSize: "13px" }}>Aceita PNG, JPG, WEBP, SVG e ICO.</p>
                 <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/x-icon,.ico" onChange={e => setEventLogoFile(e.target.files?.[0] || null)} style={inputStyle} />
-                <button type="submit" style={primaryButtonStyle} disabled={!eventLogoFile}>Enviar logo</button>
+                <button type="submit" disabled={!eventLogoFile}>Enviar logo</button>
               </form>
             </>}
             <h3>
@@ -1375,446 +1819,104 @@ function AdminPage({ API_URL, onBack }) {
           </div>
         )}
       </div>
+    )
+  }
 
-      <div id="eventos" style={containerStyle}>
-        <h2>Criar turma</h2>
-
-        <form onSubmit={createClass}>
-          <input
-            placeholder="Nome da turma"
-            value={classForm.name}
-            onChange={e =>
-              setClassForm({
-                ...classForm,
-                name: e.target.value
-              })
-            }
-            style={inputStyle}
-          />
-
-          <button type="submit">
-            Criar turma
-          </button>
-        </form>
-      </div>
-
-      <div id="turmas" style={containerStyle}>
-        <h2>Adicionar alunos à turma</h2>
-
-        <form onSubmit={addStudentsToClass}>
-          <select
-            value={selectedClassId}
-            onChange={e => setSelectedClassId(e.target.value)}
-            style={inputStyle}
-          >
-            <option value="">Selecione uma turma</option>
-
-            {classes.map(classGroup => (
-              <option key={classGroup.id} value={classGroup.id}>
-                {classGroup.name}
-              </option>
-            ))}
-          </select>
-
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: "10px",
-            marginBottom: "16px",
-            maxHeight: "380px",
-            overflowY: "auto",
-            paddingRight: "8px"
-          }}>
-            {studentsForClassSelection.map(student => {
-              const alreadyInClass =
-                classStudents.includes(student.student_code)
-
-              return (
-              
-              <label
-                key={student.id}
-                style={{
-                  background: "#f4f6fb",
-                  opacity: alreadyInClass ? 0.58 : 1,
-                  border: alreadyInClass ? "1px solid #d9e3ef" : "1px solid transparent",
-                  padding: "10px",
-                  borderRadius: "10px",
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: "8px"
-                }}
-              >
-                <input
-                  
-                  type="checkbox"
-                  checked={selectedStudentCodes.includes(student.student_code)}
-                  disabled={alreadyInClass}
-                  onChange={e => {
-                    if (e.target.checked) {
-                      setSelectedStudentCodes([
-                        ...selectedStudentCodes,
-                        student.student_code
-                      ])
-                    } else {
-                      setSelectedStudentCodes(
-                        selectedStudentCodes.filter(
-                          code => code !== student.student_code
-                        )
-                      )
-                    }
-                  }}
-                />
-
-                <span>
-                  <strong style={{ display: "block" }}>{student.name}</strong>
-                  <span style={{ display: "block", color: "#64748b", fontSize: "12px", marginTop: "3px" }}>
-                    {student.email}
-                  </span>
-                  {alreadyInClass && (
-                    <span style={{ color: "#15803d", fontSize: "12px" }}>
-                      ✓ Já está na turma
-                    </span>
-                  )}
-                </span>
-              </label>
-            )})}
-          </div>
-
-          <button type="submit">
-            Adicionar selecionados
-          </button>
-        </form>
-      </div>
-      <div style={containerStyle}>
-        <h2>Matricular turma em curso</h2>
-
-        <form onSubmit={enrollClassInCourse}>
-
-          <select
-            value={selectedEnrollmentClass}
-            onChange={e => setSelectedEnrollmentClass(e.target.value)}
-            style={inputStyle}
-          >
-            <option value="">Selecione uma turma</option>
-
-            {classes.map(classGroup => (
-              <option key={classGroup.id} value={classGroup.id}>
-                {classGroup.name}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={selectedEnrollmentCourse}
-            onChange={e => setSelectedEnrollmentCourse(e.target.value)}
-            style={inputStyle}
-          >
-            <option value="">Selecione um curso</option>
-
-            {courses.map(course => (
-              <option
-                key={course.id}
-                value={course.course_code}
-              >
-                {course.title}
-              </option>
-            ))}
-          </select>
-
-          <button type="submit">
-            Matricular turma
-          </button>
-
-        </form>
-      </div>
-      <div style={containerStyle}>
-        <h2>Matricular aluno</h2>
-
-        <form onSubmit={createEnrollment}>
-          <select
-            value={enrollmentForm.student_code}
-            onChange={e =>
-              setEnrollmentForm({
-                ...enrollmentForm,
-                student_code: e.target.value
-              })
-            }
-            style={inputStyle}
-          >
-            <option value="">
-              Selecione aluno
-            </option>
-
-            {students.map(student => (
-              <option
-                key={student.id}
-                value={student.student_code}
-              >
-                {student.name}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={enrollmentForm.course_code}
-            onChange={e =>
-              setEnrollmentForm({
-                ...enrollmentForm,
-                course_code: e.target.value
-              })
-            }
-            style={inputStyle}
-          >
-            <option value="">
-              Selecione curso
-            </option>
-
-            {courses.map(course => (
-              <option
-                key={course.id}
-                value={course.course_code}
-              >
-                {course.title}
-              </option>
-            ))}
-          </select>
-
-          <button type="submit">
-            Matricular
-          </button>
-        </form>
-      </div>
-        <div id="cadastros" style={containerStyle}>
-          <h2>Alunos cadastrados</h2>
-          <p style={{ color: "#64748b", marginTop: "-2px" }}>Separados por ambiente para não misturar a plataforma padrão com os eventos.</p>
-          <details className="admin-collapse" open>
-            <summary>Plataforma padrão ({standardStudents.length})</summary>
-            {renderStudentTable(standardStudents)}
-          </details>
-          {events.map(event => {
-            const eventStudents = students.filter(student => student.event?.id === event.id)
-            return <details key={event.id} className="admin-collapse" style={{ marginTop: "10px" }}>
-              <summary>{event.name} ({eventStudents.length})</summary>
-              {renderStudentTable(eventStudents)}
-            </details>
-          })}
-
-          <details className="admin-collapse" style={{ marginTop: "10px" }}>
-            <summary>Visão geral de todos os alunos ({students.length})</summary>
-
-          {students.length === 0 ? (
-            <p>Nenhum aluno cadastrado.</p>
-          ) : (
-            <table style={tableStyle}>
-              <thead>
-                <tr>
-                  <th style={th}>Código</th>
-                  <th style={th}>Nome</th>
-                  <th style={th}>Email</th>
-                  <th style={th}>Ações</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {students.map(student => (
-                  <tr key={student.id}>
-                    <td style={td}>{student.student_code}</td>
-                    <td style={td}>{student.name}</td>
-                    <td style={td}>{student.email}</td>
-                    <td style={td}>
-                      <button onClick={() => editStudentName(student)}>Editar nome</button>
-                      <button onClick={() => setPasswordResetTarget(student)} style={{ marginLeft: "8px" }}>Redefinir senha</button>
-                      <button
-                        className="danger-action"
-                        onClick={() => deleteStudent(student)}
-                        style={{ marginLeft: "8px", color: "#b91c1c" }}
-                      >
-                        Excluir
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          </details>
+  return (
+    <div className="admin-page" style={{
+      minHeight: "100vh",
+      background: "#EEF1F6",
+      padding: "28px 20px 48px",
+      fontFamily: "'Segoe UI', Arial, sans-serif"
+    }}>
+      {passwordResetTarget && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, .55)", zIndex: 20, display: "grid", placeItems: "center", padding: "20px" }}>
+          <form onSubmit={resetStudentPassword} style={{ background: "#fff", borderRadius: "14px", padding: "24px", width: "min(100%, 420px)", boxShadow: "0 16px 45px rgba(0,0,0,.25)" }}>
+            <h2 style={{ marginTop: 0, color: "#152A47" }}>Redefinir senha</h2>
+            <p style={{ color: "#475569" }}>{passwordResetTarget.name}<br />{passwordResetTarget.email}</p>
+            <input type="password" required minLength="6" value={newStudentPassword} onChange={e => setNewStudentPassword(e.target.value)} placeholder="Nova senha (mínimo 6 caracteres)" style={{ width: "100%", padding: "11px", marginBottom: "10px" }} />
+            <input type="password" required minLength="6" value={confirmStudentPassword} onChange={e => setConfirmStudentPassword(e.target.value)} placeholder="Confirmar nova senha" style={{ width: "100%", padding: "11px", marginBottom: "18px" }} />
+            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+              <button type="button" onClick={() => { setPasswordResetTarget(null); setNewStudentPassword(""); setConfirmStudentPassword("") }}>Cancelar</button>
+              <button type="submit">Salvar nova senha</button>
+            </div>
+          </form>
         </div>
-
-        <div style={containerStyle}>
-          <h2>Cursos cadastrados</h2>
-
-          {courses.length === 0 ? (
-            <p>Nenhum curso cadastrado.</p>
-          ) : (
-            <table style={tableStyle}>
-              <thead>
-                <tr>
-                  <th style={th}>Código</th>
-                  <th style={th}>Título</th>
-                  <th style={th}>Status</th>
-                  <th style={th}>Evento</th>
-                  <th style={th}>Nota mínima</th>
-                  <th style={th}>Ferramenta</th>
-                  <th style={th}>Carga horária</th>
-                  <th style={th}>Ações</th>
-                  
-                </tr>
-              </thead>
-
-              <tbody>
-                {courses.map(course => (
-                  <tr key={course.id}>
-                    <td style={td}>{course.course_code}</td>
-                    <td style={td}>{course.title}</td>
-                    <td style={td}>{course.active ? "Ativo" : "Inativo"}</td>
-                    <td style={td}>
-                      <select
-                        value={course.event_id || ""}
-                        onChange={e => updateCourseEvent(course, e.target.value)}
-                      >
-                        <option value="">Público</option>
-
-                        {events.map(ev => (
-                          <option key={ev.id} value={ev.id}>
-                            {ev.name}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td style={td}>{course.passing_score ?? 80}%</td>
-                    <td style={td}>{course.tool || "Não informada"}</td>
-                    <td style={td}>{course.duration_hours ? `${course.duration_hours}h` : "Não informada"}</td>
-                    <td style={td}>
-                      <button
-                        onClick={async () => {
-                          const newTitle = prompt("Novo título do curso:", course.title)
-
-                          if (!newTitle) return
-
-                          await fetch(`${API_URL}/courses/${course.course_code}`, {
-                            method: "PUT",
-                            headers: {
-                              "Content-Type": "application/json"
-                            },
-                            body: JSON.stringify({
-                              title: newTitle
-                            })
-                          })
-
-                          loadData()
-                        }}
-                      >
-                        Editar nome
-                      </button>
-
-                      <button
-                        onClick={async () => {
-                          const newScore = prompt("Nota mínima para aprovação (0 a 100):", course.passing_score ?? 80)
-                          if (newScore === null || newScore === "") return
-                          const score = Number(newScore)
-                          if (!Number.isFinite(score) || score < 0 || score > 100) {
-                            alert("Informe uma nota entre 0 e 100.")
-                            return
-                          }
-                          await fetch(`${API_URL}/courses/${course.course_code}`, {
-                            method: "PUT",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ passing_score: score })
-                          })
-                          loadData()
-                        }}
-                        style={{ marginLeft: "8px" }}
-                      >
-                        Editar nota
-                      </button>
-
-                      <button
-                        onClick={async () => {
-                          const tool = prompt("Ferramenta de IA relacionada ao curso:", course.tool || "")
-                          if (tool === null) return
-                          await fetch(`${API_URL}/courses/${course.course_code}`, {
-                            method: "PUT",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ tool: tool.trim() })
-                          })
-                          loadData()
-                        }}
-                        style={{ marginLeft: "8px" }}
-                      >
-                        Editar ferramenta
-                      </button>
-
-                      <button
-                        onClick={async () => {
-                          const value = prompt("Carga horária do curso, em horas:", course.duration_hours ?? "")
-                          if (value === null || value === "") return
-                          const duration = Number(value)
-                          if (!Number.isInteger(duration) || duration < 1) {
-                            alert("Informe uma quantidade inteira de horas maior que zero.")
-                            return
-                          }
-                          await fetch(`${API_URL}/courses/${course.course_code}`, {
-                            method: "PUT",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ duration_hours: duration })
-                          })
-                          loadData()
-                        }}
-                        style={{ marginLeft: "8px" }}
-                      >
-                        Editar duração
-                      </button>
-
-                      <label className="admin-file-action" style={{ marginLeft: "8px" }}>
-                        Trocar SCORM
-                        <input
-                          type="file"
-                          accept=".zip,application/zip"
-                          hidden
-                          onChange={e => {
-                            const selectedFile = e.target.files?.[0]
-                            replaceCourseFile(course, selectedFile)
-                            e.target.value = ""
-                          }}
-                        />
-                      </label>
-
-                      <button
-                        onClick={async () => {
-                          await fetch(`${API_URL}/courses/${course.course_code}`, {
-                            method: "PUT",
-                            headers: {
-                              "Content-Type": "application/json"
-                            },
-                            body: JSON.stringify({
-                              active: !course.active
-                            })
-                          })
-
-                          loadData()
-                        }}
-                        style={{ marginLeft: "8px" }}
-                      >
-                        {course.active ? "Desativar" : "Ativar"}
-                      </button>
-
-                      <button
-                        className="danger-action"
-                        onClick={() => deleteCourse(course)}
-                        style={{ marginLeft: "8px", color: "#b91c1c" }}
-                      >
-                        Excluir
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+      )}
+      <style>{`
+        .admin-page * { box-sizing: border-box; }
+        .admin-page button { background: #152A47; color: #fff; border: 0; border-radius: 8px; padding: 10px 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+        .admin-page button:hover { filter: brightness(1.12); }
+        .admin-page button:disabled { opacity: .55; cursor: not-allowed; }
+        .admin-page button.danger-action { background: #fff1f2 !important; color: #b91c1c !important; border: 1px solid #fecdd3 !important; }
+        .admin-page .admin-file-action { display: inline-block; background: #152A47; color: #fff; border: 0; border-radius: 8px; padding: 10px 14px; font-weight: 700; cursor: pointer; }
+        .admin-page .admin-file-action:hover { filter: brightness(1.12); }
+        .admin-page table { min-width: 620px; }
+        .admin-page .admin-table-wrap { overflow-x: auto; }
+        .admin-page h2 { color: #152A47; margin: 0 0 7px; font-size: 21px; }
+        .admin-page h3 { color: #1e293b; }
+        .admin-page button.admin-tab { background: #fff; color: #334155; border: 1px solid #dbe4ef; padding: 10px 18px; border-radius: 999px; font-size: 14px; }
+        .admin-page button.admin-tab:hover { filter: none; color: #fff; background: #152A47; border-color: #152A47; }
+        .admin-page button.admin-tab.active { background: #152A47; color: #fff; border-color: #152A47; }
+        .admin-page button.admin-stat-card { display: block; width: 100%; text-align: left; background: #e9f0f8; border: 1px solid #d7e2ee; border-radius: 12px; padding: 14px 16px; font-weight: 400; }
+        .admin-page button.admin-stat-card:hover { filter: none; background: #dde8f4; }
+        .admin-page button.admin-stat-card.active { background: #152A47; border-color: #152A47; }
+        .admin-page details.admin-collapse { border: 1px solid #dbe4ef; border-radius: 10px; padding: 0 16px; background: #fff; }
+        .admin-page details.admin-collapse summary { cursor: pointer; padding: 14px 0; font-weight: 700; color: #152A47; }
+        .admin-page button.admin-course-card { display: block; width: 100%; text-align: left; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; font-weight: 400; color: inherit; }
+        .admin-page button.admin-course-card:hover { filter: none; border-color: #152A47; box-shadow: 0 4px 12px rgba(21,42,71,.12); }
+        .admin-page .admin-event-badge { display: inline-block; margin-top: 8px; padding: 2px 10px; border-radius: 999px; background: #eef1f6; color: #475569; font-size: 11px; font-weight: 700; }
+      `}</style>
+      <main style={{ maxWidth: "1240px", margin: "0 auto" }}>
+      <header style={{ background: "linear-gradient(120deg, #152A47, #23466e)", color: "#fff", borderRadius: "18px", padding: "24px", marginBottom: "16px", boxShadow: "0 10px 24px rgba(21,42,71,.18)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+          <div><span style={{ fontSize: "12px", fontWeight: 700, letterSpacing: "1.2px", opacity: .75 }}>GESTÃO DA PLATAFORMA</span><h1 style={{ margin: "5px 0 0", fontSize: "28px" }}>Painel Administrativo</h1><p style={{ margin: "7px 0 0", opacity: .82 }}>Cadastre, organize e acompanhe alunos, cursos, eventos e presença.</p></div>
+          <button onClick={onBack} style={{ background: "#fff", color: "#152A47" }}>← Voltar ao painel</button>
         </div>
+      </header>
+      <nav style={{ display: "flex", gap: "8px", flexWrap: "wrap", margin: "0 0 20px" }}>
+        {TABS.map(tab => (
+          <button
+            key={tab.key}
+            type="button"
+            className={`admin-tab${activeTab === tab.key ? " active" : ""}`}
+            onClick={() => setActiveTab(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </nav>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "12px", marginBottom: "24px" }}>
+        {[
+          ["alunos", "Alunos", students.length],
+          ["cursos", "Cursos", courses.length],
+          ["turmas", "Turmas", classes.length],
+          ["frequencia", "Módulos de presença", attendanceModules.length],
+          ["eventos", "Eventos", events.length]
+        ].map(([key, label, value]) => {
+          const isActive = activeTab === key
+          return (
+            <button
+              key={key}
+              type="button"
+              className={`admin-stat-card${isActive ? " active" : ""}`}
+              onClick={() => setActiveTab(key)}
+            >
+              <strong style={{ display: "block", color: isActive ? "#fff" : "#152A47", fontSize: "24px" }}>{value}</strong>
+              <span style={{ color: isActive ? "rgba(255,255,255,.75)" : "#526579", fontSize: "13px" }}>{label}</span>
+            </button>
+          )
+        })}
+      </div>
+
+      {activeTab === "alunos" && renderAlunosTab()}
+      {activeTab === "cursos" && renderCursosTab()}
+      {activeTab === "turmas" && renderTurmasTab()}
+      {activeTab === "frequencia" && renderFrequenciaTab()}
+      {activeTab === "eventos" && renderEventosTab()}
     </main>
     </div>
-    
   )
 }
 
@@ -1844,22 +1946,6 @@ const subsectionStyle = {
 
 const subsectionTitle = { marginTop: 0, fontSize: "16px", color: "#1e293b" }
 
-const primaryButtonStyle = {
-  background: "#152A47",
-  color: "#fff",
-  border: "none",
-  borderRadius: "8px",
-  padding: "10px 14px",
-  cursor: "pointer",
-  fontWeight: "bold"
-}
-
-const dangerButtonStyle = {
-  marginLeft: "8px",
-  background: "#fff1f2",
-  color: "#b91c1c",
-  border: "1px solid #fecdd3"
-}
 const tableStyle = {
   width: "100%",
   borderCollapse: "collapse"

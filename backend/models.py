@@ -108,6 +108,21 @@ class RegistrationProfile(Base):
     updated_at = Column(DateTime, default=datetime.utcnow)
 
 
+class AccessEvent(Base):
+    """Auditoria sem IP real: apenas identificador HMAC não reversível."""
+    __tablename__ = "access_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    event_type = Column(String(50), nullable=False, index=True)
+    success = Column(Boolean, default=True, nullable=False, index=True)
+    student_code = Column(String(100), nullable=True, index=True)
+    event_id = Column(Integer, nullable=True, index=True)
+    ip_hash = Column(String(64), nullable=True, index=True)
+    user_agent = Column(String(500), nullable=True)
+    route = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
 class Enrollment(Base):
     __tablename__ = "enrollments"
 

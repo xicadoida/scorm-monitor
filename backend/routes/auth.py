@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from typing import Literal
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy import func
 
@@ -11,6 +11,7 @@ from schemas import ChangePasswordRequest
 from security import hash_password, verify_password
 from event_utils import get_event_for_email
 from auth_utils import CurrentUser, create_access_token, get_current_user
+from privacy import prune_expired_access_events, record_access_event
 
 router = APIRouter()
 TERMS_OF_USE_URL = "https://iaclube.com/sobre/temos-de-uso-lms"
@@ -50,7 +51,7 @@ def _check_event_access(db, email, event_slug):
 
 
 @router.post("/auth/login")
-def login(data: LoginRequest):
+def login(data: LoginRequest, request: Request):
     db = SessionLocal()
     email = data.email.strip().lower()
 
@@ -59,6 +60,9 @@ def login(data: LoginRequest):
     ).first()
 
     if not student:
+        record_access_event(db, request, "login", success=False, route="/auth/login")
+        prune_expired_access_events(db)
+        db.commit()
         db.close()
         return {
             "success": False,
@@ -66,6 +70,12 @@ def login(data: LoginRequest):
         }
 
     if not verify_password(data.password, student.password_hash):
+        record_access_event(
+            db, request, "login", success=False,
+            student_code=student.student_code, route="/auth/login",
+        )
+        prune_expired_access_events(db)
+        db.commit()
         db.close()
         return {
             "success": False,
@@ -75,8 +85,24 @@ def login(data: LoginRequest):
     event = get_event_for_email(db, student.email)
     allowed, message = _check_event_access(db, student.email, data.event_slug)
     if not allowed:
+        record_access_event(
+            db, request, "login", success=False,
+            student_code=student.student_code,
+            event_id=event["id"] if event else None,
+            route="/auth/login",
+        )
+        prune_expired_access_events(db)
+        db.commit()
         db.close()
         return {"success": False, "message": message}
+    record_access_event(
+        db, request, "login", success=True,
+        student_code=student.student_code,
+        event_id=event["id"] if event else None,
+        route="/auth/login",
+    )
+    prune_expired_access_events(db)
+    db.commit()
     access_token = create_access_token(student)
     db.close()
 
@@ -95,15 +121,21 @@ def login(data: LoginRequest):
 
 
 @router.post("/auth/register")
-def register(data: RegisterRequest):
+def register(data: RegisterRequest, request: Request):
     db = SessionLocal()
     email = data.email.strip().lower()
 
     if not data.accepted_terms:
+        record_access_event(db, request, "registration", success=False, route="/auth/register")
+        prune_expired_access_events(db)
+        db.commit()
         db.close()
         return {"success": False, "message": "É necessário aceitar os termos de uso para criar a conta."}
 
     if len(data.password) < 6:
+        record_access_event(db, request, "registration", success=False, route="/auth/register")
+        prune_expired_access_events(db)
+        db.commit()
         db.close()
         return {"success": False, "message": "A senha precisa ter pelo menos 6 caracteres."}
 
@@ -112,6 +144,9 @@ def register(data: RegisterRequest):
     ).first()
 
     if existing_student:
+        record_access_event(db, request, "registration", success=False, route="/auth/register")
+        prune_expired_access_events(db)
+        db.commit()
         db.close()
         return {
             "success": False,
@@ -120,6 +155,9 @@ def register(data: RegisterRequest):
 
     allowed, message = _check_event_access(db, email, data.event_slug)
     if not allowed:
+        record_access_event(db, request, "registration", success=False, route="/auth/register")
+        prune_expired_access_events(db)
+        db.commit()
         db.close()
         return {"success": False, "message": message}
 
@@ -144,6 +182,13 @@ def register(data: RegisterRequest):
         created_at=now,
         updated_at=now,
     ))
+    record_access_event(
+        db, request, "registration", success=True,
+        student_code=student.student_code,
+        event_id=event["id"] if event else None,
+        route="/auth/register",
+    )
+    prune_expired_access_events(db)
     db.commit()
     db.refresh(student)
     db.close()

@@ -16,6 +16,7 @@ from routes.auth import router as auth_router
 from routes.events import router as events_router
 from routes.attendance import router as attendance_router
 from routes.catalog import router as catalog_router
+from routes.insights import router as insights_router
 
 
 app = FastAPI()
@@ -29,6 +30,7 @@ app.include_router(classes_router)
 app.include_router(events_router)
 app.include_router(attendance_router)
 app.include_router(catalog_router)
+app.include_router(insights_router)
 
 app.add_middleware(
     CORSMiddleware,

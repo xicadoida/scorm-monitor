@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from database import SessionLocal
 from models import Student, Enrollment, CourseSession, ClassStudent
@@ -12,12 +12,13 @@ from schemas import (
 )
 from security import hash_password, verify_password
 from event_utils import get_event_for_email
+from auth_utils import CurrentUser, require_admin, require_self_or_admin
 
 router = APIRouter()
 
 
 @router.post("/students")
-def create_student(data: StudentCreateRequest):
+def create_student(data: StudentCreateRequest, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
     student = Student(
@@ -41,7 +42,7 @@ def create_student(data: StudentCreateRequest):
 
 
 @router.get("/students")
-def list_students():
+def list_students(_: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
     students = db.query(Student).all()
@@ -63,7 +64,11 @@ def list_students():
 
 
 @router.put("/students/{student_code}")
-def update_student(student_code: str, data: StudentUpdateRequest):
+def update_student(
+    student_code: str,
+    data: StudentUpdateRequest,
+    _: CurrentUser = Depends(require_self_or_admin),
+):
     db = SessionLocal()
     student = db.query(Student).filter(Student.student_code == student_code).first()
 
@@ -84,7 +89,11 @@ def update_student(student_code: str, data: StudentUpdateRequest):
 
 
 @router.post("/students/{student_code}/reset-password")
-def reset_student_password(student_code: str, data: AdminResetPasswordRequest):
+def reset_student_password(
+    student_code: str,
+    data: AdminResetPasswordRequest,
+    _: CurrentUser = Depends(require_admin),
+):
     """Redefinição feita exclusivamente pela área administrativa."""
     password = data.new_password.strip()
     if len(password) < 6:
@@ -97,6 +106,7 @@ def reset_student_password(student_code: str, data: AdminResetPasswordRequest):
         return {"success": False, "message": "Aluno não encontrado."}
 
     student.password_hash = hash_password(password)
+    student.auth_token_version = (student.auth_token_version or 0) + 1
     db.commit()
     db.close()
     return {"success": True, "message": "Senha redefinida com sucesso."}
@@ -123,7 +133,7 @@ def _delete_student_cascade(db, student_code):
 
 
 @router.delete("/students/{student_code}")
-def delete_student(student_code: str):
+def delete_student(student_code: str, _: CurrentUser = Depends(require_admin)):
     """Exclusão pelo admin, sem exigir senha."""
     db = SessionLocal()
 
@@ -142,7 +152,11 @@ def delete_student(student_code: str):
 
 
 @router.post("/students/{student_code}/delete-account")
-def self_delete_account(student_code: str, data: DeleteAccountRequest):
+def self_delete_account(
+    student_code: str,
+    data: DeleteAccountRequest,
+    _: CurrentUser = Depends(require_self_or_admin),
+):
     """Auto-exclusão pelo próprio aluno, exige a senha atual como confirmação."""
     db = SessionLocal()
 

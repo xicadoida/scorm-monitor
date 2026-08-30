@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import func
 
@@ -8,6 +8,7 @@ from models import Student, Event
 from schemas import ChangePasswordRequest
 from security import hash_password, verify_password
 from event_utils import get_event_for_email
+from auth_utils import CurrentUser, create_access_token, get_current_user
 
 router = APIRouter()
 
@@ -71,10 +72,13 @@ def login(data: LoginRequest):
     if not allowed:
         db.close()
         return {"success": False, "message": message}
+    access_token = create_access_token(student)
     db.close()
 
     return {
         "success": True,
+        "access_token": access_token,
+        "token_type": "bearer",
         "student": {
             "id": student.id,
             "student_code": student.student_code,
@@ -133,7 +137,16 @@ def register(data: RegisterRequest):
 
 
 @router.post("/auth/change-password")
-def change_password(data: ChangePasswordRequest):
+def change_password(
+    data: ChangePasswordRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    if current_user.student_code != data.student_code:
+        raise HTTPException(status_code=403, detail="Você não pode alterar a senha de outra pessoa.")
+
+    if len(data.new_password) < 6:
+        return {"success": False, "message": "A nova senha precisa ter pelo menos 6 caracteres."}
+
     db = SessionLocal()
 
     student = db.query(Student).filter(
@@ -149,7 +162,15 @@ def change_password(data: ChangePasswordRequest):
         return {"success": False, "message": "Senha atual incorreta."}
 
     student.password_hash = hash_password(data.new_password)
+    student.auth_token_version = (student.auth_token_version or 0) + 1
     db.commit()
+    db.refresh(student)
+    access_token = create_access_token(student)
     db.close()
 
-    return {"success": True, "message": "Senha alterada com sucesso."}
+    return {
+        "success": True,
+        "message": "Senha alterada com sucesso.",
+        "access_token": access_token,
+        "token_type": "bearer",
+    }

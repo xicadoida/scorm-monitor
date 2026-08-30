@@ -169,12 +169,14 @@ function App() {
       }
 
       const saved = localStorage.getItem("loggedStudent")
+      const accessToken = localStorage.getItem("accessToken")
 
-      if (saved) {
+      if (saved && accessToken) {
         const student = JSON.parse(saved)
         // Contas de evento não podem continuar autenticadas na área padrão.
         if (student.event) {
           localStorage.removeItem("loggedStudent")
+          localStorage.removeItem("accessToken")
           setCurrentPage("login")
           return
         }
@@ -182,6 +184,8 @@ function App() {
         setSelectedStudent(student)
         setCurrentPage("dashboard")
       } else {
+        localStorage.removeItem("loggedStudent")
+        localStorage.removeItem("accessToken")
         setCurrentPage("login")
       }
     }
@@ -576,6 +580,7 @@ function App() {
           onOpenReport={() => setCurrentPage("report")}
           onLogout={() => {
             localStorage.removeItem("loggedStudent")
+            localStorage.removeItem("accessToken")
             setLoggedStudent(null)
             setSelectedStudent(null)
             setCurrentPage("login")

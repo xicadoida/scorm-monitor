@@ -89,6 +89,8 @@ class Student(Base):
     email = Column(String(255), unique=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     password_hash = Column(String(255))
+    # Incrementado ao trocar senha para invalidar tokens de sessões antigas.
+    auth_token_version = Column(Integer, default=0, nullable=False)
 
 
 class Enrollment(Base):

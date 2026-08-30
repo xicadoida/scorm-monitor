@@ -1,20 +1,33 @@
 from datetime import datetime
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
 
 from database import SessionLocal
-from models import CourseSession, Student, Course
+from models import CourseSession, Student, Course, Enrollment
 from schemas import (
     SessionStartRequest,
     SessionUpdateRequest
 )
+from auth_utils import CurrentUser, get_current_user, require_admin
 
 router = APIRouter()
 
 
 @router.post("/sessions/start")
-def start_session(data: SessionStartRequest):
+def start_session(data: SessionStartRequest, current_user: CurrentUser = Depends(get_current_user)):
+    if not current_user.is_admin and current_user.student_code != data.student_id:
+        raise HTTPException(status_code=403, detail="Você não pode iniciar uma sessão para outra pessoa.")
+
     db = SessionLocal()
+    if not current_user.is_admin:
+        enrollment = db.query(Enrollment).filter(
+            Enrollment.student_code == data.student_id,
+            Enrollment.course_code == data.course_id,
+            Enrollment.active == True,
+        ).first()
+        if not enrollment:
+            db.close()
+            raise HTTPException(status_code=403, detail="Você não está matriculado neste curso.")
 
     session = CourseSession(
         student_id=data.student_id,
@@ -38,7 +51,11 @@ def start_session(data: SessionStartRequest):
 
 
 @router.post("/sessions/{session_id}/update")
-def update_session(session_id: int, data: SessionUpdateRequest):
+def update_session(
+    session_id: int,
+    data: SessionUpdateRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     db = SessionLocal()
 
     session = db.query(CourseSession).filter(CourseSession.id == session_id).first()
@@ -46,6 +63,10 @@ def update_session(session_id: int, data: SessionUpdateRequest):
     if not session:
         db.close()
         return {"error": "Session not found"}
+
+    if not current_user.is_admin and current_user.student_code != session.student_id:
+        db.close()
+        raise HTTPException(status_code=403, detail="Você não pode alterar esta sessão.")
 
     if data.status is not None:
         # O SCORM pode informar "completed" antes de o questionário ser
@@ -101,7 +122,7 @@ def update_session(session_id: int, data: SessionUpdateRequest):
 
 
 @router.get("/sessions")
-def list_sessions():
+def list_sessions(_: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
     sessions = db.query(CourseSession).all()
@@ -132,7 +153,14 @@ def list_sessions():
     return result
 
 @router.get("/progress/{student_id}/{course_id}")
-def get_progress(student_id: str, course_id: str):
+def get_progress(
+    student_id: str,
+    course_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    if not current_user.is_admin and current_user.student_code != student_id:
+        raise HTTPException(status_code=403, detail="Você não tem acesso ao progresso de outra pessoa.")
+
     db = SessionLocal()
 
     sessions = db.query(CourseSession).filter(
@@ -184,7 +212,7 @@ def get_progress(student_id: str, course_id: str):
 
     return result
 @router.post("/sessions/{session_id}/finish")
-def finish_session(session_id: int):
+def finish_session(session_id: int, current_user: CurrentUser = Depends(get_current_user)):
     db = SessionLocal()
 
     session = db.query(CourseSession).filter(
@@ -194,6 +222,10 @@ def finish_session(session_id: int):
     if not session:
         db.close()
         return {"error": "Session not found"}
+
+    if not current_user.is_admin and current_user.student_code != session.student_id:
+        db.close()
+        raise HTTPException(status_code=403, detail="Você não pode encerrar esta sessão.")
 
     session.ended_at = datetime.utcnow()
     session.updated_at = datetime.utcnow()

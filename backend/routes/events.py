@@ -4,7 +4,7 @@ import os
 import re
 import uuid
 
-from fastapi import APIRouter, File, UploadFile
+from fastapi import APIRouter, Depends, File, UploadFile
 
 from database import SessionLocal
 from models import Event, EventEmail
@@ -14,6 +14,7 @@ from schemas import (
     EventUpdateRequest,
     EventAddEmailsRequest
 )
+from auth_utils import CurrentUser, require_admin
 
 router = APIRouter()
 
@@ -46,7 +47,7 @@ def _serialize_event(event):
 
 
 @router.post("/events")
-def create_event(data: EventCreateRequest):
+def create_event(data: EventCreateRequest, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
     slug = _normalize_slug(data.slug)
 
@@ -76,7 +77,7 @@ def create_event(data: EventCreateRequest):
 
 
 @router.get("/events")
-def list_events():
+def list_events(_: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
     events = db.query(Event).all()
 
@@ -104,7 +105,7 @@ def get_event_by_slug(slug: str):
 
 
 @router.put("/events/{event_id}")
-def update_event(event_id: int, data: EventUpdateRequest):
+def update_event(event_id: int, data: EventUpdateRequest, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
     event = db.query(Event).filter(Event.id == event_id).first()
@@ -150,7 +151,11 @@ def update_event(event_id: int, data: EventUpdateRequest):
 
 
 @router.post("/events/{event_id}/logo")
-async def upload_event_logo(event_id: int, file: UploadFile = File(...)):
+async def upload_event_logo(
+    event_id: int,
+    file: UploadFile = File(...),
+    _: CurrentUser = Depends(require_admin),
+):
     allowed_types = {"image/png", "image/jpeg", "image/webp", "image/svg+xml", "image/x-icon"}
     if file.content_type not in allowed_types:
         return {"success": False, "message": "Envie uma imagem PNG, JPG, WEBP, SVG ou ICO."}
@@ -189,7 +194,7 @@ async def upload_event_logo(event_id: int, file: UploadFile = File(...)):
 
 
 @router.delete("/events/{event_id}")
-def delete_event(event_id: int):
+def delete_event(event_id: int, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
     db.query(EventEmail).filter(EventEmail.event_id == event_id).delete()
@@ -203,7 +208,7 @@ def delete_event(event_id: int):
 
 
 @router.get("/events/{event_id}/emails")
-def list_event_emails(event_id: int):
+def list_event_emails(event_id: int, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
     emails = db.query(EventEmail).filter(
@@ -220,7 +225,11 @@ def list_event_emails(event_id: int):
 
 
 @router.post("/events/{event_id}/emails")
-def add_event_emails(event_id: int, data: EventAddEmailsRequest):
+def add_event_emails(
+    event_id: int,
+    data: EventAddEmailsRequest,
+    _: CurrentUser = Depends(require_admin),
+):
     db = SessionLocal()
 
     added = []
@@ -255,7 +264,7 @@ def add_event_emails(event_id: int, data: EventAddEmailsRequest):
 
 
 @router.delete("/events/{event_id}/emails/{email}")
-def remove_event_email(event_id: int, email: str):
+def remove_event_email(event_id: int, email: str, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
     db.query(EventEmail).filter(

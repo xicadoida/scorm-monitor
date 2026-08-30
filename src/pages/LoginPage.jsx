@@ -34,10 +34,16 @@ function LoginPage({ API_URL, onLogin, onGoToRegister, event }) {
       return
     }
 
+    if (!data.access_token) {
+      setError("Não foi possível iniciar uma sessão segura. Tente novamente.")
+      return
+    }
+
     localStorage.setItem(
       "loggedStudent",
       JSON.stringify(data.student)
     )
+    localStorage.setItem("accessToken", data.access_token)
 
     onLogin(data.student)
   }

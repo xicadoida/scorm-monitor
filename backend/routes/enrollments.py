@@ -1,17 +1,18 @@
 from datetime import datetime
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
 
 from database import SessionLocal
 from models import Enrollment, Course, Student
 from schemas import EnrollmentCreateRequest
 from event_utils import get_event_for_email
+from auth_utils import CurrentUser, get_current_user, require_admin, require_self_or_admin
 
 router = APIRouter()
 
 
 @router.post("/enrollments")
-def create_enrollment(data: EnrollmentCreateRequest):
+def create_enrollment(data: EnrollmentCreateRequest, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
     enrollment = Enrollment(
@@ -35,7 +36,11 @@ def create_enrollment(data: EnrollmentCreateRequest):
 
 
 @router.post("/students/{student_code}/enroll/{course_code}")
-def self_enroll(student_code: str, course_code: str):
+def self_enroll(
+    student_code: str,
+    course_code: str,
+    _: CurrentUser = Depends(require_self_or_admin),
+):
     db = SessionLocal()
 
     student = db.query(Student).filter(
@@ -92,7 +97,10 @@ def self_enroll(student_code: str, course_code: str):
 
 
 @router.get("/students/{student_code}/courses")
-def get_student_courses(student_code: str):
+def get_student_courses(
+    student_code: str,
+    _: CurrentUser = Depends(require_self_or_admin),
+):
     db = SessionLocal()
 
     enrollments = db.query(Enrollment).filter(

@@ -1,16 +1,17 @@
 from datetime import datetime
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from database import SessionLocal
 from models import ClassGroup, ClassStudent
 from models import Enrollment
 from schemas import ClassCreateRequest, AddStudentsToClassRequest
+from auth_utils import CurrentUser, require_admin
 
 router = APIRouter()
 
 
 @router.post("/classes")
-def create_class(data: ClassCreateRequest):
+def create_class(data: ClassCreateRequest, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
     class_group = ClassGroup(
@@ -31,7 +32,7 @@ def create_class(data: ClassCreateRequest):
 
 
 @router.get("/classes")
-def list_classes():
+def list_classes(_: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
     classes = db.query(ClassGroup).all()
@@ -51,7 +52,11 @@ def list_classes():
 
 
 @router.post("/classes/{class_id}/students")
-def add_students_to_class(class_id: int, data: AddStudentsToClassRequest):
+def add_students_to_class(
+    class_id: int,
+    data: AddStudentsToClassRequest,
+    _: CurrentUser = Depends(require_admin),
+):
     db = SessionLocal()
 
     added = 0
@@ -83,7 +88,7 @@ def add_students_to_class(class_id: int, data: AddStudentsToClassRequest):
 
 
 @router.get("/classes/{class_id}/students")
-def list_class_students(class_id: int):
+def list_class_students(class_id: int, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
     students = db.query(ClassStudent).filter(
@@ -103,7 +108,7 @@ def list_class_students(class_id: int):
 
     return result
 @router.get("/classes/{class_id}/student-codes")
-def get_class_student_codes(class_id: int):
+def get_class_student_codes(class_id: int, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
     students = db.query(ClassStudent).filter(
@@ -117,7 +122,7 @@ def get_class_student_codes(class_id: int):
     return result
 
 @router.post("/classes/{class_id}/enroll")
-def enroll_class(class_id: int, data: dict):
+def enroll_class(class_id: int, data: dict, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
     course_code = data.get("course_code")

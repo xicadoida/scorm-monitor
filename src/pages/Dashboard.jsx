@@ -278,6 +278,10 @@ function Dashboard({
       return
     }
 
+    if (data.access_token) {
+      localStorage.setItem("accessToken", data.access_token)
+    }
+
     setPasswordSuccess("Senha alterada com sucesso.")
     setPasswordForm({
       currentPassword: "",

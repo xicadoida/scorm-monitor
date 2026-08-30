@@ -14,8 +14,10 @@ def _truthy(value: str | None) -> bool:
     return (value or "").strip().lower() in {"1", "true", "yes", "sim"}
 
 
-def _normalized_client_ip(request: Request) -> str | None:
+def _normalized_client_ip(request: Request | None) -> str | None:
     """Usa X-Forwarded-For somente quando o proxy foi explicitamente confiado."""
+    if request is None:
+        return None
     raw_ip = None
     if _truthy(os.getenv("TRUST_PROXY_HEADERS")):
         raw_ip = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
@@ -28,7 +30,7 @@ def _normalized_client_ip(request: Request) -> str | None:
         return None
 
 
-def anonymized_ip_hash(request: Request) -> str | None:
+def anonymized_ip_hash(request: Request | None) -> str | None:
     secret = os.getenv("IP_HASH_SECRET", "")
     if len(secret) < 32:
         return None
@@ -41,7 +43,7 @@ def anonymized_ip_hash(request: Request) -> str | None:
 
 def record_access_event(
     db,
-    request: Request,
+    request: Request | None,
     event_type: str,
     *,
     success: bool,
@@ -57,7 +59,7 @@ def record_access_event(
             student_code=student_code,
             event_id=event_id,
             ip_hash=anonymized_ip_hash(request),
-            user_agent=(request.headers.get("user-agent") or "")[:500] or None,
+            user_agent=((request.headers.get("user-agent") or "")[:500] if request else None),
             route=route,
             created_at=datetime.utcnow(),
         ))

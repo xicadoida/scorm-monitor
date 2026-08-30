@@ -123,6 +123,18 @@ class AccessEvent(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 
 
+class PasswordResetToken(Base):
+    """Token de recupera\u00e7\u00e3o salvo apenas como hash, nunca em texto puro."""
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_code = Column(String(100), nullable=False, index=True)
+    token_hash = Column(String(64), nullable=False, unique=True, index=True)
+    expires_at = Column(DateTime, nullable=False, index=True)
+    used_at = Column(DateTime, nullable=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
 class Enrollment(Base):
     __tablename__ = "enrollments"
 

@@ -36,12 +36,8 @@ function App() {
   const [loggedStudent, setLoggedStudent] = useState(null)
   const [landingEvent, setLandingEvent] = useState(null)
   const [pendingCourseCode, setPendingCourseCode] = useState(null)
-  const ADMIN_EMAILS = [
-    "admin@admin.com"
-  ]
-  const isAdmin =
-    loggedStudent &&
-    ADMIN_EMAILS.includes(loggedStudent.email)        
+  const [resetToken, setResetToken] = useState(() => new URLSearchParams(window.location.search).get("reset_token"))
+  const isAdmin = Boolean(loggedStudent?.is_admin)
   const API_URL =
     import.meta.env.VITE_API_URL || "http://127.0.0.1:8000"
 
@@ -539,6 +535,13 @@ function App() {
       <LoginPage
         API_URL={API_URL}
         event={landingEvent}
+        resetToken={resetToken}
+        onResetFinished={() => {
+          setResetToken(null)
+          const url = new URL(window.location.href)
+          url.searchParams.delete("reset_token")
+          window.history.replaceState({}, "", `${url.pathname}${url.search}`)
+        }}
         onGoToRegister={() => setCurrentPage("register")}
         onLogin={(student) => {
           setLoggedStudent(student)

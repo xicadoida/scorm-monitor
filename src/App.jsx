@@ -164,6 +164,13 @@ function App() {
         }
       }
 
+      // Um link de recupera\u00e7\u00e3o precisa abrir a tela de senha mesmo se este
+      // navegador ainda tiver uma sess\u00e3o salva de outra pessoa.
+      if (new URLSearchParams(window.location.search).get("reset_token")) {
+        setCurrentPage("login")
+        return
+      }
+
       const saved = localStorage.getItem("loggedStudent")
       const accessToken = localStorage.getItem("accessToken")
 

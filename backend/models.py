@@ -93,6 +93,21 @@ class Student(Base):
     auth_token_version = Column(Integer, default=0, nullable=False)
 
 
+class RegistrationProfile(Base):
+    """Dados de inscrição da pessoa, separados de matrículas em cursos."""
+    __tablename__ = "registration_profiles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_code = Column(String(100), unique=True, index=True, nullable=False)
+    # pf | pj | not_informed (contas criadas antes desta funcionalidade)
+    person_type = Column(String(20), default="not_informed", nullable=False, index=True)
+    accepted_terms_at = Column(DateTime, nullable=True)
+    accepted_terms_url = Column(String(500), nullable=True)
+    event_id = Column(Integer, nullable=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow)
+
+
 class Enrollment(Base):
     __tablename__ = "enrollments"
 

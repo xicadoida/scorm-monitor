@@ -1,16 +1,19 @@
 import uuid
+from datetime import datetime
+from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import func
 
 from database import SessionLocal
-from models import Student, Event
+from models import Student, Event, RegistrationProfile
 from schemas import ChangePasswordRequest
 from security import hash_password, verify_password
 from event_utils import get_event_for_email
 from auth_utils import CurrentUser, create_access_token, get_current_user
 
 router = APIRouter()
+TERMS_OF_USE_URL = "https://iaclube.com/sobre/temos-de-uso-lms"
 
 
 class LoginRequest(BaseModel):
@@ -23,6 +26,8 @@ class RegisterRequest(BaseModel):
     name: str
     email: str
     password: str
+    person_type: Literal["pf", "pj"]
+    accepted_terms: bool
     event_slug: str | None = None
 
 
@@ -94,6 +99,14 @@ def register(data: RegisterRequest):
     db = SessionLocal()
     email = data.email.strip().lower()
 
+    if not data.accepted_terms:
+        db.close()
+        return {"success": False, "message": "É necessário aceitar os termos de uso para criar a conta."}
+
+    if len(data.password) < 6:
+        db.close()
+        return {"success": False, "message": "A senha precisa ter pelo menos 6 caracteres."}
+
     existing_student = db.query(Student).filter(
         func.lower(Student.email) == email
     ).first()
@@ -118,10 +131,21 @@ def register(data: RegisterRequest):
     )
 
     db.add(student)
-    db.commit()
-    db.refresh(student)
+    db.flush()
 
     event = get_event_for_email(db, student.email)
+    now = datetime.utcnow()
+    db.add(RegistrationProfile(
+        student_code=student.student_code,
+        person_type=data.person_type,
+        accepted_terms_at=now,
+        accepted_terms_url=TERMS_OF_USE_URL,
+        event_id=event["id"] if event else None,
+        created_at=now,
+        updated_at=now,
+    ))
+    db.commit()
+    db.refresh(student)
     db.close()
 
     return {

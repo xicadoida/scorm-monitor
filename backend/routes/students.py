@@ -3,7 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends
 
 from database import SessionLocal
-from models import Student, Enrollment, CourseSession, ClassStudent
+from models import Student, Enrollment, CourseSession, ClassStudent, RegistrationProfile
 from schemas import (
     StudentCreateRequest,
     StudentUpdateRequest,
@@ -29,6 +29,12 @@ def create_student(data: StudentCreateRequest, _: CurrentUser = Depends(require_
     )
 
     db.add(student)
+    db.add(RegistrationProfile(
+        student_code=student.student_code,
+        person_type="not_informed",
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
+    ))
     db.commit()
     db.refresh(student)
     db.close()
@@ -46,6 +52,10 @@ def list_students(_: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
     students = db.query(Student).all()
+    profiles = {
+        profile.student_code: profile
+        for profile in db.query(RegistrationProfile).all()
+    }
 
     result = [
         {
@@ -53,6 +63,8 @@ def list_students(_: CurrentUser = Depends(require_admin)):
             "student_code": s.student_code,
             "name": s.name,
             "email": s.email,
+            "person_type": profiles.get(s.student_code).person_type if s.student_code in profiles else "not_informed",
+            "accepted_terms_at": profiles.get(s.student_code).accepted_terms_at if s.student_code in profiles else None,
             "event": get_event_for_email(db, s.email)
         }
         for s in students

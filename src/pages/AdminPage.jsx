@@ -919,7 +919,7 @@ function AdminPage({ API_URL, onBack }) {
 
   function renderStudentTable(studentList) {
     if (studentList.length === 0) return <p style={{ color: "#64748b" }}>Nenhum aluno nesta lista.</p>
-    return <div className="admin-table-wrap"><table style={tableStyle}><thead><tr><th style={th}>Código</th><th style={th}>Nome</th><th style={th}>E-mail</th><th style={th}>Ações</th></tr></thead><tbody>{studentList.map(student => <tr key={student.id}><td style={td}>{student.student_code}</td><td style={td}>{student.name}</td><td style={td}>{student.email}</td><td style={td}><button onClick={() => editStudentName(student)}>Editar nome</button><button onClick={() => setPasswordResetTarget(student)} style={{ marginLeft: "8px" }}>Redefinir senha</button><button className="danger-action" onClick={() => deleteStudent(student)} style={{ marginLeft: "8px" }}>Excluir</button></td></tr>)}</tbody></table></div>
+    return <div className="admin-table-wrap"><table style={tableStyle}><thead><tr><th style={th}>Código</th><th style={th}>Nome</th><th style={th}>E-mail</th><th style={th}>Tipo</th><th style={th}>Ações</th></tr></thead><tbody>{studentList.map(student => <tr key={student.id}><td style={td}>{student.student_code}</td><td style={td}>{student.name}</td><td style={td}>{student.email}</td><td style={td}>{student.person_type === "pf" ? "Pessoa física" : student.person_type === "pj" ? "Pessoa jurídica" : "Não informado"}</td><td style={td}><button onClick={() => editStudentName(student)}>Editar nome</button><button onClick={() => setPasswordResetTarget(student)} style={{ marginLeft: "8px" }}>Redefinir senha</button><button className="danger-action" onClick={() => deleteStudent(student)} style={{ marginLeft: "8px" }}>Excluir</button></td></tr>)}</tbody></table></div>
   }
 
   function renderAlunosTab() {
@@ -1056,6 +1056,7 @@ function AdminPage({ API_URL, onBack }) {
                   <th style={th}>Código</th>
                   <th style={th}>Nome</th>
                   <th style={th}>Email</th>
+                  <th style={th}>Tipo</th>
                   <th style={th}>Ações</th>
                 </tr>
               </thead>
@@ -1066,6 +1067,7 @@ function AdminPage({ API_URL, onBack }) {
                     <td style={td}>{student.student_code}</td>
                     <td style={td}>{student.name}</td>
                     <td style={td}>{student.email}</td>
+                    <td style={td}>{student.person_type === "pf" ? "Pessoa física" : student.person_type === "pj" ? "Pessoa jurídica" : "Não informado"}</td>
                     <td style={td}>
                       <button onClick={() => editStudentName(student)}>Editar nome</button>
                       <button onClick={() => setPasswordResetTarget(student)} style={{ marginLeft: "8px" }}>Redefinir senha</button>

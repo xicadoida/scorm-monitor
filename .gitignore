@@ -30,3 +30,7 @@ scorm_monitor.db
 node_modules/
 dist/
 .env
+
+_doc
+.claude
+.codex

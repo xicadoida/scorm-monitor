@@ -89,6 +89,50 @@ class Student(Base):
     email = Column(String(255), unique=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     password_hash = Column(String(255))
+    # Incrementado ao trocar senha para invalidar tokens de sessões antigas.
+    auth_token_version = Column(Integer, default=0, nullable=False)
+
+
+class RegistrationProfile(Base):
+    """Dados de inscrição da pessoa, separados de matrículas em cursos."""
+    __tablename__ = "registration_profiles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_code = Column(String(100), unique=True, index=True, nullable=False)
+    # pf | pj | not_informed (contas criadas antes desta funcionalidade)
+    person_type = Column(String(20), default="not_informed", nullable=False, index=True)
+    accepted_terms_at = Column(DateTime, nullable=True)
+    accepted_terms_url = Column(String(500), nullable=True)
+    event_id = Column(Integer, nullable=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow)
+
+
+class AccessEvent(Base):
+    """Auditoria sem IP real: apenas identificador HMAC não reversível."""
+    __tablename__ = "access_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    event_type = Column(String(50), nullable=False, index=True)
+    success = Column(Boolean, default=True, nullable=False, index=True)
+    student_code = Column(String(100), nullable=True, index=True)
+    event_id = Column(Integer, nullable=True, index=True)
+    ip_hash = Column(String(64), nullable=True, index=True)
+    user_agent = Column(String(500), nullable=True)
+    route = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+class PasswordResetToken(Base):
+    """Token de recupera\u00e7\u00e3o salvo apenas como hash, nunca em texto puro."""
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_code = Column(String(100), nullable=False, index=True)
+    token_hash = Column(String(64), nullable=False, unique=True, index=True)
+    expires_at = Column(DateTime, nullable=False, index=True)
+    used_at = Column(DateTime, nullable=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 
 
 class Enrollment(Base):

@@ -16,7 +16,9 @@ function RegisterPage({ API_URL, onBackToLogin, event }) {
     name: "",
     email: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
+    personType: "",
+    acceptedTerms: false
   })
 
   const [error, setError] = useState("")
@@ -32,6 +34,16 @@ function RegisterPage({ API_URL, onBackToLogin, event }) {
       return
     }
 
+    if (!form.personType) {
+      setError("Selecione se o cadastro é de pessoa física ou jurídica.")
+      return
+    }
+
+    if (!form.acceptedTerms) {
+      setError("É necessário aceitar os termos de uso para criar a conta.")
+      return
+    }
+
     const response = await fetch(`${API_URL}/auth/register`, {
       method: "POST",
       headers: {
@@ -41,6 +53,8 @@ function RegisterPage({ API_URL, onBackToLogin, event }) {
         name: form.name,
         email: form.email,
         password: form.password,
+        person_type: form.personType,
+        accepted_terms: form.acceptedTerms,
         event_slug: event?.slug || null
       })
     })
@@ -98,6 +112,26 @@ function RegisterPage({ API_URL, onBackToLogin, event }) {
           onChange={e => setForm({ ...form, confirmPassword: e.target.value })}
           style={{ ...input, marginBottom: "20px" }}
         />
+
+        <select
+          value={form.personType}
+          onChange={e => setForm({ ...form, personType: e.target.value })}
+          style={input}
+        >
+          <option value="">Tipo de pessoa</option>
+          <option value="pf">Pessoa física</option>
+          <option value="pj">Pessoa jurídica</option>
+        </select>
+
+        <label style={{ display: "flex", gap: "8px", alignItems: "flex-start", color: "#fff", fontSize: "13px", lineHeight: 1.35, margin: "0 0 20px" }}>
+          <input
+            type="checkbox"
+            checked={form.acceptedTerms}
+            onChange={e => setForm({ ...form, acceptedTerms: e.target.checked })}
+            style={{ marginTop: "2px" }}
+          />
+          <span>Li e aceito os <a href="https://iaclube.com/sobre/temos-de-uso-lms" target="_blank" rel="noreferrer" style={{ color: "#fff", textDecoration: "underline" }}>termos de uso da plataforma</a>.</span>
+        </label>
 
         {error && <p style={errorMessage}>{error}</p>}
         {success && <p style={successMessage}>{success}</p>}

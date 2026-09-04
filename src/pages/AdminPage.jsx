@@ -5,7 +5,8 @@ const TABS = [
   { key: "cursos", label: "Cursos" },
   { key: "turmas", label: "Turmas e matrículas" },
   { key: "frequencia", label: "Frequência" },
-  { key: "eventos", label: "Eventos" }
+  { key: "eventos", label: "Eventos" },
+  { key: "acessos", label: "Acessos e perfis" }
 ]
 
 function AdminPage({ API_URL, onBack }) {
@@ -101,6 +102,19 @@ function AdminPage({ API_URL, onBack }) {
   const [eventEmails, setEventEmails] = useState([])
   const [eventProgressRows, setEventProgressRows] = useState([])
   const [emailsInput, setEmailsInput] = useState("")
+  const [insightsFilters, setInsightsFilters] = useState({
+    start_date: "",
+    end_date: "",
+    event_id: "",
+    person_type: "",
+    success: ""
+  })
+  const [insightsSummary, setInsightsSummary] = useState(null)
+  const [profileStats, setProfileStats] = useState(null)
+  const [accessLog, setAccessLog] = useState([])
+  const [ipActivity, setIpActivity] = useState([])
+  const [insightsLoading, setInsightsLoading] = useState(false)
+  const [insightsError, setInsightsError] = useState("")
 
   async function loadData() {
     const studentsResponse = await fetch(`${API_URL}/students`)
@@ -128,6 +142,43 @@ function AdminPage({ API_URL, onBack }) {
   useEffect(() => {
     loadData()
   }, [])
+
+  async function loadInsights() {
+    setInsightsLoading(true)
+    setInsightsError("")
+    const params = new URLSearchParams()
+    Object.entries(insightsFilters).forEach(([key, value]) => {
+      if (value !== "") params.set(key, value)
+    })
+    params.set("limit", "100")
+    const query = params.toString()
+    try {
+      const [summaryResponse, profilesResponse, logResponse, ipResponse] = await Promise.all([
+        fetch(`${API_URL}/admin/insights/summary?${query}`),
+        fetch(`${API_URL}/admin/insights/profile-stats?${query}`),
+        fetch(`${API_URL}/admin/insights/access-log?${query}`),
+        fetch(`${API_URL}/admin/insights/ip-activity?${query}`)
+      ])
+      if (![summaryResponse, profilesResponse, logResponse, ipResponse].every(response => response.ok)) {
+        throw new Error("Não foi possível carregar os indicadores.")
+      }
+      const [summaryData, profilesData, logData, ipData] = await Promise.all([
+        summaryResponse.json(), profilesResponse.json(), logResponse.json(), ipResponse.json()
+      ])
+      setInsightsSummary(summaryData.summary || null)
+      setProfileStats(profilesData)
+      setAccessLog(logData.entries || [])
+      setIpActivity(ipData.hashes || [])
+    } catch (error) {
+      setInsightsError(error.message || "Não foi possível carregar os indicadores.")
+    } finally {
+      setInsightsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === "acessos") loadInsights()
+  }, [activeTab])
   useEffect(() => {
     async function loadClassStudents() {
       if (!selectedClassId) {
@@ -919,7 +970,7 @@ function AdminPage({ API_URL, onBack }) {
 
   function renderStudentTable(studentList) {
     if (studentList.length === 0) return <p style={{ color: "#64748b" }}>Nenhum aluno nesta lista.</p>
-    return <div className="admin-table-wrap"><table style={tableStyle}><thead><tr><th style={th}>Código</th><th style={th}>Nome</th><th style={th}>E-mail</th><th style={th}>Ações</th></tr></thead><tbody>{studentList.map(student => <tr key={student.id}><td style={td}>{student.student_code}</td><td style={td}>{student.name}</td><td style={td}>{student.email}</td><td style={td}><button onClick={() => editStudentName(student)}>Editar nome</button><button onClick={() => setPasswordResetTarget(student)} style={{ marginLeft: "8px" }}>Redefinir senha</button><button className="danger-action" onClick={() => deleteStudent(student)} style={{ marginLeft: "8px" }}>Excluir</button></td></tr>)}</tbody></table></div>
+    return <div className="admin-table-wrap"><table style={tableStyle}><thead><tr><th style={th}>Código</th><th style={th}>Nome</th><th style={th}>E-mail</th><th style={th}>Tipo</th><th style={th}>Ações</th></tr></thead><tbody>{studentList.map(student => <tr key={student.id}><td style={td}>{student.student_code}</td><td style={td}>{student.name}</td><td style={td}>{student.email}</td><td style={td}>{student.person_type === "pf" ? "Pessoa física" : student.person_type === "pj" ? "Pessoa jurídica" : "Não informado"}</td><td style={td}><button onClick={() => editStudentName(student)}>Editar nome</button><button onClick={() => setPasswordResetTarget(student)} style={{ marginLeft: "8px" }}>Redefinir senha</button><button className="danger-action" onClick={() => deleteStudent(student)} style={{ marginLeft: "8px" }}>Excluir</button></td></tr>)}</tbody></table></div>
   }
 
   function renderAlunosTab() {
@@ -1056,6 +1107,7 @@ function AdminPage({ API_URL, onBack }) {
                   <th style={th}>Código</th>
                   <th style={th}>Nome</th>
                   <th style={th}>Email</th>
+                  <th style={th}>Tipo</th>
                   <th style={th}>Ações</th>
                 </tr>
               </thead>
@@ -1066,6 +1118,7 @@ function AdminPage({ API_URL, onBack }) {
                     <td style={td}>{student.student_code}</td>
                     <td style={td}>{student.name}</td>
                     <td style={td}>{student.email}</td>
+                    <td style={td}>{student.person_type === "pf" ? "Pessoa física" : student.person_type === "pj" ? "Pessoa jurídica" : "Não informado"}</td>
                     <td style={td}>
                       <button onClick={() => editStudentName(student)}>Editar nome</button>
                       <button onClick={() => setPasswordResetTarget(student)} style={{ marginLeft: "8px" }}>Redefinir senha</button>
@@ -1822,6 +1875,65 @@ function AdminPage({ API_URL, onBack }) {
     )
   }
 
+  function renderAcessosTab() {
+    const formatDateTime = value => value ? new Date(value).toLocaleString("pt-BR") : "—"
+    const personTypeLabel = value => ({ pf: "Pessoa física", pj: "Pessoa jurídica", not_informed: "Não informado" }[value] || "Não informado")
+    const eventOptions = events.map(event => <option key={event.id} value={event.id}>{event.name}</option>)
+
+    return (
+      <div style={containerStyle}>
+        <h2>Acessos e perfis</h2>
+        <p style={{ color: "#64748b", marginTop: 0 }}>Indicadores administrativos sem armazenar IPs reais. O identificador de origem abaixo é um hash irreversível.</p>
+
+        <form onSubmit={e => { e.preventDefault(); loadInsights() }} style={{ ...subsectionStyle, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: "12px", alignItems: "end" }}>
+          <label style={labelStyle}>Início<input type="date" value={insightsFilters.start_date} onChange={e => setInsightsFilters(prev => ({ ...prev, start_date: e.target.value }))} style={inputStyle} /></label>
+          <label style={labelStyle}>Fim<input type="date" value={insightsFilters.end_date} onChange={e => setInsightsFilters(prev => ({ ...prev, end_date: e.target.value }))} style={inputStyle} /></label>
+          <label style={labelStyle}>Evento<select value={insightsFilters.event_id} onChange={e => setInsightsFilters(prev => ({ ...prev, event_id: e.target.value }))} style={inputStyle}><option value="">Todos</option>{eventOptions}</select></label>
+          <label style={labelStyle}>Perfil<select value={insightsFilters.person_type} onChange={e => setInsightsFilters(prev => ({ ...prev, person_type: e.target.value }))} style={inputStyle}><option value="">Todos</option><option value="pf">Pessoa física</option><option value="pj">Pessoa jurídica</option><option value="not_informed">Não informado</option></select></label>
+          <label style={labelStyle}>Resultado<select value={insightsFilters.success} onChange={e => setInsightsFilters(prev => ({ ...prev, success: e.target.value }))} style={inputStyle}><option value="">Todos</option><option value="true">Sucesso</option><option value="false">Falha</option></select></label>
+          <button type="submit" disabled={insightsLoading}>{insightsLoading ? "Atualizando…" : "Aplicar filtros"}</button>
+        </form>
+
+        {insightsError && <p style={{ color: "#b91c1c", fontWeight: 700 }}>{insightsError}</p>}
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px", margin: "20px 0" }}>
+          {[
+            ["Cadastros", insightsSummary?.total_registrations ?? "—"],
+            ["Logins bem-sucedidos", insightsSummary?.total_successful_logins ?? "—"],
+            ["Pessoas que acessaram", insightsSummary?.unique_people_accessed ?? "—"],
+            ["Eventos de origem", ipActivity.length]
+          ].map(([label, value]) => <div key={label} style={{ background: "#e9f0f8", borderRadius: "12px", padding: "16px" }}><strong style={{ display: "block", color: "#152A47", fontSize: "26px" }}>{value}</strong><span style={{ color: "#526579", fontSize: "13px" }}>{label}</span></div>)}
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "16px" }}>
+          <section style={subsectionStyle}>
+            <h3 style={subsectionTitle}>Perfis de cadastro</h3>
+            {["pf", "pj", "not_informed"].map(type => <div key={type} style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #e2e8f0", padding: "8px 0" }}><span>{personTypeLabel(type)}</span><strong>{profileStats?.by_person_type?.[type] ?? 0}</strong></div>)}
+          </section>
+          <section style={subsectionStyle}>
+            <h3 style={subsectionTitle}>Cadastros por evento</h3>
+            {(profileStats?.by_event || []).length === 0 ? <p style={{ color: "#64748b" }}>Ainda não há dados de perfil.</p> : profileStats.by_event.map(row => <div key={row.event} style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #e2e8f0", padding: "8px 0" }}><span>{row.event}</span><strong>{row.count}</strong></div>)}
+          </section>
+        </div>
+
+        <div style={{ ...subsectionStyle, marginTop: "16px" }}>
+          <h3 style={subsectionTitle}>Últimos acessos</h3>
+          {(insightsSummary?.last_accesses || []).length === 0 ? <p style={{ color: "#64748b" }}>Nenhum login registrado para este filtro.</p> : <div className="admin-table-wrap"><table style={tableStyle}><thead><tr><th style={th}>Nome</th><th style={th}>E-mail</th><th style={th}>Data e hora</th></tr></thead><tbody>{insightsSummary.last_accesses.map((row, index) => <tr key={`${row.student_code}-${index}`}><td style={td}>{row.name || "—"}</td><td style={td}>{row.email || "—"}</td><td style={td}>{formatDateTime(row.at)}</td></tr>)}</tbody></table></div>}
+        </div>
+
+        <details className="admin-collapse" style={{ marginTop: "16px" }}>
+          <summary>Ver trilha de auditoria ({accessLog.length} registros)</summary>
+          <div className="admin-table-wrap" style={{ paddingBottom: "16px" }}><table style={tableStyle}><thead><tr><th style={th}>Quando</th><th style={th}>Ação</th><th style={th}>Resultado</th><th style={th}>Pessoa</th><th style={th}>Perfil</th><th style={th}>Evento</th><th style={th}>Origem anonimizada</th></tr></thead><tbody>{accessLog.map(entry => <tr key={entry.id}><td style={td}>{formatDateTime(entry.created_at)}</td><td style={td}>{entry.event_type}</td><td style={td}>{entry.success ? "Sucesso" : "Falha"}</td><td style={td}>{entry.name || "Não identificado"}{entry.email ? <><br /><small>{entry.email}</small></> : null}</td><td style={td}>{personTypeLabel(entry.person_type)}</td><td style={td}>{entry.event || "Padrão/legado"}</td><td style={{ ...td, fontFamily: "monospace", fontSize: "11px" }}>{entry.ip_hash || "Não configurado"}</td></tr>)}</tbody></table></div>
+        </details>
+
+        <details className="admin-collapse" style={{ marginTop: "12px" }}>
+          <summary>Ver origens com mais atividade</summary>
+          <div className="admin-table-wrap" style={{ paddingBottom: "16px" }}><table style={tableStyle}><thead><tr><th style={th}>Identificador anonimizado</th><th style={th}>Eventos</th><th style={th}>Sinal</th></tr></thead><tbody>{ipActivity.length === 0 ? <tr><td style={td} colSpan="3">Nenhuma origem anonimizada registrada.</td></tr> : ipActivity.map(row => <tr key={row.ip_hash}><td style={{ ...td, fontFamily: "monospace", fontSize: "11px" }}>{row.ip_hash}</td><td style={td}>{row.count}</td><td style={td}>{row.suspicious ? "Acima do limite" : "Normal"}</td></tr>)}</tbody></table></div>
+        </details>
+      </div>
+    )
+  }
+
   return (
     <div className="admin-page" style={{
       minHeight: "100vh",
@@ -1893,7 +2005,8 @@ function AdminPage({ API_URL, onBack }) {
           ["cursos", "Cursos", courses.length],
           ["turmas", "Turmas", classes.length],
           ["frequencia", "Módulos de presença", attendanceModules.length],
-          ["eventos", "Eventos", events.length]
+          ["eventos", "Eventos", events.length],
+          ["acessos", "Acessos", insightsSummary?.total_successful_logins ?? "—"]
         ].map(([key, label, value]) => {
           const isActive = activeTab === key
           return (
@@ -1915,6 +2028,7 @@ function AdminPage({ API_URL, onBack }) {
       {activeTab === "turmas" && renderTurmasTab()}
       {activeTab === "frequencia" && renderFrequenciaTab()}
       {activeTab === "eventos" && renderEventosTab()}
+      {activeTab === "acessos" && renderAcessosTab()}
     </main>
     </div>
   )

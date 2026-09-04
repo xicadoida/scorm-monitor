@@ -1,10 +1,11 @@
 from datetime import datetime
 from typing import Optional
-from fastapi import APIRouter, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from database import SessionLocal
 from models import Course, Enrollment, CourseSession
 from schemas import CourseCreateRequest, CourseUpdateRequest
 from catalog_utils import touch_catalog
+from auth_utils import CurrentUser, get_current_user, require_admin
 
 import os
 import zipfile
@@ -76,7 +77,8 @@ async def upload_course(
     catalog_url: Optional[str] = Form(None),
     thumbnail_url: Optional[str] = Form(None),
     short_description: Optional[str] = Form(None),
-    catalog_status: Optional[str] = Form("active")
+    catalog_status: Optional[str] = Form("active"),
+    _: CurrentUser = Depends(require_admin),
 ):
     if catalog_status not in CATALOG_STATUSES:
         return {"success": False, "message": "Status de catálogo inválido."}
@@ -168,7 +170,11 @@ async def upload_course(
 
 
 @router.post("/courses/{course_code}/replace-file")
-async def replace_course_file(course_code: str, file: UploadFile = File(...)):
+async def replace_course_file(
+    course_code: str,
+    file: UploadFile = File(...),
+    _: CurrentUser = Depends(require_admin),
+):
     """Substitui somente o pacote SCORM, preservando todos os vínculos do curso."""
     db = SessionLocal()
     course = db.query(Course).filter(Course.course_code == course_code).first()
@@ -251,7 +257,7 @@ async def replace_course_file(course_code: str, file: UploadFile = File(...)):
 
 
 @router.post("/courses")
-def create_course(data: CourseCreateRequest):
+def create_course(data: CourseCreateRequest, _: CurrentUser = Depends(require_admin)):
     if data.catalog_status not in CATALOG_STATUSES:
         return {"success": False, "message": "Status de catálogo inválido."}
 
@@ -299,7 +305,7 @@ def create_course(data: CourseCreateRequest):
 
 
 @router.get("/courses")
-def list_courses():
+def list_courses(_: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
     courses = db.query(Course).all()
 
@@ -329,13 +335,16 @@ def list_courses():
 
 
 @router.get("/courses/public")
-def list_public_courses(email: str):
+def list_public_courses(email: str, current_user: CurrentUser = Depends(get_current_user)):
     """
     Lista usada na aba 'Todos Cursos'.
     - Se o email pertence a um evento: só mostra os cursos DESSE evento.
     - Caso contrário: só mostra os cursos públicos (sem evento nenhum).
     """
     from event_utils import get_event_for_email
+
+    if not current_user.is_admin and email.lower().strip() != current_user.email.lower().strip():
+        raise HTTPException(status_code=403, detail="Você não tem acesso aos cursos de outra pessoa.")
 
     db = SessionLocal()
     event = get_event_for_email(db, email)
@@ -366,7 +375,11 @@ def list_public_courses(email: str):
 
 
 @router.put("/courses/{course_code}")
-def update_course(course_code: str, data: CourseUpdateRequest):
+def update_course(
+    course_code: str,
+    data: CourseUpdateRequest,
+    _: CurrentUser = Depends(require_admin),
+):
     db = SessionLocal()
 
     course = db.query(Course).filter(
@@ -437,7 +450,7 @@ def update_course(course_code: str, data: CourseUpdateRequest):
 
 
 @router.delete("/courses/{course_code}")
-def delete_course(course_code: str):
+def delete_course(course_code: str, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
     course = db.query(Course).filter(

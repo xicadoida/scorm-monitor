@@ -1,6 +1,6 @@
 from datetime import datetime, date as date_cls
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from database import SessionLocal
 from models import (
@@ -20,6 +20,7 @@ from schemas import (
     AttendanceRecordUpdateRequest
 )
 from event_utils import get_event_for_email
+from auth_utils import CurrentUser, require_admin, require_self_or_admin
 
 router = APIRouter()
 
@@ -46,7 +47,7 @@ def _serialize_part(part, course_titles):
 
 
 @router.post("/attendance/modules")
-def create_module(data: AttendanceModuleCreateRequest):
+def create_module(data: AttendanceModuleCreateRequest, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
     module = AttendanceModule(
@@ -65,7 +66,7 @@ def create_module(data: AttendanceModuleCreateRequest):
 
 
 @router.get("/attendance/modules")
-def list_modules(event_id: int = None):
+def list_modules(event_id: int = None, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
     query = db.query(AttendanceModule)
@@ -98,7 +99,7 @@ def list_modules(event_id: int = None):
 
 
 @router.put("/attendance/modules/{module_id}")
-def update_module(module_id: int, data: AttendanceModuleUpdateRequest):
+def update_module(module_id: int, data: AttendanceModuleUpdateRequest, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
     module = db.query(AttendanceModule).filter(
@@ -125,7 +126,7 @@ def update_module(module_id: int, data: AttendanceModuleUpdateRequest):
 
 
 @router.delete("/attendance/modules/{module_id}")
-def delete_module(module_id: int):
+def delete_module(module_id: int, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
     part_ids = [
@@ -154,7 +155,7 @@ def delete_module(module_id: int):
 
 
 @router.post("/attendance/modules/{module_id}/parts")
-def create_part(module_id: int, data: AttendanceModulePartCreateRequest):
+def create_part(module_id: int, data: AttendanceModulePartCreateRequest, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
     module = db.query(AttendanceModule).filter(
@@ -182,7 +183,7 @@ def create_part(module_id: int, data: AttendanceModulePartCreateRequest):
 
 
 @router.put("/attendance/parts/{part_id}")
-def update_part(part_id: int, data: AttendanceModulePartUpdateRequest):
+def update_part(part_id: int, data: AttendanceModulePartUpdateRequest, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
     part = db.query(AttendanceModulePart).filter(
@@ -212,7 +213,7 @@ def update_part(part_id: int, data: AttendanceModulePartUpdateRequest):
 
 
 @router.delete("/attendance/parts/{part_id}")
-def delete_part(part_id: int):
+def delete_part(part_id: int, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
     db.query(AttendanceRecord).filter(
@@ -248,7 +249,7 @@ def _compute_stats(statuses):
 
 
 @router.get("/attendance/students/{student_code}")
-def get_student_attendance(student_code: str):
+def get_student_attendance(student_code: str, _: CurrentUser = Depends(require_self_or_admin)):
     db = SessionLocal()
 
     student = db.query(Student).filter(
@@ -343,7 +344,8 @@ def get_student_attendance(student_code: str):
 def set_attendance_status(
     student_code: str,
     part_id: int,
-    data: AttendanceRecordUpdateRequest
+    data: AttendanceRecordUpdateRequest,
+    _: CurrentUser = Depends(require_admin),
 ):
     valid_statuses = ("presente", "falta", "justificada", "a_realizar")
 
@@ -376,7 +378,7 @@ def set_attendance_status(
 
 
 @router.get("/attendance/event-progress")
-def get_event_progress(event_id: int):
+def get_event_progress(event_id: int, _: CurrentUser = Depends(require_admin)):
     """Acompanhamento de atividades substitutivas por aluno e módulo."""
     db = SessionLocal()
     event_emails = {
@@ -442,7 +444,8 @@ def get_event_progress(event_id: int):
 def get_attendance_report(
     event_id: int = None,
     start_date: str = None,
-    end_date: str = None
+    end_date: str = None,
+    _: CurrentUser = Depends(require_admin),
 ):
     """Relatório consolidado de presença para alunos e partes de um período."""
     db = SessionLocal()

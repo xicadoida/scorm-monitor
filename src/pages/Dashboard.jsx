@@ -123,7 +123,13 @@ function Dashboard({
 
   useEffect(() => {
     async function loadAttendance() {
-      if (!selectedStudent) return
+      // A carteira de frequência é exclusiva dos ambientes de evento.
+      // Contas da plataforma padrão não devem vê-la nem consultar seus dados.
+      if (!selectedStudent || !event?.id) {
+        setAttendance(null)
+        setAttendanceError("")
+        return
+      }
 
       setAttendanceError("")
       try {
@@ -143,7 +149,7 @@ function Dashboard({
     }
 
     loadAttendance()
-  }, [selectedStudent, API_URL])
+  }, [selectedStudent, event?.id, API_URL])
 
   useEffect(() => {
     async function loadPublicCourses() {
@@ -270,6 +276,10 @@ function Dashboard({
     if (!data.success) {
       setPasswordError(data.message || "Não foi possível trocar a senha.")
       return
+    }
+
+    if (data.access_token) {
+      localStorage.setItem("accessToken", data.access_token)
     }
 
     setPasswordSuccess("Senha alterada com sucesso.")
@@ -646,7 +656,7 @@ function Dashboard({
         </form>
         </div>
 
-        <section style={{ background: "#FFFFFF", border: "1px solid #D9DEE7", borderRadius: "16px", overflow: "hidden", color: "#16465A", minWidth: 0 }}>
+        {event && <section style={{ background: "#FFFFFF", border: "1px solid #D9DEE7", borderRadius: "16px", overflow: "hidden", color: "#16465A", minWidth: 0 }}>
           <div style={{ padding: "22px 28px 18px", borderBottom: "1px solid #E8ECF1" }}>
             <p style={{ margin: 0, fontSize: "12px", letterSpacing: "1.6px", color: "#22B95E", fontWeight: "bold" }}>CARTEIRA DE FREQUÊNCIA</p>
             <h2 style={{ margin: "6px 0 4px", fontSize: "26px", lineHeight: 1.1 }}>{attendance?.student?.name || selectedStudent?.name}</h2>
@@ -668,7 +678,7 @@ function Dashboard({
               </div>)}
             </div>
           </>}
-        </section>
+        </section>}
         </div>
       </>
     )

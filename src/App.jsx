@@ -36,12 +36,8 @@ function App() {
   const [loggedStudent, setLoggedStudent] = useState(null)
   const [landingEvent, setLandingEvent] = useState(null)
   const [pendingCourseCode, setPendingCourseCode] = useState(null)
-  const ADMIN_EMAILS = [
-    "admin@admin.com"
-  ]
-  const isAdmin =
-    loggedStudent &&
-    ADMIN_EMAILS.includes(loggedStudent.email)        
+  const [resetToken, setResetToken] = useState(() => new URLSearchParams(window.location.search).get("reset_token"))
+  const isAdmin = Boolean(loggedStudent?.is_admin)
   const API_URL =
     import.meta.env.VITE_API_URL || "http://127.0.0.1:8000"
 
@@ -168,13 +164,22 @@ function App() {
         }
       }
 
-      const saved = localStorage.getItem("loggedStudent")
+      // Um link de recupera\u00e7\u00e3o precisa abrir a tela de senha mesmo se este
+      // navegador ainda tiver uma sess\u00e3o salva de outra pessoa.
+      if (new URLSearchParams(window.location.search).get("reset_token")) {
+        setCurrentPage("login")
+        return
+      }
 
-      if (saved) {
+      const saved = localStorage.getItem("loggedStudent")
+      const accessToken = localStorage.getItem("accessToken")
+
+      if (saved && accessToken) {
         const student = JSON.parse(saved)
         // Contas de evento não podem continuar autenticadas na área padrão.
         if (student.event) {
           localStorage.removeItem("loggedStudent")
+          localStorage.removeItem("accessToken")
           setCurrentPage("login")
           return
         }
@@ -182,6 +187,8 @@ function App() {
         setSelectedStudent(student)
         setCurrentPage("dashboard")
       } else {
+        localStorage.removeItem("loggedStudent")
+        localStorage.removeItem("accessToken")
         setCurrentPage("login")
       }
     }
@@ -535,6 +542,13 @@ function App() {
       <LoginPage
         API_URL={API_URL}
         event={landingEvent}
+        resetToken={resetToken}
+        onResetFinished={() => {
+          setResetToken(null)
+          const url = new URL(window.location.href)
+          url.searchParams.delete("reset_token")
+          window.history.replaceState({}, "", `${url.pathname}${url.search}`)
+        }}
         onGoToRegister={() => setCurrentPage("register")}
         onLogin={(student) => {
           setLoggedStudent(student)
@@ -576,6 +590,7 @@ function App() {
           onOpenReport={() => setCurrentPage("report")}
           onLogout={() => {
             localStorage.removeItem("loggedStudent")
+            localStorage.removeItem("accessToken")
             setLoggedStudent(null)
             setSelectedStudent(null)
             setCurrentPage("login")

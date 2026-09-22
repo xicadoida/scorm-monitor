@@ -9,6 +9,76 @@ const TABS = [
   { key: "acessos", label: "Acessos e perfis" }
 ]
 
+function CourseCombobox({ courses, events, value, onChange, placeholder = "Curso vinculado (opcional)", style }) {
+  const [query, setQuery] = useState("")
+  const [open, setOpen] = useState(false)
+
+  const eventNameById = id => events.find(ev => ev.id === id)?.name || ""
+
+  const sortedCourses = [...courses].sort((a, b) =>
+    a.title.localeCompare(b.title, "pt-BR", { sensitivity: "base" })
+  )
+
+  const selected = courses.find(c => c.course_code === value)
+
+  const normalizedQuery = query.trim().toLowerCase()
+  const filtered = normalizedQuery
+    ? sortedCourses.filter(course =>
+        `${course.title} ${eventNameById(course.event_id)}`.toLowerCase().includes(normalizedQuery)
+      )
+    : sortedCourses
+
+  return (
+    <div style={{ position: "relative", ...style }}>
+      <input
+        placeholder={placeholder}
+        value={open ? query : (selected ? selected.title : "")}
+        onFocus={() => { setQuery(""); setOpen(true) }}
+        onChange={e => setQuery(e.target.value)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        style={inputStyle}
+      />
+
+      {value && !open && (
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          title="Remover curso vinculado"
+          style={{ position: "absolute", right: "8px", top: "8px", background: "transparent", color: "#94a3b8", padding: "0 4px", lineHeight: 1 }}
+        >
+          ✕
+        </button>
+      )}
+
+      {open && (
+        <div style={{ position: "absolute", zIndex: 5, top: "calc(100% - 8px)", left: 0, right: 0, background: "#fff", border: "1px solid #cbd5e1", borderRadius: "8px", maxHeight: "220px", overflowY: "auto", boxShadow: "0 8px 20px rgba(0,0,0,.12)" }}>
+          <div
+            onMouseDown={() => { onChange(""); setQuery(""); setOpen(false) }}
+            style={{ padding: "8px 10px", cursor: "pointer", color: "#64748b", fontSize: "13px" }}
+          >
+            Nenhum curso vinculado
+          </div>
+
+          {filtered.length === 0 && (
+            <div style={{ padding: "8px 10px", color: "#94a3b8", fontSize: "13px" }}>Nenhum curso encontrado.</div>
+          )}
+
+          {filtered.map(course => (
+            <div
+              key={course.id}
+              onMouseDown={() => { onChange(course.course_code); setQuery(""); setOpen(false) }}
+              style={{ padding: "8px 10px", cursor: "pointer", fontSize: "13px", background: course.course_code === value ? "#f1f5f9" : "transparent" }}
+            >
+              <div>{course.title}</div>
+              {course.event_id && <div style={{ color: "#94a3b8", fontSize: "12px" }}>{eventNameById(course.event_id)}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function AdminPage({ API_URL, onBack }) {
   const [activeTab, setActiveTab] = useState("alunos")
   const [selectedEnrollmentClass, setSelectedEnrollmentClass] = useState("")
@@ -52,6 +122,11 @@ function AdminPage({ API_URL, onBack }) {
     end_date: ""
   })
   const [attendanceReport, setAttendanceReport] = useState(null)
+
+  const [moduleDetailId, setModuleDetailId] = useState(null)
+  const [moduleEditForm, setModuleEditForm] = useState(null)
+  const [partDetailId, setPartDetailId] = useState(null)
+  const [partEditForm, setPartEditForm] = useState(null)
 
   const [studentForm, setStudentForm] = useState({
     student_code: "",
@@ -763,16 +838,39 @@ function AdminPage({ API_URL, onBack }) {
     loadData()
   }
 
-  async function editAttendanceModule(module) {
-    const name = prompt("Nome do módulo:", module.name)
-    if (!name?.trim()) return
+  function openModuleDetail(module) {
+    setModuleDetailId(module.id)
+    setModuleEditForm({
+      name: module.name,
+      event_id: module.event_id || "",
+      position: module.position ?? ""
+    })
+  }
 
-    await fetch(`${API_URL}/attendance/modules/${module.id}`, {
+  function closeModuleDetail() {
+    setModuleDetailId(null)
+    setModuleEditForm(null)
+  }
+
+  async function saveModuleEdits(e) {
+    e.preventDefault()
+    if (!moduleEditForm.name.trim()) {
+      alert("Informe o nome do módulo.")
+      return
+    }
+
+    await fetch(`${API_URL}/attendance/modules/${moduleDetailId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim() })
+      body: JSON.stringify({
+        name: moduleEditForm.name.trim(),
+        event_id: moduleEditForm.event_id ? Number(moduleEditForm.event_id) : 0,
+        position: Number(moduleEditForm.position) || 0
+      })
     })
-    loadData()
+
+    await loadData()
+    closeModuleDetail()
   }
 
   async function deleteAttendanceModule(module) {
@@ -781,18 +879,37 @@ function AdminPage({ API_URL, onBack }) {
     loadData()
   }
 
-  async function editAttendancePart(part) {
-    const label = prompt("Nome da parte:", part.label || "")
-    if (label === null) return
-    const date = prompt("Data (AAAA-MM-DD):", part.date || "")
-    if (date === null) return
+  function openPartDetail(part) {
+    setPartDetailId(part.id)
+    setPartEditForm({
+      course_code: part.course_code || "",
+      label: part.label || "",
+      date: part.date || "",
+      position: part.position ?? ""
+    })
+  }
 
-    await fetch(`${API_URL}/attendance/parts/${part.id}`, {
+  function closePartDetail() {
+    setPartDetailId(null)
+    setPartEditForm(null)
+  }
+
+  async function savePartEdits(e) {
+    e.preventDefault()
+
+    await fetch(`${API_URL}/attendance/parts/${partDetailId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ label: label.trim() || null, date: date || null })
+      body: JSON.stringify({
+        course_code: partEditForm.course_code,
+        label: partEditForm.label.trim() || null,
+        date: partEditForm.date || null,
+        position: Number(partEditForm.position) || 0
+      })
     })
-    loadData()
+
+    await loadData()
+    closePartDetail()
   }
 
   async function deleteAttendancePart(part) {
@@ -1541,42 +1658,60 @@ function AdminPage({ API_URL, onBack }) {
 
   function renderFrequenciaTab() {
     return (
+      <>
       <div style={containerStyle}>
         <h2>Chamada e frequência</h2>
         <p style={{ color: "#64748b", marginTop: "-8px" }}>
           Crie os módulos e as partes que aparecerão na carteira de frequência dos alunos.
         </p>
+      </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "24px", alignItems: "start" }}>
-          <form onSubmit={createAttendanceModule} style={subsectionStyle}>
-            <h3 style={subsectionTitle}>Novo módulo</h3>
-            <input placeholder="Ex.: Módulo 1" value={attendanceModuleForm.name} onChange={e => setAttendanceModuleForm({ ...attendanceModuleForm, name: e.target.value })} style={inputStyle} />
-            <select value={attendanceModuleForm.event_id} onChange={e => setAttendanceModuleForm({ ...attendanceModuleForm, event_id: e.target.value })} style={inputStyle}>
-              <option value="">Disponível para todos</option>
-              {events.map(event => <option key={event.id} value={event.id}>Evento: {event.name}</option>)}
-            </select>
-            <input type="number" min="0" placeholder="Ordem (opcional)" value={attendanceModuleForm.position} onChange={e => setAttendanceModuleForm({ ...attendanceModuleForm, position: e.target.value })} style={inputStyle} />
-            <button type="submit">Criar módulo</button>
-          </form>
+      <div style={containerStyle}>
+        <form onSubmit={createAttendanceModule}>
+          <h3 style={subsectionTitle}>Novo módulo</h3>
+          <input placeholder="Ex.: Módulo 1" value={attendanceModuleForm.name} onChange={e => setAttendanceModuleForm({ ...attendanceModuleForm, name: e.target.value })} style={inputStyle} />
+          <select value={attendanceModuleForm.event_id} onChange={e => setAttendanceModuleForm({ ...attendanceModuleForm, event_id: e.target.value })} style={inputStyle}>
+            <option value="">Disponível para todos</option>
+            {events.map(event => <option key={event.id} value={event.id}>Evento: {event.name}</option>)}
+          </select>
+          <input type="number" min="0" placeholder="Ordem (opcional)" value={attendanceModuleForm.position} onChange={e => setAttendanceModuleForm({ ...attendanceModuleForm, position: e.target.value })} style={inputStyle} />
+          <button type="submit">Criar módulo</button>
+        </form>
+      </div>
 
-          <form onSubmit={createAttendancePart} style={subsectionStyle}>
-            <h3 style={subsectionTitle}>Nova parte / aula</h3>
-            <select value={attendancePartForm.module_id} onChange={e => setAttendancePartForm({ ...attendancePartForm, module_id: e.target.value })} style={inputStyle}>
-              <option value="">Selecione o módulo</option>
-              {attendanceModules.map(module => <option key={module.id} value={module.id}>{module.name}</option>)}
-            </select>
-            <select value={attendancePartForm.course_code} onChange={e => setAttendancePartForm({ ...attendancePartForm, course_code: e.target.value })} style={inputStyle}>
-              <option value="">Curso vinculado (opcional)</option>
-              {courses.map(course => <option key={course.id} value={course.course_code}>{course.title}</option>)}
-            </select>
-            <input placeholder="Nome da parte (ex.: Parte 1)" value={attendancePartForm.label} onChange={e => setAttendancePartForm({ ...attendancePartForm, label: e.target.value })} style={inputStyle} />
-            <input type="date" value={attendancePartForm.date} onChange={e => setAttendancePartForm({ ...attendancePartForm, date: e.target.value })} style={inputStyle} />
-            <input type="number" min="0" placeholder="Ordem (opcional)" value={attendancePartForm.position} onChange={e => setAttendancePartForm({ ...attendancePartForm, position: e.target.value })} style={inputStyle} />
-            <button type="submit">Adicionar parte</button>
-          </form>
-        </div>
+      <div style={containerStyle}>
+        <form onSubmit={createAttendancePart}>
+          <h3 style={subsectionTitle}>Nova parte / aula</h3>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "24px", alignItems: "start" }}>
+            <div>
+              <select value={attendancePartForm.module_id} onChange={e => setAttendancePartForm({ ...attendancePartForm, module_id: e.target.value })} style={inputStyle}>
+                <option value="">Selecione o módulo</option>
+                {attendanceModules.map(module => <option key={module.id} value={module.id}>{module.name}</option>)}
+              </select>
+              <input placeholder="Nome da parte (ex.: Parte 1)" value={attendancePartForm.label} onChange={e => setAttendancePartForm({ ...attendancePartForm, label: e.target.value })} style={inputStyle} />
+              <input type="date" value={attendancePartForm.date} onChange={e => setAttendancePartForm({ ...attendancePartForm, date: e.target.value })} style={inputStyle} />
+              <input type="number" min="0" placeholder="Ordem (opcional)" value={attendancePartForm.position} onChange={e => setAttendancePartForm({ ...attendancePartForm, position: e.target.value })} style={inputStyle} />
+            </div>
 
-        <h3 style={{ margin: "28px 0 12px", color: "#1e293b" }}>Registrar presença manualmente</h3>
+            <div>
+              <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#475569", marginBottom: "6px" }}>Curso vinculado</label>
+              <CourseCombobox
+                courses={courses}
+                events={events}
+                value={attendancePartForm.course_code}
+                onChange={course_code => setAttendancePartForm({ ...attendancePartForm, course_code })}
+                style={{ marginBottom: "6px" }}
+              />
+              <p style={{ fontSize: "12px", color: "#94a3b8", margin: 0 }}>Opcional. Busque por título do curso ou pelo evento.</p>
+            </div>
+          </div>
+
+          <button type="submit" style={{ marginTop: "16px" }}>Adicionar parte</button>
+        </form>
+      </div>
+
+      <div style={containerStyle}>
+        <h3 style={{ margin: "0 0 16px", color: "#1e293b" }}>Registrar presença manualmente</h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "24px", alignItems: "start" }}>
           <form onSubmit={setManualAttendance} style={subsectionStyle}>
             <h4 style={subsectionTitle}>Por e-mails</h4>
@@ -1610,35 +1745,197 @@ function AdminPage({ API_URL, onBack }) {
             <button type="submit">Registrar selecionados</button>
           </form>
         </div>
+      </div>
 
-        <details className="admin-collapse" open style={{ marginTop: "24px" }}>
+      <div style={containerStyle}>
+        <details className="admin-collapse" open>
           <summary>Módulos e partes criados ({attendanceModules.length})</summary>
           {attendanceModules.length === 0 ? <p style={{ color: "#64748b" }}>Nenhum módulo de chamada criado ainda.</p> : attendanceModules.map(module => (
             <div key={module.id} style={{ borderTop: "1px solid #e2e8f0", padding: "16px 0" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
                 <div><strong>{module.name}</strong><span style={{ marginLeft: "8px", color: "#64748b", fontSize: "13px" }}>{eventNameFor(module.event_id)} · {module.parts.length} partes</span></div>
-                <div><button onClick={() => editAttendanceModule(module)}>Editar módulo</button><button onClick={() => deleteAttendanceModule(module)} className="danger-action">Excluir módulo</button></div>
+                <div><button onClick={() => openModuleDetail(module)}>Editar módulo</button><button onClick={() => deleteAttendanceModule(module)} className="danger-action">Excluir módulo</button></div>
               </div>
-              {module.parts.length > 0 && <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "12px" }}>{module.parts.map(part => <div key={part.id} style={{ padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "13px" }}><strong>{part.label}</strong>{part.date && <span style={{ color: "#64748b" }}> · {part.date}</span>}<button onClick={() => editAttendancePart(part)} style={{ marginLeft: "8px" }}>Editar</button><button onClick={() => deleteAttendancePart(part)} className="danger-action">×</button></div>)}</div>}
+              {module.parts.length > 0 && <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "12px" }}>{module.parts.map(part => <div key={part.id} style={{ padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "13px" }}><strong>{part.label}</strong>{part.date && <span style={{ color: "#64748b" }}> · {part.date}</span>}<button onClick={() => openPartDetail(part)} style={{ marginLeft: "8px" }}>Editar</button><button onClick={() => deleteAttendancePart(part)} className="danger-action">×</button></div>)}</div>}
             </div>
           ))}
         </details>
-
-        <div style={{ ...subsectionStyle, marginTop: "28px" }}>
-          <h3 style={subsectionTitle}>Relatório de presença</h3>
-          <form onSubmit={loadAttendanceReport} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px", alignItems: "end" }}>
-            <label>Evento<select value={attendanceReportForm.event_id} onChange={e => setAttendanceReportForm({ ...attendanceReportForm, event_id: e.target.value })} style={inputStyle}><option value="">Todos os alunos</option>{events.map(event => <option key={event.id} value={event.id}>{event.name}</option>)}</select></label>
-            <label>Período<select value={attendanceReportForm.period} onChange={e => setAttendanceReportForm({ ...attendanceReportForm, period: e.target.value })} style={inputStyle}><option value="week">Semanal</option><option value="month">Mensal</option><option value="custom">Personalizado</option></select></label>
-            {attendanceReportForm.period === "custom" ? <><label>De<input type="date" value={attendanceReportForm.start_date} onChange={e => setAttendanceReportForm({ ...attendanceReportForm, start_date: e.target.value })} style={inputStyle} /></label><label>Até<input type="date" value={attendanceReportForm.end_date} onChange={e => setAttendanceReportForm({ ...attendanceReportForm, end_date: e.target.value })} style={inputStyle} /></label></> : <label>Data de referência<input type="date" value={attendanceReportForm.reference_date} onChange={e => setAttendanceReportForm({ ...attendanceReportForm, reference_date: e.target.value })} style={inputStyle} /></label>}
-            <button type="submit">Gerar relatório</button>
-          </form>
-
-          {attendanceReport && <div style={{ marginTop: "20px", overflowX: "auto" }}>
-            <button type="button" onClick={exportAttendanceReport}>Exportar CSV</button>
-            <table style={{ ...tableStyle, marginTop: "12px" }}><thead><tr><th style={th}>Aluno</th><th style={th}>E-mail</th><th style={th}>Frequência</th><th style={th}>Presenças</th><th style={th}>Data e origem da presença</th><th style={th}>A realizar</th></tr></thead><tbody>{attendanceReport.students.map(student => <tr key={student.student_code}><td style={td}>{student.name}</td><td style={td}>{student.email}</td><td style={td}>{student.stats.frequencia ?? "—"}{student.stats.frequencia != null ? "%" : ""}</td><td style={td}>{student.stats.presencas}</td><td style={{ ...td, whiteSpace: "pre-line", minWidth: "190px" }}>{formatAttendanceSources(student)}</td><td style={td}>{student.stats.a_realizar}</td></tr>)}</tbody></table>
-          </div>}
-        </div>
       </div>
+
+      <div style={containerStyle}>
+        <h3 style={subsectionTitle}>Relatório de presença</h3>
+        <form onSubmit={loadAttendanceReport} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px", alignItems: "end" }}>
+          <label>Evento<select value={attendanceReportForm.event_id} onChange={e => setAttendanceReportForm({ ...attendanceReportForm, event_id: e.target.value })} style={inputStyle}><option value="">Todos os alunos</option>{events.map(event => <option key={event.id} value={event.id}>{event.name}</option>)}</select></label>
+          <label>Período<select value={attendanceReportForm.period} onChange={e => setAttendanceReportForm({ ...attendanceReportForm, period: e.target.value })} style={inputStyle}><option value="week">Semanal</option><option value="month">Mensal</option><option value="custom">Personalizado</option></select></label>
+          {attendanceReportForm.period === "custom" ? <><label>De<input type="date" value={attendanceReportForm.start_date} onChange={e => setAttendanceReportForm({ ...attendanceReportForm, start_date: e.target.value })} style={inputStyle} /></label><label>Até<input type="date" value={attendanceReportForm.end_date} onChange={e => setAttendanceReportForm({ ...attendanceReportForm, end_date: e.target.value })} style={inputStyle} /></label></> : <label>Data de referência<input type="date" value={attendanceReportForm.reference_date} onChange={e => setAttendanceReportForm({ ...attendanceReportForm, reference_date: e.target.value })} style={inputStyle} /></label>}
+          <button type="submit">Gerar relatório</button>
+        </form>
+
+        {attendanceReport && <div style={{ marginTop: "20px", overflowX: "auto" }}>
+          <button type="button" onClick={exportAttendanceReport}>Exportar CSV</button>
+          <table style={{ ...tableStyle, marginTop: "12px" }}><thead><tr><th style={th}>Aluno</th><th style={th}>E-mail</th><th style={th}>Frequência</th><th style={th}>Presenças</th><th style={th}>Data e origem da presença</th><th style={th}>A realizar</th></tr></thead><tbody>{attendanceReport.students.map(student => <tr key={student.student_code}><td style={td}>{student.name}</td><td style={td}>{student.email}</td><td style={td}>{student.stats.frequencia ?? "—"}{student.stats.frequencia != null ? "%" : ""}</td><td style={td}>{student.stats.presencas}</td><td style={{ ...td, whiteSpace: "pre-line", minWidth: "190px" }}>{formatAttendanceSources(student)}</td><td style={td}>{student.stats.a_realizar}</td></tr>)}</tbody></table>
+        </div>}
+      </div>
+
+      {moduleDetailId && moduleEditForm && (() => {
+        const module = attendanceModules.find(m => m.id === moduleDetailId)
+        if (!module) return null
+
+        return (
+          <div
+            style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, .55)", zIndex: 20, display: "grid", placeItems: "center", padding: "20px" }}
+            onClick={closeModuleDetail}
+          >
+            <div
+              style={{ background: "#fff", borderRadius: "14px", padding: "24px", width: "min(100%, 480px)", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 16px 45px rgba(0,0,0,.25)" }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
+                <h2 style={{ margin: 0 }}>{module.name}</h2>
+                <button type="button" onClick={closeModuleDetail} style={{ background: "transparent", color: "#64748b", padding: "4px 8px" }}>✕</button>
+              </div>
+
+              <form onSubmit={saveModuleEdits} style={{ marginTop: "16px" }}>
+                <input
+                  placeholder="Nome do módulo"
+                  value={moduleEditForm.name}
+                  onChange={e => setModuleEditForm({ ...moduleEditForm, name: e.target.value })}
+                  style={inputStyle}
+                />
+
+                <select
+                  value={moduleEditForm.event_id}
+                  onChange={e => setModuleEditForm({ ...moduleEditForm, event_id: e.target.value })}
+                  style={inputStyle}
+                >
+                  <option value="">Disponível para todos</option>
+                  {events.map(event => (
+                    <option key={event.id} value={event.id}>
+                      Evento: {event.name}
+                    </option>
+                  ))}
+                </select>
+
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="Ordem (opcional)"
+                  value={moduleEditForm.position}
+                  onChange={e => setModuleEditForm({ ...moduleEditForm, position: e.target.value })}
+                  style={inputStyle}
+                />
+
+                <button type="submit">Salvar alterações</button>
+              </form>
+
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "20px", paddingTop: "16px", borderTop: "1px solid #e2e8f0" }}>
+                <button
+                  type="button"
+                  className="danger-action"
+                  onClick={async () => {
+                    await deleteAttendanceModule(module)
+                    closeModuleDetail()
+                  }}
+                >
+                  Excluir módulo
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {partDetailId && partEditForm && (() => {
+        const part = attendanceParts.find(p => p.id === partDetailId)
+        if (!part) return null
+
+        return (
+          <div
+            style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, .55)", zIndex: 20, display: "grid", placeItems: "center", padding: "20px" }}
+            onClick={closePartDetail}
+          >
+            <div
+              style={{ background: "#fff", borderRadius: "14px", padding: "24px", width: "min(100%, 480px)", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 16px 45px rgba(0,0,0,.25)" }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
+                <h2 style={{ margin: 0 }}>{part.label || "Parte"}</h2>
+                <button type="button" onClick={closePartDetail} style={{ background: "transparent", color: "#64748b", padding: "4px 8px" }}>✕</button>
+              </div>
+
+              <form onSubmit={savePartEdits} style={{ marginTop: "16px" }}>
+                <CourseCombobox
+                  courses={courses}
+                  events={events}
+                  value={partEditForm.course_code}
+                  onChange={course_code => setPartEditForm({ ...partEditForm, course_code })}
+                  style={{ marginBottom: "12px" }}
+                />
+
+                <input
+                  placeholder="Nome da parte (ex.: Parte 1)"
+                  value={partEditForm.label}
+                  onChange={e => setPartEditForm({ ...partEditForm, label: e.target.value })}
+                  style={inputStyle}
+                />
+
+                <input
+                  type="date"
+                  value={partEditForm.date}
+                  onChange={e => setPartEditForm({ ...partEditForm, date: e.target.value })}
+                  style={inputStyle}
+                />
+
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="Ordem (opcional)"
+                  value={partEditForm.position}
+                  onChange={e => setPartEditForm({ ...partEditForm, position: e.target.value })}
+                  style={inputStyle}
+                />
+
+                <button type="submit">Salvar alterações</button>
+              </form>
+
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "20px", paddingTop: "16px", borderTop: "1px solid #e2e8f0" }}>
+                {partEditForm.course_code && (() => {
+                  const linkedCourse = courses.find(c => c.course_code === partEditForm.course_code)
+                  if (!linkedCourse) return null
+
+                  return (
+                    <label className="admin-file-action">
+                      Trocar SCORM
+                      <input
+                        type="file"
+                        accept=".zip,application/zip"
+                        hidden
+                        onChange={e => {
+                          const selectedFile = e.target.files?.[0]
+                          replaceCourseFile(linkedCourse, selectedFile)
+                          e.target.value = ""
+                        }}
+                      />
+                    </label>
+                  )
+                })()}
+
+                <button
+                  type="button"
+                  className="danger-action"
+                  onClick={async () => {
+                    await deleteAttendancePart(part)
+                    closePartDetail()
+                  }}
+                >
+                  Excluir parte
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+      </>
     )
   }
 

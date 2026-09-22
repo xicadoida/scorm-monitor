@@ -79,6 +79,46 @@ function CourseCombobox({ courses, events, value, onChange, placeholder = "Curso
   )
 }
 
+function SuggestInput({ value, onChange, options, placeholder, style }) {
+  const [open, setOpen] = useState(false)
+
+  const uniqueOptions = [...new Set(options.filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b, "pt-BR", { sensitivity: "base" })
+  )
+
+  const query = value.trim().toLowerCase()
+  const filtered = query
+    ? uniqueOptions.filter(opt => opt.toLowerCase().includes(query) && opt.toLowerCase() !== query)
+    : uniqueOptions
+
+  return (
+    <div style={{ position: "relative", ...style }}>
+      <input
+        placeholder={placeholder}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        style={inputStyle}
+      />
+
+      {open && filtered.length > 0 && (
+        <div style={{ position: "absolute", zIndex: 5, top: "calc(100% - 8px)", left: 0, right: 0, background: "#fff", border: "1px solid #cbd5e1", borderRadius: "8px", maxHeight: "180px", overflowY: "auto", boxShadow: "0 8px 20px rgba(0,0,0,.12)" }}>
+          {filtered.map(opt => (
+            <div
+              key={opt}
+              onMouseDown={() => { onChange(opt); setOpen(false) }}
+              style={{ padding: "8px 10px", cursor: "pointer", fontSize: "13px" }}
+            >
+              {opt}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function AdminPage({ API_URL, onBack }) {
   const [activeTab, setActiveTab] = useState("alunos")
   const [selectedEnrollmentClass, setSelectedEnrollmentClass] = useState("")
@@ -144,6 +184,7 @@ function AdminPage({ API_URL, onBack }) {
     tool: "",
     duration_hours: ""
   })
+  const [courseCodeSuggestion, setCourseCodeSuggestion] = useState("")
 
   const [courseSearch, setCourseSearch] = useState("")
   const [courseDetailCode, setCourseDetailCode] = useState(null)
@@ -349,6 +390,26 @@ function AdminPage({ API_URL, onBack }) {
     loadData()
   }
 
+  function suggestCourseCode(title) {
+    const base = title
+      .normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+
+    if (!base) return ""
+
+    let candidate = base
+    let suffix = 2
+    while (courses.some(c => c.course_code === candidate)) {
+      candidate = `${base}-${suffix}`
+      suffix++
+    }
+
+    return candidate
+  }
+
   async function createCourse(e) {
     e.preventDefault()
 
@@ -398,6 +459,7 @@ function AdminPage({ API_URL, onBack }) {
         tool: "",
         duration_hours: ""
     })
+    setCourseCodeSuggestion("")
 
     loadData()
     }
@@ -1268,12 +1330,18 @@ function AdminPage({ API_URL, onBack }) {
           <input
             placeholder="Título"
             value={courseForm.title}
-            onChange={e =>
-              setCourseForm({
-                ...courseForm,
-                title: e.target.value
-              })
-            }
+            onChange={e => {
+              const title = e.target.value
+              const autoFill = courseForm.course_code === "" || courseForm.course_code === courseCodeSuggestion
+
+              if (autoFill) {
+                const suggestion = suggestCourseCode(title)
+                setCourseCodeSuggestion(suggestion)
+                setCourseForm({ ...courseForm, title, course_code: suggestion })
+              } else {
+                setCourseForm({ ...courseForm, title })
+              }
+            }}
             style={inputStyle}
           />
 
@@ -1286,8 +1354,11 @@ function AdminPage({ API_URL, onBack }) {
                 course_code: e.target.value
               })
             }
-            style={inputStyle}
+            style={{ ...inputStyle, marginBottom: "4px" }}
           />
+          <p style={{ fontSize: "12px", color: "#94a3b8", marginTop: 0, marginBottom: "12px" }}>
+            Sugestão gerada a partir do título. Pode editar à vontade.
+          </p>
 
           <select
             value={courseForm.event_id}
@@ -1325,12 +1396,16 @@ function AdminPage({ API_URL, onBack }) {
             <input type="number" min="0" max="100" value={courseForm.passing_score} onChange={e => setCourseForm({ ...courseForm, passing_score: e.target.value })} style={{ ...inputStyle, marginTop: "6px", marginBottom: 0 }} />
           </label>
 
-          <input
-            placeholder="Ferramenta de IA (ex.: ChatGPT, Canva, Gemini)"
-            value={courseForm.tool}
-            onChange={e => setCourseForm({ ...courseForm, tool: e.target.value })}
-            style={inputStyle}
-          />
+          <div style={{ maxWidth: "50%", minWidth: "220px", marginBottom: "12px" }}>
+            <label style={{ display: "block", marginBottom: "6px", color: "#374151" }}>Ferramenta de IA</label>
+            <SuggestInput
+              placeholder="Ex.: ChatGPT, Canva, Gemini"
+              value={courseForm.tool}
+              onChange={tool => setCourseForm({ ...courseForm, tool })}
+              options={courses.map(c => c.tool)}
+              style={{ marginBottom: 0 }}
+            />
+          </div>
 
           <label style={{ display: "block", marginBottom: "12px", color: "#374151" }}>
             Carga horária (em horas)
@@ -1445,12 +1520,16 @@ function AdminPage({ API_URL, onBack }) {
                     <input type="number" min="0" max="100" value={courseEditForm.passing_score} onChange={e => setCourseEditForm({ ...courseEditForm, passing_score: e.target.value })} style={{ ...inputStyle, marginTop: "6px", marginBottom: 0 }} />
                   </label>
 
-                  <input
-                    placeholder="Ferramenta de IA (ex.: ChatGPT, Canva, Gemini)"
-                    value={courseEditForm.tool}
-                    onChange={e => setCourseEditForm({ ...courseEditForm, tool: e.target.value })}
-                    style={inputStyle}
-                  />
+                  <div style={{ maxWidth: "50%", minWidth: "220px", marginBottom: "12px" }}>
+                    <label style={{ display: "block", marginBottom: "6px", color: "#374151" }}>Ferramenta de IA</label>
+                    <SuggestInput
+                      placeholder="Ex.: ChatGPT, Canva, Gemini"
+                      value={courseEditForm.tool}
+                      onChange={tool => setCourseEditForm({ ...courseEditForm, tool })}
+                      options={courses.map(c => c.tool)}
+                      style={{ marginBottom: 0 }}
+                    />
+                  </div>
 
                   <label style={{ display: "block", marginBottom: "16px", color: "#374151" }}>
                     Carga horária (em horas)
@@ -1748,18 +1827,50 @@ function AdminPage({ API_URL, onBack }) {
       </div>
 
       <div style={containerStyle}>
-        <details className="admin-collapse" open>
-          <summary>Módulos e partes criados ({attendanceModules.length})</summary>
-          {attendanceModules.length === 0 ? <p style={{ color: "#64748b" }}>Nenhum módulo de chamada criado ainda.</p> : attendanceModules.map(module => (
+        <h3 style={subsectionTitle}>Módulos dos cursos</h3>
+        {(() => {
+          const modulesByEventKey = new Map()
+
+          attendanceModules.forEach(module => {
+            const key = module.event_id || "public"
+            if (!modulesByEventKey.has(key)) modulesByEventKey.set(key, [])
+            modulesByEventKey.get(key).push(module)
+          })
+
+          const sortedEvents = [...events].sort((a, b) =>
+            a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" })
+          )
+          const eventBuckets = [
+            { key: "public", name: "Público" },
+            ...sortedEvents.map(event => ({ key: event.id, name: event.name }))
+          ]
+
+          const renderModule = module => (
             <div key={module.id} style={{ borderTop: "1px solid #e2e8f0", padding: "16px 0" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-                <div><strong>{module.name}</strong><span style={{ marginLeft: "8px", color: "#64748b", fontSize: "13px" }}>{eventNameFor(module.event_id)} · {module.parts.length} partes</span></div>
-                <div><button onClick={() => openModuleDetail(module)}>Editar módulo</button><button onClick={() => deleteAttendanceModule(module)} className="danger-action">Excluir módulo</button></div>
+                <div><strong>{module.name}</strong><span style={{ marginLeft: "8px", color: "#64748b", fontSize: "13px" }}>{module.parts.length} partes</span></div>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button onClick={() => openModuleDetail(module)}>Editar módulo</button>
+                  <button onClick={() => deleteAttendanceModule(module)} className="danger-action">Excluir módulo</button>
+                </div>
               </div>
-              {module.parts.length > 0 && <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "12px" }}>{module.parts.map(part => <div key={part.id} style={{ padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "13px" }}><strong>{part.label}</strong>{part.date && <span style={{ color: "#64748b" }}> · {part.date}</span>}<button onClick={() => openPartDetail(part)} style={{ marginLeft: "8px" }}>Editar</button><button onClick={() => deleteAttendancePart(part)} className="danger-action">×</button></div>)}</div>}
+              {module.parts.length > 0 && <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "12px" }}>{module.parts.map(part => <div key={part.id} style={{ padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "13px" }}><strong>{part.label}</strong>{part.date && <span style={{ color: "#64748b" }}> · {part.date}</span>}<button onClick={() => openPartDetail(part)} style={{ marginLeft: "8px" }}>Editar</button><button onClick={() => deleteAttendancePart(part)} className="danger-action" style={{ marginLeft: "8px" }}>×</button></div>)}</div>}
             </div>
-          ))}
-        </details>
+          )
+
+          return eventBuckets.map(bucket => {
+            const modules = modulesByEventKey.get(bucket.key) || []
+
+            return (
+              <details key={bucket.key} className="admin-collapse" style={{ marginTop: "12px" }}>
+                <summary>{bucket.name} <span style={{ color: "#94a3b8", fontWeight: 400, fontSize: "13px" }}>({modules.length} módulos)</span></summary>
+                {modules.length === 0
+                  ? <p style={{ color: "#64748b" }}>Nenhum módulo cadastrado ainda para este evento.</p>
+                  : modules.map(renderModule)}
+              </details>
+            )
+          })
+        })()}
       </div>
 
       <div style={containerStyle}>

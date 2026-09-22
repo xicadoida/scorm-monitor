@@ -27,7 +27,16 @@ import {
   successMessage
 } from '../styles/theme'
 
-const COURSES_PER_PAGE = 6
+// O grid usa colunas fluidas (auto-fill, minmax 260px) — a 1180px de largura
+// ele passa de 3 pra 4 colunas. Ajusta quantos cards cabem por página pra
+// sempre fechar linhas cheias (3x2 = 6, 4x2 = 8) em vez de deixar a última
+// linha pela metade.
+const COLUMNS_4_BREAKPOINT = 1180
+
+function getCoursesPerPage() {
+  if (typeof window === "undefined") return 6
+  return window.innerWidth >= COLUMNS_4_BREAKPOINT ? 8 : 6
+}
 
 // Ainda não existe carga horária nem % de progresso real vindos do backend.
 // Por enquanto aproximamos os dois a partir do que já temos (status e tempo de sessão),
@@ -71,6 +80,20 @@ function Dashboard({
   const [publicSearch, setPublicSearch] = useState("")
   const [publicPage, setPublicPage] = useState(1)
   const [enrollingCode, setEnrollingCode] = useState(null)
+  const [coursesPerPage, setCoursesPerPage] = useState(getCoursesPerPage)
+
+  useEffect(() => {
+    function handleResize() {
+      setCoursesPerPage(getCoursesPerPage())
+    }
+
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
+
+  useEffect(() => {
+    setPublicPage(1)
+  }, [coursesPerPage])
 
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -218,12 +241,12 @@ function Dashboard({
 
   const publicTotalPages = Math.max(
     1,
-    Math.ceil(availablePublicCourses.length / COURSES_PER_PAGE)
+    Math.ceil(availablePublicCourses.length / coursesPerPage)
   )
 
   const pagePublicCourses = availablePublicCourses.slice(
-    (publicPage - 1) * COURSES_PER_PAGE,
-    publicPage * COURSES_PER_PAGE
+    (publicPage - 1) * coursesPerPage,
+    publicPage * coursesPerPage
   )
 
   async function handleEnroll(course) {

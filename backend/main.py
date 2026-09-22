@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -45,7 +46,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-Base.metadata.create_all(bind=engine)
+# Em produ\u00e7\u00e3o o Gunicorn inicia v\u00e1rios workers ao mesmo tempo. Criar
+# tabelas aqui permite que dois workers tentem criar a mesma tabela no SQLite,
+# derrubando toda a API. O schema deve ser criado pelas migra\u00e7\u00f5es executadas
+# antes do restart; esta op\u00e7\u00e3o fica dispon\u00edvel somente para desenvolvimento.
+if os.getenv("AUTO_CREATE_SCHEMA", "").strip().lower() in {"1", "true", "yes", "sim"}:
+    Base.metadata.create_all(bind=engine)
 
 @app.get("/")
 def root():

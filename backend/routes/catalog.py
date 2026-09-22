@@ -40,7 +40,7 @@ def default_course_url(course, events):
     event = events.get(course.event_id)
     event_slug = getattr(event, "slug", None) if event else None
     path = f"/{quote(event_slug)}" if event_slug else ""
-    return f"{base_url}{path}?curso={quote(course.course_code)}"
+    return f"{base_url}{path}/{quote(course.course_code)}"
 
 
 def serialize_catalog_course(course, events):

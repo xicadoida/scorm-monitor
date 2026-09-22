@@ -148,7 +148,9 @@ function App() {
   
   useEffect(() => {
     async function initializeApp() {
-      const pathSegment = window.location.pathname.split("/").filter(Boolean)[0]
+      const pathSegments = window.location.pathname.split("/").filter(Boolean)
+      const pathSegment = pathSegments[0]
+      const resetTokenFromUrl = new URLSearchParams(window.location.search).get("reset_token")
 
       if (pathSegment) {
         try {
@@ -156,6 +158,23 @@ function App() {
           const data = await response.json()
           if (data.success) {
             setLandingEvent(data.event)
+            // Formato de evento: /arctel/CODIGO-DO-CURSO
+            if (pathSegments[1]) setPendingCourseCode(decodeURIComponent(pathSegments[1]))
+            if (resetTokenFromUrl) {
+              setCurrentPage("login")
+              return
+            }
+            const saved = localStorage.getItem("loggedStudent")
+            const accessToken = localStorage.getItem("accessToken")
+            if (saved && accessToken) {
+              const student = JSON.parse(saved)
+              if (student.event?.id === data.event.id) {
+                setLoggedStudent(student)
+                setSelectedStudent(student)
+                setCurrentPage("dashboard")
+                return
+              }
+            }
             setCurrentPage("login")
             return
           }
@@ -166,9 +185,15 @@ function App() {
 
       // Um link de recupera\u00e7\u00e3o precisa abrir a tela de senha mesmo se este
       // navegador ainda tiver uma sess\u00e3o salva de outra pessoa.
-      if (new URLSearchParams(window.location.search).get("reset_token")) {
+      if (resetTokenFromUrl) {
         setCurrentPage("login")
         return
+      }
+
+      // Formato pÃºblico: https://lms.iaclube.help/CODIGO-DO-CURSO.
+      // O formato antigo ?curso=CODIGO continua funcionando.
+      if (pathSegments.length === 1 && pathSegment) {
+        setPendingCourseCode(decodeURIComponent(pathSegment))
       }
 
       const saved = localStorage.getItem("loggedStudent")
@@ -244,14 +269,34 @@ function App() {
       `${API_URL}/students/${selectedStudent.student_code}/courses`
     )
 
-    const data = await response.json()
+    let data = await response.json()
 
     setCourses(data)
 
     if (pendingCourseCode) {
-      const targetCourse = data.find(
+      let targetCourse = data.find(
         c => c.course_code === pendingCourseCode
       )
+
+      if (!targetCourse) {
+        // O link inscreve automaticamente somente se a API confirmar que este
+        // curso ativo est\u00e1 dispon\u00edvel para a conta e para o evento dela.
+        const enrollmentResponse = await fetch(
+          `${API_URL}/students/${selectedStudent.student_code}/enroll/${encodeURIComponent(pendingCourseCode)}`,
+          { method: "POST" }
+        )
+        const enrollmentData = await enrollmentResponse.json()
+        if (enrollmentData.success) {
+          const refreshedResponse = await fetch(
+            `${API_URL}/students/${selectedStudent.student_code}/courses`
+          )
+          data = await refreshedResponse.json()
+          setCourses(data)
+          targetCourse = data.find(course => course.course_code === pendingCourseCode)
+        } else {
+          alert(enrollmentData.message || "Este curso não está disponível para sua conta.")
+        }
+      }
 
       if (targetCourse) {
         setSelectedCourse(targetCourse)
@@ -261,7 +306,7 @@ function App() {
       }
 
       setPendingCourseCode(null)
-      window.history.replaceState({}, "", "/")
+      window.history.replaceState({}, "", selectedStudent.event?.slug ? `/${selectedStudent.event.slug}` : "/")
     }
   }, [selectedStudent, pendingCourseCode, API_URL])
 

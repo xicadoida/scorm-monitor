@@ -70,6 +70,7 @@ function Dashboard({
   event,
   reloadCourses
 }) {
+  const safeCourses = Array.isArray(courses) ? courses : []
   const [activeTab, setActiveTab] = useState("todos-cursos")
   const [progressData, setProgressData] = useState({})
   const [attendance, setAttendance] = useState(null)
@@ -129,7 +130,7 @@ function Dashboard({
 
       const results = {}
 
-      for (const course of courses) {
+      for (const course of safeCourses) {
         const response = await fetch(
           `${API_URL}/progress/${selectedStudent.student_code}/${course.course_code}`
         )
@@ -142,7 +143,7 @@ function Dashboard({
     }
 
     loadProgress()
-  }, [courses, selectedStudent, API_URL])
+  }, [safeCourses, selectedStudent, API_URL])
 
   useEffect(() => {
     async function loadAttendance() {
@@ -194,17 +195,17 @@ function Dashboard({
   }, [publicSearch, activeTab])
 
   const enrolledCodes = useMemo(
-    () => new Set(courses.map(c => c.course_code)),
-    [courses]
+    () => new Set(safeCourses.map(c => c.course_code)),
+    [safeCourses]
   )
 
   // "Meus cursos" agora mostra tudo, dividido em duas seções:
   // o que ainda está em andamento e o que já foi concluído.
   const filteredCourses = useMemo(() => {
-    return courses.filter(course =>
+    return safeCourses.filter(course =>
       course.title.toLowerCase().includes(search.toLowerCase())
     )
-  }, [courses, search])
+  }, [safeCourses, search])
 
   const inProgressCourses = useMemo(
     () => filteredCourses.filter(

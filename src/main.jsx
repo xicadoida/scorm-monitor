@@ -17,7 +17,16 @@ window.fetch = (resource, options = {}) => {
 
   const headers = new Headers(options.headers || (resource instanceof Request ? resource.headers : undefined))
   headers.set('Authorization', `Bearer ${token}`)
-  return nativeFetch(resource, { ...options, headers })
+  return nativeFetch(resource, { ...options, headers }).then(response => {
+    // Sess\u00e3o expirada ou invalidada: nunca deixar a interface tentar usar a
+    // resposta de erro como se fosse uma lista de cursos.
+    if (response.status === 401) {
+      localStorage.removeItem('loggedStudent')
+      localStorage.removeItem('accessToken')
+      window.dispatchEvent(new Event('lms-session-expired'))
+    }
+    return response
+  })
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(

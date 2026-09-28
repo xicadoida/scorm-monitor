@@ -221,6 +221,18 @@ function App() {
     initializeApp()
   }, [])
 
+  useEffect(() => {
+    const returnToLogin = () => {
+      setCourses([])
+      setSelectedCourse(null)
+      setLoggedStudent(null)
+      setSelectedStudent(null)
+      setCurrentPage("login")
+    }
+    window.addEventListener("lms-session-expired", returnToLogin)
+    return () => window.removeEventListener("lms-session-expired", returnToLogin)
+  }, [])
+
 
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -269,7 +281,16 @@ function App() {
       `${API_URL}/students/${selectedStudent.student_code}/courses`
     )
 
+    if (!response.ok) {
+      setCourses([])
+      return
+    }
+
     let data = await response.json()
+    if (!Array.isArray(data)) {
+      setCourses([])
+      return
+    }
 
     setCourses(data)
 

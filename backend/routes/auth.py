@@ -261,28 +261,23 @@ def register(data: RegisterRequest, request: Request):
 
 @router.post("/auth/forgot-password")
 def forgot_password(data: ForgotPasswordRequest, request: Request):
-    """Sempre responde de forma gen\u00e9rica para n\u00e3o revelar e-mails cadastrados."""
+    """Gera o link de recuperacao e informa claramente o resultado ao solicitante."""
     db = SessionLocal()
     email = data.email.strip().lower()
     student = db.query(Student).filter(func.lower(Student.email) == email).first()
     event = get_event_for_email(db, email) if student else None
-    generic_response = {
-        "success": True,
-        "message": "Se o e-mail estiver cadastrado, enviaremos as instru\u00e7\u00f5es de recupera\u00e7\u00e3o.",
-    }
-
     if not student:
         record_access_event(db, request, "password_reset_requested", success=False, route="/auth/forgot-password")
         db.commit()
         db.close()
-        return generic_response
+        return {"success": False, "message": "Este e-mail n\u00e3o est\u00e1 cadastrado."}
 
-    allowed, _ = _check_event_access(db, student.email, data.event_slug)
+    allowed, access_message = _check_event_access(db, student.email, data.event_slug)
     if not allowed:
         record_access_event(db, request, "password_reset_requested", success=False, student_code=student.student_code, route="/auth/forgot-password")
         db.commit()
         db.close()
-        return generic_response
+        return {"success": False, "message": access_message or "Este e-mail n\u00e3o pode recuperar a senha neste ambiente."}
 
     now = datetime.utcnow()
     db.query(PasswordResetToken).filter(
@@ -314,7 +309,12 @@ def forgot_password(data: ForgotPasswordRequest, request: Request):
         f"<p>Ol\u00e1, {student.name}!</p><p>Use o link abaixo para criar uma nova senha. Ele expira em {ttl} minutos.</p><p><a href=\"{reset_url}\">Redefinir senha</a></p>",
     )
     _record_email_result("password_reset_email", sent, student, event)
-    return generic_response
+    if not sent:
+        return {
+            "success": False,
+            "message": "N\u00e3o foi poss\u00edvel enviar o link de recupera\u00e7\u00e3o. Tente novamente mais tarde.",
+        }
+    return {"success": True, "message": "Enviamos o link de recupera\u00e7\u00e3o para este e-mail."}
 
 
 @router.post("/auth/reset-password")

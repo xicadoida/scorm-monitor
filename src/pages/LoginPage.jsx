@@ -66,6 +66,10 @@ function LoginPage({ API_URL, onLogin, onGoToRegister, event, resetToken, onRese
         body: JSON.stringify({ email, event_slug: event?.slug || null })
       })
       const data = await response.json()
+      if (!response.ok || !data.success) {
+        setError(data.message || "N\u00e3o foi poss\u00edvel solicitar a recupera\u00e7\u00e3o. Tente novamente.")
+        return
+      }
       setNotice(data.message || "Se o e-mail estiver cadastrado, enviaremos as instruções.")
     } catch {
       setError("Não foi possível solicitar a recuperação. Tente novamente.")

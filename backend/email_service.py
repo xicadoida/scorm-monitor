@@ -1,4 +1,4 @@
-"""Envio opcional por Gmail API, sem tornar o fluxo da aplica\u00e7\u00e3o dependente do e-mail."""
+"""Envio opcional por Gmail API, sem tornar o fluxo da aplicação dependente do e-mail."""
 import base64
 import json
 import os
@@ -38,19 +38,19 @@ def _gmail_access_token() -> str:
 
 
 def send_email(to: str, subject: str, text: str, html: str | None = None) -> tuple[bool, str | None]:
-    """Retorna o resultado sem lan\u00e7ar exce\u00e7\u00e3o para o cadastro/recupera\u00e7\u00e3o."""
+    """Retorna o resultado sem lançar exceção para o cadastro/recuperação."""
     if os.getenv("EMAIL_PROVIDER", "").strip().lower() != "gmail_api":
-        return False, "Envio de e-mail n\u00e3o configurado."
+        return False, "Envio de e-mail não configurado."
 
     sender = os.getenv("EMAIL_SENDER", "").strip()
     if not sender:
-        return False, "Remetente de e-mail n\u00e3o configurado."
+        return False, "Remetente de e-mail não configurado."
 
     try:
         message = EmailMessage()
         message["To"] = to
         message["From"] = f'{os.getenv("EMAIL_SENDER_NAME", "IACLUBE LMS")} <{sender}>'
-        message["Subject"] = subject
+        message["Subject"] = subject 
         message.set_content(text)
         if html:
             message.add_alternative(html, subtype="html")

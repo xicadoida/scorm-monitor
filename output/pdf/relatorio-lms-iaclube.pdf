@@ -1,0 +1,480 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [5 0 R 7 0 R 9 0 R 11 0 R 13 0 R 15 0 R 17 0 R 19 0 R 21 0 R 23 0 R] /Count 10 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 3 0 R /F4 4 0 R >> >> /Contents 6 0 R >>
+endobj
+6 0 obj
+<< /Length 3294 >>
+stream
+0.150 0.400 0.420 rg BT /F4 10 Tf 52.00 786.00 Td (IACLUBE LMS) Tj ET
+0.790 0.830 0.870 RG 0.7 w 52.00 777.00 m 543.28 777.00 l S
+0.080 0.160 0.280 rg BT /F4 25 Tf 52.00 700.00 Td (Relatorio de revisao funcional) Tj ET
+0.380 0.450 0.520 rg BT /F3 13 Tf 52.00 668.00 Td (Sistema de Gestao de Aprendizagem - IACLUBE) Tj ET
+0.220 0.290 0.360 rg BT /F3 10.5 Tf 52.00 610.00 Td (Documento de referencia preparado a partir da leitura do codigo-fonte atual do) Tj ET
+0.220 0.290 0.360 rg BT /F3 10.5 Tf 52.00 595.00 Td (repositorio scorm-monitor. O objetivo e registrar o que a aplicacao faz, para quem) Tj ET
+0.220 0.290 0.360 rg BT /F3 10.5 Tf 52.00 580.00 Td (serve, como os fluxos operam e quais cuidados devem orientar a evolucao e a) Tj ET
+0.220 0.290 0.360 rg BT /F3 10.5 Tf 52.00 565.00 Td (operacao.) Tj ET
+0.940 0.960 0.980 rg 52.00 470.00 491.28 86.00 re f
+0.080 0.160 0.280 rg BT /F4 9.6 Tf 68.00 530.00 Td (Data da revisao:) Tj ET
+0.220 0.290 0.360 rg BT /F3 9.6 Tf 162.00 530.00 Td (28 de setembro de 2026) Tj ET
+0.080 0.160 0.280 rg BT /F4 9.6 Tf 68.00 508.00 Td (Escopo:) Tj ET
+0.220 0.290 0.360 rg BT /F3 9.6 Tf 162.00 508.00 Td (Frontend React/Vite, API FastAPI, SQLite, FTP/Hostinger e pacotes SCORM) Tj ET
+0.080 0.160 0.280 rg BT /F4 9.6 Tf 68.00 486.00 Td (Metodo:) Tj ET
+0.220 0.290 0.360 rg BT /F3 9.6 Tf 162.00 486.00 Td (Leitura de rotas, modelos, telas, scripts de migracao e historico recente de commits) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 430.00 Td (Resumo executivo) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 407.00 Td (O IACLUBE LMS e uma plataforma de cursos SCORM com dois modos de operacao: plataforma) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 393.00 Td (padrao e ambientes isolados por evento. Ela oferece cadastro, login, cursos com progresso) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 379.00 Td (persistente, aprovacao por nota, inscricao individual ou em lote, chamada/frequencia por) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 365.00 Td (modulo e parte, painel administrativo, catalogo publico consumivel por outro site e) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 351.00 Td (auditoria basica de acessos.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 326.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 326.00 Td (O aluno pode criar conta, entrar no ambiente a que pertence, explorar cursos) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 312.00 Td (disponiveis, se matricular, acessar um curso por link e retomar o progresso.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 288.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 288.00 Td (O administrador gerencia pessoas, eventos, listas de e-mail, turmas, cursos,) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 274.00 Td (pacotes SCORM, modulos, partes, presencas, relatorios e dados de acesso.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 250.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 250.00 Td (A plataforma ja possui protecao no backend por token assinado e permissao) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 236.00 Td (administrativa configurada por e-mail no ambiente do servidor.) Tj ET
+0.790 0.830 0.870 RG 0.45 w 52.00 43.00 m 543.28 43.00 l S
+0.380 0.450 0.520 rg BT /F3 8 Tf 52.00 28.00 Td (Revisao funcional - pagina 1 de 10) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 3 0 R /F4 4 0 R >> >> /Contents 8 0 R >>
+endobj
+8 0 obj
+<< /Length 3741 >>
+stream
+0.080 0.160 0.280 rg BT /F4 17 Tf 52.00 760.00 Td (1. Arquitetura e componentes) Tj ET
+0.940 0.290 0.140 RG 2 w 52.00 751.00 m 106.00 751.00 l S
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 728.00 Td (Frontend: React 19 com Vite; aplicacao de pagina unica hospedada estaticamente na) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 714.00 Td (Hostinger.) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 689.00 Td (Backend: FastAPI com Gunicorn/Uvicorn; API hospedada no VPS e exposta em) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 675.00 Td (api.iaclube.help.) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 650.00 Td (Dados: SQLite com SQLAlchemy. Alteracoes estruturais sao aplicadas por scripts de) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 636.00 Td (migracao.) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 611.00 Td (Conteudo: Pacotes SCORM enviados por FTP para lms.iaclube.help/scorm/<codigo>.) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 586.00 Td (Comunicacao: JSON por HTTP. O frontend injeta o token Bearer automaticamente em chamadas) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 572.00 Td (da API.) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 547.00 Td (Catalogo: GET /catalog e GET /catalog/last-update, com CORS publico para consumo por) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 533.00 Td (outro site.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 508.00 Td (Fluxo de alto nivel) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 485.00 Td (Pessoa -> Login/Cadastro -> Dashboard -> Curso em iframe -> API SCORM/progresso ->) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 471.00 Td (SQLite. Administrador -> Painel Admin -> API protegida -> SQLite e, para arquivos, FTP.) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 457.00 Td (Site externo -> Catalogo publico -> link direto para o LMS.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 432.00 Td (Navegacao e links) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 409.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 409.00 Td (Link padrao de curso: https://lms.iaclube.help/CODIGO. O LMS tenta matricular) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 395.00 Td (automaticamente a pessoa autenticada se o curso estiver ativo e disponivel para) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 381.00 Td (ela.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 357.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 357.00 Td (Link de evento: https://lms.iaclube.help/slug-do-evento/CODIGO. O evento e) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 343.00 Td (identificado antes do login e preserva a separacao entre ambientes.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 319.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 319.00 Td (O formato legado ?curso=CODIGO continua aceito.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 295.00 Td (Telas existentes) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 272.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 272.00 Td (Login, cadastro, redefinicao de senha por token, dashboard, player SCORM,) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 258.00 Td (relatorio do professor e Painel Admin por abas.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 234.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 234.00 Td (Componentes de navegacao, cards de curso, rodape institucional, estilos tematicos) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 220.00 Td (por evento e assets publicos.) Tj ET
+0.080 0.160 0.280 rg BT /F4 8.7 Tf 52.00 808.00 Td (IACLUBE LMS - Revisao funcional) Tj ET
+0.790 0.830 0.870 RG 0.55 w 52.00 799.00 m 543.28 799.00 l S
+0.790 0.830 0.870 RG 0.45 w 52.00 43.00 m 543.28 43.00 l S
+0.380 0.450 0.520 rg BT /F3 8 Tf 52.00 28.00 Td (Revisao funcional - pagina 2 de 10) Tj ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 3 0 R /F4 4 0 R >> >> /Contents 10 0 R >>
+endobj
+10 0 obj
+<< /Length 4506 >>
+stream
+0.080 0.160 0.280 rg BT /F4 17 Tf 52.00 760.00 Td (2. Funcionalidades para alunos) Tj ET
+0.940 0.290 0.140 RG 2 w 52.00 751.00 m 106.00 751.00 l S
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 728.00 Td (Conta e autenticacao) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 705.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 705.00 Td (Cadastro com nome, e-mail, senha, escolha PF/PJ e aceite obrigatorio dos termos) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 691.00 Td (de uso. Contas antigas aparecem como "nao informado", sem aceite historico) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 677.00 Td (inventado.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 653.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 653.00 Td (Login trata e-mail sem distinguir maiusculas/minusculas. A resposta inclui sessao) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 639.00 Td (assinada e indica se a conta e administradora.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 615.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 615.00 Td (Troca de senha dentro da conta; autoexclusao da conta mediante confirmacao da) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 601.00 Td (senha; atualizacao do nome.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 577.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 577.00 Td (Recuperacao de senha com token de uso unico e prazo configuravel. O envio por) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 563.00 Td (Gmail API e opcional: o fluxo existe, mas a entrega depende das credenciais) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 549.00 Td (configuradas no VPS.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 525.00 Td (Cursos e aprendizagem) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 502.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 502.00 Td (Aba de cursos matriculados e aba de cursos disponiveis. O aluno pode se inscrever) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 488.00 Td (quando o curso pertence ao seu ambiente.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 464.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 464.00 Td (O player entrega o pacote em iframe e fornece APIs SCORM 1.2 e SCORM 2004. Sao) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 450.00 Td (coletados status, tempo, bookmark, suspend_data, localizacao, nota e resultados) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 436.00 Td (de interacoes do quiz.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 412.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 412.00 Td (Cada abertura gera uma sessao, permitindo contar acessos. O progresso exposto) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 398.00 Td (inclui access_count, quantidade de sessoes, estado mais recente e conclusao.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 374.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 374.00 Td (Aprovacao ocorre por status passed ou por nota igual/superior a passing_score do) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 360.00 Td (curso, cujo padrao e 80. Reprovacao deixa o curso acessivel para nova tentativa.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 336.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 336.00 Td (Uma aprovacao historica permanece valida se a pessoa reabrir o curso para revisao) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 322.00 Td (e nao concluir a nova tentativa.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 298.00 Td (Frequencia no ambiente de evento) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 275.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 275.00 Td (A carteira mostra modulos e partes, percentual por modulo e geral, presencas,) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 261.00 Td (faltas e itens a realizar. Na plataforma padrao, a carteira fica oculta.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 237.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 237.00 Td (Presenca manual e atividade substitutiva sao separadas. Uma aprovacao no curso) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 223.00 Td (ligado a uma parte pode gerar atividade substitutiva sem sobrescrever o) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 209.00 Td (lancamento manual.) Tj ET
+0.080 0.160 0.280 rg BT /F4 8.7 Tf 52.00 808.00 Td (IACLUBE LMS - Revisao funcional) Tj ET
+0.790 0.830 0.870 RG 0.55 w 52.00 799.00 m 543.28 799.00 l S
+0.790 0.830 0.870 RG 0.45 w 52.00 43.00 m 543.28 43.00 l S
+0.380 0.450 0.520 rg BT /F3 8 Tf 52.00 28.00 Td (Revisao funcional - pagina 3 de 10) Tj ET
+endstream
+endobj
+11 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 3 0 R /F4 4 0 R >> >> /Contents 12 0 R >>
+endobj
+12 0 obj
+<< /Length 4502 >>
+stream
+0.080 0.160 0.280 rg BT /F4 17 Tf 52.00 760.00 Td (3. Funcionalidades administrativas) Tj ET
+0.940 0.290 0.140 RG 2 w 52.00 751.00 m 106.00 751.00 l S
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 728.00 Td (Pessoas, turmas e matriculas) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 705.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 705.00 Td (Criar, listar, editar nome, redefinir senha e excluir alunos. A exclusao remove) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 691.00 Td (matriculas, sessoes e vinculos de turma relacionados.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 667.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 667.00 Td (Criar turmas, adicionar varios alunos, consultar membros e matricular uma turma) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 653.00 Td (inteira em um curso. A interface prioriza e suaviza visualmente quem ja esta) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 639.00 Td (inscrito.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 615.00 Td (Cursos SCORM) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 592.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 592.00 Td (Criar cursos por referencia ou enviar ZIP SCORM. O envio valida imsmanifest.xml) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 578.00 Td (unico e o launcher scormdriver/indexAPI.html antes de publicar o pacote via FTP.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 554.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 554.00 Td (Editar titulo, status ativo, evento, cor, nota minima, ferramenta de IA, carga) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 540.00 Td (horaria e metadados do catalogo.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 516.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 516.00 Td (Substituir somente o arquivo SCORM preserva o course_code e, portanto,) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 502.00 Td (matriculas, sessoes, conclusoes e vinculos com presenca.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 478.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 478.00 Td (Excluir curso remove matriculas e sessoes relacionadas no banco e tenta apagar o) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 464.00 Td (diretorio remoto no FTP.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 440.00 Td (Eventos) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 417.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 417.00 Td (Criar e editar nome, slug, logo, cores, termo alternativo para "curso", exibicao) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 403.00 Td (de progresso e rodape.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 379.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 379.00 Td (Enviar logo PNG, JPG, WEBP, SVG ou ICO por FTP. Cadastrar e remover e-mails,) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 365.00 Td (inclusive em lote, para definir quem pertence ao evento.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 341.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 341.00 Td (Eventos isolam login, cadastro, cursos publicos, chamadas e links. Conta de) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 327.00 Td (evento deve usar o endereco exclusivo /slug.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 303.00 Td (Frequencia e relatorios) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 280.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 280.00 Td (Gerenciar modulos e partes com posicao, curso associado e data da aula. Lancar) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 266.00 Td (presenca manual por e-mail ou por selecao das pessoas do evento.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 242.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 242.00 Td (Relatorio consolidado por evento e periodo, com nome, e-mail, modulo, parte,) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 228.00 Td (data, status, origem manual/atividade substitutiva e data da concessao.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 204.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 204.00 Td (Relatorio complementar de quem iniciou ou concluiu atividades substitutivas e se) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 190.00 Td (recebeu presenca manual.) Tj ET
+0.080 0.160 0.280 rg BT /F4 8.7 Tf 52.00 808.00 Td (IACLUBE LMS - Revisao funcional) Tj ET
+0.790 0.830 0.870 RG 0.55 w 52.00 799.00 m 543.28 799.00 l S
+0.790 0.830 0.870 RG 0.45 w 52.00 43.00 m 543.28 43.00 l S
+0.380 0.450 0.520 rg BT /F3 8 Tf 52.00 28.00 Td (Revisao funcional - pagina 4 de 10) Tj ET
+endstream
+endobj
+13 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 3 0 R /F4 4 0 R >> >> /Contents 14 0 R >>
+endobj
+14 0 obj
+<< /Length 2973 >>
+stream
+0.080 0.160 0.280 rg BT /F4 17 Tf 52.00 760.00 Td (4. Catalogo e integracoes) Tj ET
+0.940 0.290 0.140 RG 2 w 52.00 751.00 m 106.00 751.00 l S
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 728.00 Td (Catalogo publico) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 705.00 Td (A API publica fornece cursos com evento, titulo, ferramenta, data de adicao, carga) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 691.00 Td (horaria, URL, status, capa e descricao curta. O endpoint leve de ultima atualizacao) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 677.00 Td (permite que outro site compare a versao do catalogo antes de baixar tudo novamente.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 655.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 655.00 Td (Status suportados: active, coming_soon e completed.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 634.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 634.00 Td (Curso sem catalog_url manual recebe URL direta calculada para o LMS; cursos de) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 610.00 Td (evento recebem o slug no caminho.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 588.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 588.00 Td (Mudancas relevantes em curso ou evento atualizam CatalogState. O script) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 564.00 Td (migrate_refresh_catalog_urls forca a renovacao para consumidores que usam cache por) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 550.00 Td (updated_at.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 525.00 Td (FTP/Hostinger) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 502.00 Td (O backend usa FTP para publicar e substituir pacotes SCORM e logos de evento. O frontend) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 488.00 Td (e publicado manualmente: npm run build e envio do conteudo de dist para public_html. O) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 474.00 Td (.htaccess precisa manter o fallback para index.html sem reescrever arquivos reais,) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 460.00 Td (inclusive /scorm/.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 435.00 Td (E-mail transacional) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 412.00 Td (Gmail API configurada com OAuth 2.0 e refresh token mantido exclusivamente no VPS. A) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 398.00 Td (mensagem de recuperacao de senha foi enviada e recebida com sucesso em teste real.) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 384.00 Td (Confirmacao de cadastro e recuperacao usam o mesmo remetente configurado; falhas) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 370.00 Td (continuam auditaveis.) Tj ET
+0.080 0.160 0.280 rg BT /F4 8.7 Tf 52.00 808.00 Td (IACLUBE LMS - Revisao funcional) Tj ET
+0.790 0.830 0.870 RG 0.55 w 52.00 799.00 m 543.28 799.00 l S
+0.790 0.830 0.870 RG 0.45 w 52.00 43.00 m 543.28 43.00 l S
+0.380 0.450 0.520 rg BT /F3 8 Tf 52.00 28.00 Td (Revisao funcional - pagina 5 de 10) Tj ET
+endstream
+endobj
+15 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 3 0 R /F4 4 0 R >> >> /Contents 16 0 R >>
+endobj
+16 0 obj
+<< /Length 3304 >>
+stream
+0.080 0.160 0.280 rg BT /F4 17 Tf 52.00 760.00 Td (5. Seguranca, privacidade e auditoria) Tj ET
+0.940 0.290 0.140 RG 2 w 52.00 751.00 m 106.00 751.00 l S
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 728.00 Td (Controle de acesso) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 705.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 705.00 Td (Tokens assinados por HMAC com AUTH_SECRET, prazo configuravel e versao de sessao) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 691.00 Td (por aluno. Trocas de senha invalidam tokens anteriores.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 667.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 667.00 Td (ADMIN_EMAILS no .env determina administradores. As rotas administrativas exigem) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 653.00 Td (token e permissao no backend, nao apenas ocultacao visual no frontend.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 629.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 629.00 Td (Rotas de aluno verificam titularidade, salvo administrador. Inscricao valida que) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 615.00 Td (curso esta ativo e, para evento, que o e-mail pertence ao evento.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 591.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 591.00 Td (Sessao expirada ou invalida recebe 401; o frontend atual limpa localStorage e) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 577.00 Td (retorna ao login, evitando tela branca.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 553.00 Td (Privacidade) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 530.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 530.00 Td (Auditoria registra login, cadastro, recuperacao e resultado de e-mail. O IP nao e) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 516.00 Td (armazenado: somente HMAC SHA-256 com IP_HASH_SECRET, se configurado.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 492.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 492.00 Td (O uso de X-Forwarded-For depende de TRUST_PROXY_HEADERS=true. A retencao de logs) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 478.00 Td (e configuravel por ACCESS_LOG_RETENTION_DAYS, padrao 180 dias.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 454.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 454.00 Td (Painel Admin exibe indicadores, perfis PF/PJ, ultimos acessos, trilha de eventos) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 440.00 Td (e hashes anonimos de origem.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 416.00 Td (Configuracao critica no VPS) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 393.00 Td (AUTH_SECRET e obrigatorio para login seguro. IP_HASH_SECRET ativa anonimizacao) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 379.00 Td (consistente. ADMIN_EMAILS controla administradores. FTP_PASSWORD habilita arquivos e) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 365.00 Td (logos. Credenciais GMAIL_* sao opcionais, mas necessarias para entrega de e-mail.) Tj ET
+0.080 0.160 0.280 rg BT /F4 8.7 Tf 52.00 808.00 Td (IACLUBE LMS - Revisao funcional) Tj ET
+0.790 0.830 0.870 RG 0.55 w 52.00 799.00 m 543.28 799.00 l S
+0.790 0.830 0.870 RG 0.45 w 52.00 43.00 m 543.28 43.00 l S
+0.380 0.450 0.520 rg BT /F3 8 Tf 52.00 28.00 Td (Revisao funcional - pagina 6 de 10) Tj ET
+endstream
+endobj
+17 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 3 0 R /F4 4 0 R >> >> /Contents 18 0 R >>
+endobj
+18 0 obj
+<< /Length 3669 >>
+stream
+0.080 0.160 0.280 rg BT /F4 17 Tf 52.00 760.00 Td (6. Modelo de dados e regras de negocio) Tj ET
+0.940 0.290 0.140 RG 2 w 52.00 751.00 m 106.00 751.00 l S
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 728.00 Td (Course) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 708.00 Td (Curso, codigo unico, caminho SCORM, evento, cor, nota minima e metadados de catalogo.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 683.00 Td (CourseSession) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 663.00 Td (Cada acesso ao curso; guarda estado, nota, bookmark, suspend_data, datas e conclusao.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 638.00 Td (Student / RegistrationProfile) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 618.00 Td (Conta, senha derivada, versao de token, tipo PF/PJ, aceite e evento do cadastro.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 593.00 Td (Event / EventEmail) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 573.00 Td (Ambiente visual e lista de pessoas autorizadas por e-mail.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 548.00 Td (Enrollment) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 528.00 Td (Vinculo aluno-curso, ativo ou inativo.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 503.00 Td (ClassGroup / ClassStudent) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 483.00 Td (Turmas e seus participantes.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 458.00 Td (AttendanceModule / Part / Record) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 438.00 Td (Estrutura da chamada, data da parte e lancamento manual.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 413.00 Td (CatalogState) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 393.00 Td (Data da ultima mudanca relevante do catalogo.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 368.00 Td (AccessEvent) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 348.00 Td (Auditoria de acesso com hash de IP, sem IP real.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 323.00 Td (PasswordResetToken) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 303.00 Td (Hash de token temporario, expiracao e uso unico.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 278.00 Td (Regra de frequencia) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 255.00 Td (Presente, justificada e atividade substitutiva contam como presenca. Falta e a realizar) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 241.00 Td (entram no denominador. Assim, uma presenca e uma parte pendente resultam em 50%, e nao) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 227.00 Td (100%. O relatorio pode manter simultaneamente a entrada manual e a substitutiva para a) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 213.00 Td (mesma parte, quando isso e desejado como redundancia.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 188.00 Td (Regra de aprovacao) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 165.00 Td (O estado passed ou uma nota igual/superior a nota minima aprova. Nota abaixo da nota) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 151.00 Td (minima reprova. Como os pacotes SCORM podem variar, a nota calculada pelas interacoes e) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 137.00 Td (usada como apoio quando o pacote registra respostas corretas/incorretas, mas o pacote) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 123.00 Td (deve efetivamente enviar dados ao runtime para essa logica funcionar.) Tj ET
+0.080 0.160 0.280 rg BT /F4 8.7 Tf 52.00 808.00 Td (IACLUBE LMS - Revisao funcional) Tj ET
+0.790 0.830 0.870 RG 0.55 w 52.00 799.00 m 543.28 799.00 l S
+0.790 0.830 0.870 RG 0.45 w 52.00 43.00 m 543.28 43.00 l S
+0.380 0.450 0.520 rg BT /F3 8 Tf 52.00 28.00 Td (Revisao funcional - pagina 7 de 10) Tj ET
+endstream
+endobj
+19 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 3 0 R /F4 4 0 R >> >> /Contents 20 0 R >>
+endobj
+20 0 obj
+<< /Length 2823 >>
+stream
+0.080 0.160 0.280 rg BT /F4 17 Tf 52.00 760.00 Td (7. Casos de uso resumidos) Tj ET
+0.940 0.290 0.140 RG 2 w 52.00 751.00 m 106.00 751.00 l S
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 728.00 Td (Aluno padrao) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 705.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 705.00 Td (Recebe ou abre /CODIGO -> faz login ou cadastro -> e matriculado automaticamente) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 691.00 Td (se o curso for publico -> abre o SCORM -> progresso e nota sao guardados.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 667.00 Td (Participante de evento) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 644.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 644.00 Td (Acessa /arctel -> somente e-mail listado para o ArcTel entra ou cria conta -> ve) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 630.00 Td (cursos e frequencia do evento -> usa /arctel/CODIGO para acessar curso) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 616.00 Td (correspondente.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 592.00 Td (Professor/administrador) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 569.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 569.00 Td (Cria evento -> importa e-mails -> cria modulos/partes com data -> associa cursos) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 555.00 Td (substitutivos -> lanc'a presenca manual -> extrai relatorio de periodo e) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 541.00 Td (acompanha atividades feitas.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 517.00 Td (Gestor de conteudo) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 494.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 494.00 Td (Envia ZIP SCORM, escolhe codigo, evento, cor e nota minima -> ajusta) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 480.00 Td (ferramenta/carga horaria/descricao -> outro site consome o catalogo -> se) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 466.00 Td (necessario, troca somente o ZIP sem perder historico.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 442.00 Td (Suporte) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 419.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 419.00 Td (Redefine senha de aluno pelo Admin ou orienta a recuperacao por e-mail quando) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 405.00 Td (Gmail API estiver configurado. Caso token expire, a pessoa entra novamente sem) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 391.00 Td (quebrar a interface.) Tj ET
+0.080 0.160 0.280 rg BT /F4 8.7 Tf 52.00 808.00 Td (IACLUBE LMS - Revisao funcional) Tj ET
+0.790 0.830 0.870 RG 0.55 w 52.00 799.00 m 543.28 799.00 l S
+0.790 0.830 0.870 RG 0.45 w 52.00 43.00 m 543.28 43.00 l S
+0.380 0.450 0.520 rg BT /F3 8 Tf 52.00 28.00 Td (Revisao funcional - pagina 8 de 10) Tj ET
+endstream
+endobj
+21 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 3 0 R /F4 4 0 R >> >> /Contents 22 0 R >>
+endobj
+22 0 obj
+<< /Length 4044 >>
+stream
+0.080 0.160 0.280 rg BT /F4 17 Tf 52.00 760.00 Td (8. Pontos de atencao e recomendacoes) Tj ET
+0.940 0.290 0.140 RG 2 w 52.00 751.00 m 106.00 751.00 l S
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 728.00 Td (Operacao e confiabilidade) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 705.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 705.00 Td (SQLite e adequado ao volume atual, mas pode sofrer com concorrencia maior,) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 691.00 Td (multiplos workers e operacoes simultaneas. Para crescimento continuo, planejar) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 677.00 Td (PostgreSQL e backups automatizados.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 653.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 653.00 Td (As migracoes sao obrigatorias antes de reiniciar o FastAPI. A criacao automatica) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 639.00 Td (de schema foi restringida ao modo AUTO_CREATE_SCHEMA para evitar corrida entre) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 625.00 Td (workers Gunicorn.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 601.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 601.00 Td (O README ainda e o modelo padrao do Vite e nao documenta a operacao real. Vale) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 587.00 Td (substituir por guia de deploy, variaveis, migracoes, backup e restauracao.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 563.00 Td (Seguranca e qualidade) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 540.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 540.00 Td (Nao ha suite de testes automatizados identificada. Prioridade: testes de) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 526.00 Td (login/evento, autorizacao, matricula por link, nota SCORM e relatorio de) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 512.00 Td (frequencia.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 488.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 488.00 Td (Credenciais FTP, segredos, refresh token do Gmail e banco devem ficar somente no) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 474.00 Td (.env do VPS, nunca no Git ou no frontend.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 450.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 450.00 Td (O envio de ZIP extrai arquivos no servidor. Como evolucao de seguranca, validar) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 436.00 Td (nomes de caminho do ZIP contra zip slip e limitar tamanho/tipo de upload.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 412.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 412.00 Td (A exclusao de evento nao mostra cascata explicita para cursos, modulos ou perfis) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 398.00 Td (ja associados. Antes de uso intenso, definir politica de arquivo, desvinculo ou) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 384.00 Td (exclusao controlada.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 360.00 Td (Produto) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 337.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 337.00 Td (O catalogo oferece campos opcionais. Para um catalogo externo consistente, tornar) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 323.00 Td (ferramenta, carga horaria, capa e descricao obrigatorios para cursos publicados.) Tj ET
+0.940 0.290 0.140 rg BT /F4 10 Tf 55.00 299.00 Td (-) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 299.00 Td (A deteccao de quiz depende do comportamento de cada pacote SCORM. Um contrato de) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 285.00 Td (exportacao com a equipe que produz os cursos reduziria variacao e falsas) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 69.00 271.00 Td (reprovacoes/aprovacoes.) Tj ET
+0.080 0.160 0.280 rg BT /F4 8.7 Tf 52.00 808.00 Td (IACLUBE LMS - Revisao funcional) Tj ET
+0.790 0.830 0.870 RG 0.55 w 52.00 799.00 m 543.28 799.00 l S
+0.790 0.830 0.870 RG 0.45 w 52.00 43.00 m 543.28 43.00 l S
+0.380 0.450 0.520 rg BT /F3 8 Tf 52.00 28.00 Td (Revisao funcional - pagina 9 de 10) Tj ET
+endstream
+endobj
+23 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 3 0 R /F4 4 0 R >> >> /Contents 24 0 R >>
+endobj
+24 0 obj
+<< /Length 2491 >>
+stream
+0.080 0.160 0.280 rg BT /F4 17 Tf 52.00 760.00 Td (9. Historico funcional observado) Tj ET
+0.940 0.290 0.140 RG 2 w 52.00 751.00 m 106.00 751.00 l S
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 728.00 Td (O historico recente mostra uma evolucao incremental: presenca e painel visual; isolamento) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 714.00 Td (de eventos e login; relatorios e fontes de presenca; aprovacao/reprovacao por nota;) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 700.00 Td (catalogo publico e access_count; troca de pacote SCORM; perfil PF/PJ e termos; tokens e) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 686.00 Td (autorizacao de backend; auditoria anonimizada; recuperacao de senha/e-mail; painel de) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 672.00 Td (acessos; links por codigo e matricula automatica; e tratamento de sessoes expiradas.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 647.00 Td (Estado atual) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 624.00 Td (A aplicacao ja funciona como LMS operacional para cursos e eventos. O maior ganho) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 610.00 Td (imediato de maturidade nao e uma nova tela, mas documentacao de deploy, testes) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 596.00 Td (automatizados, rotina de backup e validacao controlada dos pacotes SCORM antes de) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 582.00 Td (publica-los.) Tj ET
+0.150 0.400 0.420 rg BT /F4 11.5 Tf 52.00 557.00 Td (Conclusao) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 534.00 Td (O sistema concentra as funcionalidades essenciais do ciclo de aprendizagem: entrada de) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 520.00 Td (pessoas, organizacao por evento, distribuicao e consumo de conteudo, avaliacao,) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 506.00 Td (frequencia e acompanhamento administrativo. A base permite expandir o catalogo e os) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 492.00 Td (eventos sem duplicar a aplicacao. As proximas evolucoes devem priorizar estabilidade) Tj ET
+0.220 0.290 0.360 rg BT /F3 10 Tf 52.00 478.00 Td (operacional, qualidade dos dados e governanca de seguranca.) Tj ET
+0.080 0.160 0.280 rg BT /F4 8.7 Tf 52.00 808.00 Td (IACLUBE LMS - Revisao funcional) Tj ET
+0.790 0.830 0.870 RG 0.55 w 52.00 799.00 m 543.28 799.00 l S
+0.790 0.830 0.870 RG 0.45 w 52.00 43.00 m 543.28 43.00 l S
+0.380 0.450 0.520 rg BT /F3 8 Tf 52.00 28.00 Td (Revisao funcional - pagina 10 de 10) Tj ET
+endstream
+endobj
+xref
+0 25
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000183 00000 n 
+0000000280 00000 n 
+0000000382 00000 n 
+0000000544 00000 n 
+0000003890 00000 n 
+0000004052 00000 n 
+0000007845 00000 n 
+0000008008 00000 n 
+0000012567 00000 n 
+0000012731 00000 n 
+0000017286 00000 n 
+0000017450 00000 n 
+0000020476 00000 n 
+0000020640 00000 n 
+0000023997 00000 n 
+0000024161 00000 n 
+0000027883 00000 n 
+0000028047 00000 n 
+0000030923 00000 n 
+0000031087 00000 n 
+0000035184 00000 n 
+0000035348 00000 n 
+trailer
+<< /Size 25 /Root 1 0 R >>
+startxref
+37892
+%%EOF

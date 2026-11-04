@@ -1,0 +1,17 @@
+[
+  {
+    "recurso": "/",
+    "status": 200,
+    "bytes": 675
+  },
+  {
+    "recurso": "/src/main.jsx",
+    "status": 200,
+    "bytes": 4941
+  },
+  {
+    "recurso": "/src/App.jsx",
+    "status": 200,
+    "bytes": 66601
+  }
+]

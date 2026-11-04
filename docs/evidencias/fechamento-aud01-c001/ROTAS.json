@@ -1,0 +1,157 @@
+{
+  "/courses/upload": [
+    "post"
+  ],
+  "/courses/{course_code}/replace-file": [
+    "post"
+  ],
+  "/courses": [
+    "get",
+    "post"
+  ],
+  "/courses/public": [
+    "get"
+  ],
+  "/courses/{course_code}": [
+    "delete",
+    "put"
+  ],
+  "/sessions/start": [
+    "post"
+  ],
+  "/sessions/{session_id}/update": [
+    "post"
+  ],
+  "/sessions": [
+    "get"
+  ],
+  "/progress/{student_id}/{course_id}": [
+    "get"
+  ],
+  "/sessions/{session_id}/finish": [
+    "post"
+  ],
+  "/students": [
+    "get",
+    "post"
+  ],
+  "/students/{student_code}": [
+    "delete",
+    "put"
+  ],
+  "/students/{student_code}/reset-password": [
+    "post"
+  ],
+  "/students/{student_code}/delete-account": [
+    "post"
+  ],
+  "/enrollments": [
+    "post"
+  ],
+  "/students/{student_code}/enroll/{course_code}": [
+    "post"
+  ],
+  "/students/{student_code}/courses": [
+    "get"
+  ],
+  "/auth/login": [
+    "post"
+  ],
+  "/auth/register": [
+    "post"
+  ],
+  "/auth/forgot-password": [
+    "post"
+  ],
+  "/auth/reset-password": [
+    "post"
+  ],
+  "/auth/change-password": [
+    "post"
+  ],
+  "/classes": [
+    "get",
+    "post"
+  ],
+  "/classes/{class_id}/students": [
+    "get",
+    "post"
+  ],
+  "/classes/{class_id}/student-codes": [
+    "get"
+  ],
+  "/classes/{class_id}/enroll": [
+    "post"
+  ],
+  "/events": [
+    "get",
+    "post"
+  ],
+  "/events/slug/{slug}": [
+    "get"
+  ],
+  "/events/{event_id}": [
+    "delete",
+    "put"
+  ],
+  "/events/{event_id}/logo": [
+    "post"
+  ],
+  "/events/{event_id}/emails": [
+    "get",
+    "post"
+  ],
+  "/events/{event_id}/emails/{email}": [
+    "delete"
+  ],
+  "/attendance/modules": [
+    "get",
+    "post"
+  ],
+  "/attendance/modules/{module_id}": [
+    "delete",
+    "put"
+  ],
+  "/attendance/modules/{module_id}/parts": [
+    "post"
+  ],
+  "/attendance/parts/{part_id}": [
+    "delete",
+    "put"
+  ],
+  "/attendance/students/{student_code}": [
+    "get"
+  ],
+  "/attendance/students/{student_code}/parts/{part_id}": [
+    "put"
+  ],
+  "/attendance/event-progress": [
+    "get"
+  ],
+  "/attendance/reports": [
+    "get"
+  ],
+  "/catalog": [
+    "get",
+    "options"
+  ],
+  "/catalog/last-update": [
+    "get",
+    "options"
+  ],
+  "/admin/insights/summary": [
+    "get"
+  ],
+  "/admin/insights/profile-stats": [
+    "get"
+  ],
+  "/admin/insights/access-log": [
+    "get"
+  ],
+  "/admin/insights/ip-activity": [
+    "get"
+  ],
+  "/": [
+    "get"
+  ]
+}

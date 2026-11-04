@@ -1,0 +1,22 @@
+[
+  {
+    "recurso": "/",
+    "status": 200,
+    "bytes": 39
+  },
+  {
+    "recurso": "/docs",
+    "status": 200,
+    "bytes": 1006
+  },
+  {
+    "recurso": "/openapi.json",
+    "status": 200,
+    "bytes": 50206
+  },
+  {
+    "recurso": "/catalog",
+    "status": 200,
+    "bytes": 260
+  }
+]

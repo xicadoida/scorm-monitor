@@ -55,6 +55,18 @@ class CatalogState(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
+class ScormPublication(Base):
+    """Intenção durável e exclusão por curso; committed acompanha Course no commit."""
+    __tablename__ = 'scorm_publications'
+
+    course_code = Column(String(100), primary_key=True)
+    token = Column(String(32), nullable=False)
+    state = Column(String(20), nullable=False, default='pending')
+    target_key = Column(String(64), nullable=False)
+    had_previous = Column(Boolean, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
 class Event(Base):
     __tablename__ = "events"
 

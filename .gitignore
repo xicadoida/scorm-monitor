@@ -24,6 +24,8 @@ dist-ssr
 *.sw?
 
 venv/
+.venv-c001/
+/tmp/fechamento-aud01/
 __pycache__/
 *.pyc
 scorm_monitor.db

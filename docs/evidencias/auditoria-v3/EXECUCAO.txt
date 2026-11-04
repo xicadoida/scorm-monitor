@@ -1,0 +1,65 @@
+AUDITORIA V3 — 04/11/2026 — America/Sao_Paulo
+Ambiente: Windows-11-10.0.26200-SP0; Python 3.12.14
+Comando completo: & "C:\Users\Usuário\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe" docs/evidencias/auditoria-v3/auditar.py
+Pasta de trabalho requerida: C:\Users\Usuário\Documents\scorm-monitor
+Sem dados reais, conexão FTP, HTTP ou banco; somente arquivos temporários sintéticos.
+COMANDO: git branch --show-current
+main
+exit=0
+COMANDO: git log -1 --format=%H %s
+fa3fbaba77df92a121c42c98da6968bb9d4c9a8d bugfix email_service
+exit=0
+COMANDO: git status --short
+M backend/routes/courses.py
+?? AGENTS.md
+?? backend/scorm_package.py
+?? backend/tests/
+?? docs/
+exit=0
+COMANDO: git branch -a
+* main
+  remotes/origin/HEAD -> origin/main
+  remotes/origin/main
+  remotes/origin/maintenance
+  remotes/origin/master
+exit=0
+
+SUÍTE EXISTENTE (cwd backend):
+COMANDO COMPLETO: C:\Users\Usuário\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe -m unittest discover -s tests -v
+
+test_course_code (test_scorm_package.PackageTests.test_course_code) ... ok
+test_crc_corruption (test_scorm_package.PackageTests.test_crc_corruption) ... ok
+test_duplicate_case_alias (test_scorm_package.PackageTests.test_duplicate_case_alias) ... ok
+test_expansion_ratio (test_scorm_package.PackageTests.test_expansion_ratio) ... ok
+test_invalid_zip (test_scorm_package.PackageTests.test_invalid_zip) ... ok
+test_limits (test_scorm_package.PackageTests.test_limits) ... ok
+test_missing_launcher (test_scorm_package.PackageTests.test_missing_launcher) ... ok
+test_missing_manifest (test_scorm_package.PackageTests.test_missing_manifest) ... ok
+test_multiple_manifests (test_scorm_package.PackageTests.test_multiple_manifests) ... ok
+test_nested_package (test_scorm_package.PackageTests.test_nested_package) ... ok
+test_suspicious_files (test_scorm_package.PackageTests.test_suspicious_files) ... ok
+test_symlink (test_scorm_package.PackageTests.test_symlink) ... ok
+test_truncated_zip (test_scorm_package.PackageTests.test_truncated_zip) ... ok
+test_unsafe_paths (test_scorm_package.PackageTests.test_unsafe_paths) ... ok
+test_upload_limit_and_untrusted_filename (test_scorm_package.PackageTests.test_upload_limit_and_untrusted_filename) ... ok
+test_valid_package (test_scorm_package.PackageTests.test_valid_package) ... ok
+
+----------------------------------------------------------------------
+Ran 16 tests in 0.239s
+
+OK
+
+exit=0
+
+PROVAS ADICIONAIS: não integram o total da suíte existente.
+Arquivo temporário real: manifesto_xml_malformado -> ACEITO (lacuna: conteúdo XML não validado)
+Arquivo temporário real: manifesto_vazio -> ACEITO (lacuna: conteúdo XML não validado)
+Arquivo temporário real: xml_sem_manifesto_scorm -> ACEITO (lacuna: conteúdo XML não validado)
+Corpo original replace com FTP/BD mocks: {"operations": ["connect", "login", "REMOVE_ANTERIOR_SIMULADO", "ENVIO_FALHA_SIMULADA", "quit"], "response": {"success": false, "message": "Não foi possível enviar o novo SCORM: falha sintética de comunicação"}, "commits": 0}
+
+C0-08: corpo original update_session com BD/modelos simulados; NÃO é teste HTTP ou aprovação pedagógica.
+passed_sem_nota: status=passed; completed=True; commit_simulado=1
+failed_com_completed_true: status=failed; completed=True; commit_simulado=1
+nota_acima_de_100: status=passed; completed=True; commit_simulado=1
+Inicialização API impedida no runtime consultado: No module named 'fastapi'
+Sintaxe ast.parse: 33 arquivos backend aprovados (não é import/runtime).

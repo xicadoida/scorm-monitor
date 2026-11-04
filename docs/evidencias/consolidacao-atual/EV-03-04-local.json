@@ -1,0 +1,20 @@
+{
+  "data": "04/11/2026",
+  "ambiente": "loopback/temporário; não homologação",
+  "segredos": "Nenhum valor de credencial/token ou .env registrado",
+  "resultados": [
+    {
+      "evidencia": "EV-04",
+      "tipo": "HTTP socket + autenticação real + SQLite/FTP locais reais",
+      "status_http": 200,
+      "resultado": "ZIP inválido rejeitado; zero cursos/journals/arquivos publicados"
+    },
+    {
+      "evidencia": "EV-03",
+      "tipo": "HTTP socket + autenticação real + SQLite/FTP locais reais",
+      "status_http": 200,
+      "resultado": "Curso inserido e conteúdo publicado conferido; journal finalizado",
+      "recovery_pending": false
+    }
+  ]
+}

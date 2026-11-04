@@ -1,0 +1,52 @@
+[
+  {
+    "arquivo": "public/scorm/curso/imsmanifest.xml",
+    "versao": "1.2",
+    "sha256": "76c5504f3501a528be0857db264d3fde34d87ae1bc9c9ec45aacd1b25a1dbb44"
+  },
+  {
+    "arquivo": "public/scorm/curso2/imsmanifest.xml",
+    "versao": "1.2",
+    "sha256": "a19f5555aa42af9135e964ace3d2809379b9b84ad5124e25f51aa379b7259e87"
+  },
+  {
+    "arquivo": "public/scorm/curso3/imsmanifest.xml",
+    "versao": "2004",
+    "sha256": "384d54a5d91717afd59fddbcb36a99da7081df3593b4f6d38f65c2843cbc8cb8"
+  },
+  {
+    "arquivo": "public/scorm/curso_004/cadu/claude-para-word-instalacao-e-primeira-revisao-assistida-com-ia-scorm12-n697Bc5w/imsmanifest.xml",
+    "versao": "1.2",
+    "sha256": "a19f5555aa42af9135e964ace3d2809379b9b84ad5124e25f51aa379b7259e87"
+  },
+  {
+    "arquivo": "public/scorm/curso_004/cadu/Nova pasta/imsmanifest.xml",
+    "versao": "1.2",
+    "sha256": "4789f3e3fbe4a9b2237ce048b6f26ab1f368af06ac96549f69e9238b61f3602d"
+  },
+  {
+    "arquivo": "public/scorm/curso_005/imsmanifest.xml",
+    "versao": "1.2",
+    "sha256": "cb8bfd3334bfbc3d64cfa445703f345ee5b2e286f5e9cba60d49a733f35c3c62"
+  },
+  {
+    "arquivo": "public/scorm/curso_006/imsmanifest.xml",
+    "versao": "1.2",
+    "sha256": "5e8a1ef4141d0ced72cb4d8bca484b69e1e75691546a2c2086caa87bb68538d8"
+  },
+  {
+    "arquivo": "public/scorm/mat1/imsmanifest.xml",
+    "versao": "2004",
+    "sha256": "384d54a5d91717afd59fddbcb36a99da7081df3593b4f6d38f65c2843cbc8cb8"
+  },
+  {
+    "arquivo": "public/scorm/teste2/imsmanifest.xml",
+    "versao": "2004",
+    "sha256": "5c12e330914e7e0ba77cdd47b2188fb6d7ab480434fd03dcfc763e08aee7e746"
+  },
+  {
+    "arquivo": "public/scorm/teste3/Bem vindo!  - scorm 2004 2/imsmanifest.xml",
+    "versao": "2004",
+    "sha256": "5c12e330914e7e0ba77cdd47b2188fb6d7ab480434fd03dcfc763e08aee7e746"
+  }
+]

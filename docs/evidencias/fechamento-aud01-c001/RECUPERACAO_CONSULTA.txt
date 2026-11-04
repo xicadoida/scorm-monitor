@@ -1,0 +1,6 @@
+cwd=C:\Users\Usuário\Documents\scorm-monitor\backend
+Comando=C:\Users\Usuário\Documents\scorm-monitor\.venv-c001\Scripts\python.exe recover_scorm_publication.py --course synthetic-aud01
+
+nothing_pending
+
+exit=0

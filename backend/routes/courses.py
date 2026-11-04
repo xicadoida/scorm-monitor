@@ -2,15 +2,18 @@ from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from database import SessionLocal
-from models import Course, Enrollment, CourseSession
+from models import Course, Enrollment, CourseSession, ScormPublication
 from schemas import CourseCreateRequest, CourseUpdateRequest
 from catalog_utils import touch_catalog
 from auth_utils import CurrentUser, get_current_user, require_admin
 
 import os
-import zipfile
+from scorm_package import InvalidPackage, prepare_package, validate_course_code
 import ftplib
 import tempfile
+from starlette.concurrency import run_in_threadpool
+from sqlalchemy.exc import SQLAlchemyError
+from scorm_publication import PublicationError, PublicationBusy, RecoveryRequired, publish_course
 
 router = APIRouter()
 
@@ -83,90 +86,25 @@ async def upload_course(
     if catalog_status not in CATALOG_STATUSES:
         return {"success": False, "message": "Status de catálogo inválido."}
     with tempfile.TemporaryDirectory() as tmp_dir:
-        zip_path = os.path.join(tmp_dir, file.filename)
-
-        with open(zip_path, "wb") as buffer:
-            buffer.write(await file.read())
-
-        with zipfile.ZipFile(zip_path, "r") as zip_ref:
-            zip_ref.extractall(tmp_dir)
-
-        manifest_files = []
-
-        for root, dirs, files in os.walk(tmp_dir):
-            for name in files:
-                if name == "imsmanifest.xml":
-                    manifest_files.append(os.path.join(root, name))
-
-        if len(manifest_files) == 0:
-            return {
-                "success": False,
-                "message": "Arquivo inválido: nenhum imsmanifest.xml encontrado."
-            }
-
-        if len(manifest_files) > 1:
-            return {
-                "success": False,
-                "message": "Arquivo inválido: o ZIP contém mais de um pacote SCORM."
-            }
-
-        scorm_root = os.path.dirname(manifest_files[0])
-
-        launcher_path = os.path.join(scorm_root, "scormdriver", "indexAPI.html")
-
-        if not os.path.exists(launcher_path):
-            return {
-                "success": False,
-                "message": "Arquivo inválido: scormdriver/indexAPI.html não encontrado."
-            }
-
-        # Upload via FTP para a Hostinger
-        ftp = ftplib.FTP()
-        ftp.connect(FTP_HOST, 21, timeout=10)
-        ftp.login(FTP_USER, FTP_PASS)
-
-        remote_course_dir = f"{FTP_BASE_DIR}/{course_code}"
-        upload_dir_ftp(ftp, scorm_root, remote_course_dir)
-        ftp.quit()
-
-        scorm_path = f"{PUBLIC_BASE_URL}/{course_code}/scormdriver/indexAPI.html"
-
-        db = SessionLocal()
-
-        course = Course(
-            title=title,
-            course_code=course_code,
-            scorm_path=scorm_path,
-            active=True,
-            event_id=event_id,
-            color_primary=color_primary,
-            passing_score=passing_score or 80,
-            tool=tool,
-            duration_hours=duration_hours,
-            catalog_url=catalog_url,
-            thumbnail_url=thumbnail_url,
-            short_description=short_description,
-            catalog_status=catalog_status,
-            created_at=datetime.utcnow()
-        )
-
-        db.add(course)
-        touch_catalog(db)
-        db.commit()
-        db.refresh(course)
-        db.close()
-
-        return {
-            "id": course.id,
-            "title": course.title,
-            "course_code": course.course_code,
-            "scorm_path": course.scorm_path,
-            "event_id": course.event_id,
-            "color_primary": course.color_primary,
-            "passing_score": course.passing_score,
-            "catalog_status": course.catalog_status,
-            "message": "Course uploaded successfully"
-        }
+        try:
+            validate_course_code(course_code)
+            scorm_root = await prepare_package(file, tmp_dir)
+            result = await run_in_threadpool(publish_course, scorm_root, course_code, metadata={
+                "title": title, "event_id": event_id, "color_primary": color_primary,
+                "passing_score": passing_score or 80, "tool": tool,
+                "duration_hours": duration_hours, "catalog_url": catalog_url,
+                "thumbnail_url": thumbnail_url, "short_description": short_description,
+                "catalog_status": catalog_status,
+            })
+        except InvalidPackage as error:
+            return {"success": False, "message": str(error)}
+        except PublicationBusy as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+        except (RecoveryRequired, SQLAlchemyError) as error:
+            raise HTTPException(status_code=503, detail="Publicação indisponível ou pendente de reconciliação. Consulte o journal SCORM.") from error
+        except PublicationError as error:
+            return {"success": False, "message": str(error)}
+    return dict(result, message="Course uploaded successfully")
 
 
 @router.post("/courses/{course_code}/replace-file")
@@ -175,85 +113,22 @@ async def replace_course_file(
     file: UploadFile = File(...),
     _: CurrentUser = Depends(require_admin),
 ):
-    """Substitui somente o pacote SCORM, preservando todos os vínculos do curso."""
-    db = SessionLocal()
-    course = db.query(Course).filter(Course.course_code == course_code).first()
-    if not course:
-        db.close()
-        return {"success": False, "message": "Curso não encontrado."}
-
+    """Valida e publica com staging/journal, preservando os vínculos do curso."""
     with tempfile.TemporaryDirectory() as tmp_dir:
-        filename = os.path.basename(file.filename or "curso.zip")
-        zip_path = os.path.join(tmp_dir, filename)
-
         try:
-            with open(zip_path, "wb") as buffer:
-                buffer.write(await file.read())
-
-            with zipfile.ZipFile(zip_path, "r") as zip_ref:
-                zip_ref.extractall(tmp_dir)
-        except (OSError, zipfile.BadZipFile):
-            db.close()
-            return {"success": False, "message": "Envie um arquivo ZIP SCORM válido."}
-
-        manifest_files = []
-        for root, _, files in os.walk(tmp_dir):
-            for name in files:
-                if name == "imsmanifest.xml":
-                    manifest_files.append(os.path.join(root, name))
-
-        if len(manifest_files) != 1:
-            db.close()
-            message = (
-                "Arquivo inválido: nenhum imsmanifest.xml encontrado."
-                if not manifest_files
-                else "Arquivo inválido: o ZIP contém mais de um pacote SCORM."
-            )
-            return {"success": False, "message": message}
-
-        scorm_root = os.path.dirname(manifest_files[0])
-        launcher_path = os.path.join(scorm_root, "scormdriver", "indexAPI.html")
-        if not os.path.exists(launcher_path):
-            db.close()
-            return {
-                "success": False,
-                "message": "Arquivo inválido: scormdriver/indexAPI.html não encontrado."
-            }
-
-        ftp = None
-        try:
-            ftp = ftplib.FTP()
-            ftp.connect(FTP_HOST, 21, timeout=10)
-            ftp.login(FTP_USER, FTP_PASS)
-
-            # Limpa arquivos antigos que poderiam permanecer no pacote novo.
-            # O course_code não muda, portanto matrículas, sessões, conclusões
-            # e vínculos de frequência continuam apontando para o mesmo curso.
-            remote_course_dir = f"{FTP_BASE_DIR}/{course_code}"
-            remove_dir_ftp(ftp, remote_course_dir)
-            upload_dir_ftp(ftp, scorm_root, remote_course_dir)
-        except Exception as error:
-            db.close()
-            return {
-                "success": False,
-                "message": f"Não foi possível enviar o novo SCORM: {error}"
-            }
-        finally:
-            if ftp:
-                try:
-                    ftp.quit()
-                except Exception:
-                    pass
-
-    course.updated_at = datetime.utcnow()
-    touch_catalog(db)
-    db.commit()
-    db.close()
-
-    return {
-        "success": True,
-        "message": "Arquivo SCORM substituído. Progresso, conclusões e presenças foram preservados."
-    }
+            validate_course_code(course_code)
+            scorm_root = await prepare_package(file, tmp_dir)
+            result = await run_in_threadpool(publish_course, scorm_root, course_code)
+        except InvalidPackage as error:
+            return {"success": False, "message": str(error)}
+        except PublicationBusy as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+        except (RecoveryRequired, SQLAlchemyError) as error:
+            raise HTTPException(status_code=503, detail="Substituição pendente de reconciliação. Consulte o journal SCORM.") from error
+        except PublicationError as error:
+            return {"success": False, "message": str(error)}
+    return {"success": True, "recovery_pending": result["recovery_pending"],
+            "message": "Arquivo SCORM substituído. Progresso, conclusões e presenças foram preservados."}
 
 
 @router.post("/courses")
@@ -262,6 +137,9 @@ def create_course(data: CourseCreateRequest, _: CurrentUser = Depends(require_ad
         return {"success": False, "message": "Status de catálogo inválido."}
 
     db = SessionLocal()
+    if db.get(ScormPublication, data.course_code) is not None:
+        db.close()
+        raise HTTPException(status_code=409, detail="Curso possui publicação pendente.")
 
     course = Course(
         title=data.title,
@@ -381,6 +259,9 @@ def update_course(
     _: CurrentUser = Depends(require_admin),
 ):
     db = SessionLocal()
+    if db.get(ScormPublication, course_code) is not None:
+        db.close()
+        raise HTTPException(status_code=409, detail="Curso possui publicação pendente.")
 
     course = db.query(Course).filter(
         Course.course_code == course_code
@@ -452,6 +333,9 @@ def update_course(
 @router.delete("/courses/{course_code}")
 def delete_course(course_code: str, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
+    if db.get(ScormPublication, course_code) is not None:
+        db.close()
+        raise HTTPException(status_code=409, detail="Curso possui publicação pendente.")
 
     course = db.query(Course).filter(
         Course.course_code == course_code

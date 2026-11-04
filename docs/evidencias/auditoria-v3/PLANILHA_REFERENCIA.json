@@ -1,0 +1,220 @@
+{
+  "arquivo": "C:\\Users\\Usuário\\Downloads\\iaclube-plano-visual-evidencias-v3-auditoria-preliminar.xlsx",
+  "arquivo_exato_com_sufixo_1_encontrado": false,
+  "sha256": "bfaf78171a7edb31b3ef229d673b075484ec7d5cd55b0e343cc1e38ed8e31e6f",
+  "arquivo_preservado": true,
+  "total": 23,
+  "contagem_status": {
+    "Não iniciado": 22,
+    "Aguardando validação em homologação": 1
+  },
+  "tarefas": [
+    {
+      "id": "AUD-01",
+      "titulo": "Mapear repositório, rotas e ambiente",
+      "escopo": "Identificar repositórios; rodar aplicação localmente; listar rotas e modelos; registrar deploy e variáveis sem segredos",
+      "criterio_pronto": "README de arquitetura com comandos reproduzíveis e mapa das rotas",
+      "dependencias": "Acesso ao código e ambiente",
+      "status": "Não iniciado",
+      "origem": "'Execução técnica'!A2:W2"
+    },
+    {
+      "id": "AUD-02",
+      "titulo": "Revisar fluxo de upload SCORM",
+      "escopo": "Localizar endpoint; mapear validações existentes; criar lista de casos inválidos e válidos",
+      "criterio_pronto": "Matriz de validações existente/faltante e exemplos de teste",
+      "dependencias": "AUD-01",
+      "status": "Não iniciado",
+      "origem": "'Execução técnica'!A3:W3"
+    },
+    {
+      "id": "C0-01",
+      "titulo": "Endurecer validação do pacote ZIP",
+      "escopo": "Testar tamanho, quantidade, tipo, caminho absoluto, ../, zip-slip, bombas ZIP, manifest e launcher; limitar extração",
+      "criterio_pronto": "ZIP correto funciona; casos maliciosos/inválidos são rejeitados com erro claro",
+      "dependencias": "AUD-02",
+      "status": "Aguardando validação em homologação",
+      "origem": "'Execução técnica'!A4:W4"
+    },
+    {
+      "id": "C0-02",
+      "titulo": "Definir isolamento dos pacotes SCORM",
+      "escopo": "Verificar origem do conteúdo, cookies, sandbox, comunicação SCORM; definir arquitetura compatível e testes",
+      "criterio_pronto": "Pacote não obtém dados de sessão nem recursos de outro curso",
+      "dependencias": "AUD-01",
+      "status": "Não iniciado",
+      "origem": "'Execução técnica'!A5:W5"
+    },
+    {
+      "id": "C0-03",
+      "titulo": "Auditar chave, cookies, sessão, logout",
+      "escopo": "Localizar segredos, expiração, rotação e invalidação; remover segredos do versionamento; testar logout e expiração",
+      "criterio_pronto": "Segredo fora do repo; expiração/logout verificáveis em ambiente teste",
+      "dependencias": "AUD-01",
+      "status": "Não iniciado",
+      "origem": "'Execução técnica'!A6:W6"
+    },
+    {
+      "id": "C0-04",
+      "titulo": "Documentar infraestrutura e backup",
+      "escopo": "Registrar host, API, BD, arquivos SCORM, variáveis, retenção, responsável e comandos de recuperação",
+      "criterio_pronto": "Guia executável por outra pessoa, sem expor credenciais",
+      "dependencias": "AUD-01",
+      "status": "Não iniciado",
+      "origem": "'Execução técnica'!A7:W7"
+    },
+    {
+      "id": "C0-05",
+      "titulo": "Testar restauração real do backup",
+      "escopo": "Backup do banco e arquivos; restaurar ambiente separado; conferir cursos, matrículas, arquivos; registrar data",
+      "criterio_pronto": "Relatório de restauração com verificações e duração",
+      "dependencias": "C0-04",
+      "status": "Não iniciado",
+      "origem": "'Execução técnica'!A8:W8"
+    },
+    {
+      "id": "M1-01",
+      "titulo": "Definir contrato mínimo com Carlo",
+      "escopo": "Para cada campo: tipo, obrigatório, origem, enum, exemplo, sistema dono; marcar pendentes com responsável",
+      "criterio_pronto": "Dicionário aprovado para Curso, Ferramenta, Trilha, Perfil e Área",
+      "dependencias": "Listas/definições de Carlo",
+      "status": "Não iniciado",
+      "origem": "'Execução técnica'!A9:W9"
+    },
+    {
+      "id": "C1-01",
+      "titulo": "Desenhar esquema C1 e relações",
+      "escopo": "Comparar modelos; desenhar entidades e FK; mapear relações curso-ferramenta/trilha; planejar migração retrocompatível",
+      "criterio_pronto": "Diagrama e plano de migração aprovados, com rollback e dados atuais preservados",
+      "dependencias": "M1-01",
+      "status": "Não iniciado",
+      "origem": "'Execução técnica'!A10:W10"
+    },
+    {
+      "id": "C1-02",
+      "titulo": "Implementar migração incremental C1",
+      "escopo": "Verificar migração usada; criar e aplicar alteração em cópia local; rodar upgrade/rollback; checar dados",
+      "criterio_pronto": "Banco existente migra sem perda e fresh install também funciona",
+      "dependencias": "C1-01",
+      "status": "Não iniciado",
+      "origem": "'Execução técnica'!A11:W11"
+    },
+    {
+      "id": "C0-06",
+      "titulo": "Revisar política de exclusão",
+      "escopo": "Mapear relações; escolher bloquear, soft-delete ou cascata para cada caso; testar órfãos",
+      "criterio_pronto": "Excluir ou desativar sem perda indevida e sem registros órfãos",
+      "dependencias": "AUD-01",
+      "status": "Não iniciado",
+      "origem": "'Execução técnica'!A12:W12"
+    },
+    {
+      "id": "C0-07",
+      "titulo": "Testar perfis administrativos",
+      "escopo": "Montar matriz papel x recurso; testar API negando operação sem permissão",
+      "criterio_pronto": "Todos os perfis autorizam só o previsto",
+      "dependencias": "AUD-01",
+      "status": "Não iniciado",
+      "origem": "'Execução técnica'!A13:W13"
+    },
+    {
+      "id": "C0-08",
+      "titulo": "Validar conclusão/nota no servidor",
+      "escopo": "Mapear origem score/status; validar ownership da sessão; aplicar regra no backend; testar adulteração",
+      "criterio_pronto": "Status final calculado/validado pelo servidor conforme regra aprovada",
+      "dependencias": "AUD-01; decisão com equipe pedagógica",
+      "status": "Não iniciado",
+      "origem": "'Execução técnica'!A14:W14"
+    },
+    {
+      "id": "C0-09",
+      "titulo": "Disponibilizar homologação para cursos",
+      "escopo": "Separar base/arquivos e credenciais; seed dados fictícios; documentar fluxo publicar R1",
+      "criterio_pronto": "Equipe de conteúdo testa pacote sem afetar produção",
+      "dependencias": "C0-04",
+      "status": "Não iniciado",
+      "origem": "'Execução técnica'!A15:W15"
+    },
+    {
+      "id": "C0-10",
+      "titulo": "Criar suíte mínima automatizada",
+      "escopo": "Configurar pytest/test client; fixtures isoladas; testar upload, matrícula, sessão e conclusão; integrar rotina",
+      "criterio_pronto": "Suíte roda localmente e identifica regressões antes de deploy",
+      "dependencias": "C0-01; C0-08",
+      "status": "Não iniciado",
+      "origem": "'Execução técnica'!A16:W16"
+    },
+    {
+      "id": "C1-03",
+      "titulo": "Criar importador idempotente de trilhas e perfis",
+      "escopo": "Validar JSON; transformar em models; executar upsert; conferir relações e ordem",
+      "criterio_pronto": "Reexecutar importador não duplica; totais e links conferidos",
+      "dependencias": "C1-02; trilhas.json final",
+      "status": "Não iniciado",
+      "origem": "'Execução técnica'!A17:W17"
+    },
+    {
+      "id": "C1-04",
+      "titulo": "Importar 29 cursos e 52 planejados",
+      "escopo": "Mapear course_code e tool_id; carregar cursos; marcar planejados sem pacote e indisponíveis ao player",
+      "criterio_pronto": "Contagens, vínculos e visibilidade conforme dicionário",
+      "dependencias": "C1-03; arquivos aprovados",
+      "status": "Não iniciado",
+      "origem": "'Execução técnica'!A18:W18"
+    },
+    {
+      "id": "C1-05",
+      "titulo": "Estender /catalog sem quebrar consumidores",
+      "escopo": "Definir resposta versionada/compatível; adicionar area, theme, levels, duration, status, tracks, profiles; testes de contrato",
+      "criterio_pronto": "Site consome novos campos; consumidores antigos continuam válidos",
+      "dependencias": "C1-04",
+      "status": "Não iniciado",
+      "origem": "'Execução técnica'!A19:W19"
+    },
+    {
+      "id": "C1-06",
+      "titulo": "Matrícula em trilha e progresso",
+      "escopo": "Definir regras para cursos planejados, idempotência, matrículas em lote e cálculo interno",
+      "criterio_pronto": "Usuário entra na trilha e vê progressão interna coerente",
+      "dependencias": "C1-03; C0-10",
+      "status": "Não iniciado",
+      "origem": "'Execução técnica'!A20:W20"
+    },
+    {
+      "id": "C1-07",
+      "titulo": "Adicionar Jurídica e filtros de área",
+      "escopo": "Importar J1–J5/perfis aprovados; adicionar filtro seguro; testar níveis de publicação",
+      "criterio_pronto": "Somente cursos ativos abrem; planejados aparecem em breve",
+      "dependencias": "C1-04; revisão editorial",
+      "status": "Não iniciado",
+      "origem": "'Execução técnica'!A21:W21"
+    },
+    {
+      "id": "C1-08",
+      "titulo": "Comparar LMS, site e dicionário",
+      "escopo": "Script comparador de IDs/status/level/workload/tracks; gerar diferenças; corrigir divergências",
+      "criterio_pronto": "Relatório de consistência sem divergências críticas",
+      "dependencias": "C1-05; dados publicados",
+      "status": "Não iniciado",
+      "origem": "'Execução técnica'!A22:W22"
+    },
+    {
+      "id": "C1-09",
+      "titulo": "Publicação e substituição de em breve",
+      "escopo": "Criar procedimento de carga; manter course_code, trocar status e associar pacote; registrar log",
+      "criterio_pronto": "Curso novo não fica bloqueado sem motivo; histórico existe",
+      "dependencias": "C1-04; homologação",
+      "status": "Não iniciado",
+      "origem": "'Execução técnica'!A23:W23"
+    },
+    {
+      "id": "C1-10",
+      "titulo": "Relatórios mínimos e changelog",
+      "escopo": "Agregar cursos por status, matrículas por trilha, perfis escolhidos; registrar mudanças",
+      "criterio_pronto": "Export/consulta validada com dados reais e sem expor dados pessoais",
+      "dependencias": "C1-06",
+      "status": "Não iniciado",
+      "origem": "'Execução técnica'!A24:W24"
+    }
+  ]
+}

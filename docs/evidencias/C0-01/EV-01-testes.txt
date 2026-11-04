@@ -1,0 +1,29 @@
+Data da execução: 2026-11-04 (America/Sao_Paulo)
+Comando: python tests/run_evidence.py
+Ambiente: Windows-11-10.0.26200-SP0; Python 3.12.14
+Tipo: testes automatizados locais; ZIPs sintéticos, filesystem temporário real.
+Sem conexão FTP, API HTTP ou banco.
+
+test_course_code (test_scorm_package.PackageTests.test_course_code) ... ok
+test_crc_corruption (test_scorm_package.PackageTests.test_crc_corruption) ... ok
+test_duplicate_case_alias (test_scorm_package.PackageTests.test_duplicate_case_alias) ... ok
+test_expansion_ratio (test_scorm_package.PackageTests.test_expansion_ratio) ... ok
+test_invalid_zip (test_scorm_package.PackageTests.test_invalid_zip) ... ok
+test_limits (test_scorm_package.PackageTests.test_limits) ... ok
+test_missing_launcher (test_scorm_package.PackageTests.test_missing_launcher) ... ok
+test_missing_manifest (test_scorm_package.PackageTests.test_missing_manifest) ... ok
+test_multiple_manifests (test_scorm_package.PackageTests.test_multiple_manifests) ... ok
+test_nested_package (test_scorm_package.PackageTests.test_nested_package) ... ok
+test_suspicious_files (test_scorm_package.PackageTests.test_suspicious_files) ... ok
+test_symlink (test_scorm_package.PackageTests.test_symlink) ... ok
+test_truncated_zip (test_scorm_package.PackageTests.test_truncated_zip) ... ok
+test_unsafe_paths (test_scorm_package.PackageTests.test_unsafe_paths) ... ok
+test_upload_limit_and_untrusted_filename (test_scorm_package.PackageTests.test_upload_limit_and_untrusted_filename) ... ok
+test_valid_package (test_scorm_package.PackageTests.test_valid_package) ... ok
+
+----------------------------------------------------------------------
+Ran 16 tests in 0.245s
+
+OK
+
+Total=16; falhas=0; erros=0; ignorados=0

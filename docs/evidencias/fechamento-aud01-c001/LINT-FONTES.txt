@@ -1,0 +1,176 @@
+Comando: C:\Users\Usuário\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe node_modules/.audit-npm/bin/npm-cli.js run lint -- --ignore-pattern .venv-c001/** --ignore-pattern public/scorm/** --ignore-pattern tmp/**
+
+> scorm-monitor@0.0.0 lint
+> eslint . --ignore-pattern .venv-c001/** --ignore-pattern public/scorm/** --ignore-pattern tmp/**
+
+
+C:\Users\Usuário\Documents\scorm-monitor\src\App.jsx
+   13:10  error    'students' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         no-unused-vars
+   13:20  error    'setStudents' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      no-unused-vars
+   25:10  error    'records' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          no-unused-vars
+   27:10  error    'trackingData' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     no-unused-vars
+  110:12  error    'clearRecords' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              no-unused-vars
+  222:6   warning  React Hook useEffect has a missing dependency: 'API_URL'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            react-hooks/exhaustive-deps
+  261:6   warning  React Hook useEffect has missing dependencies: 'API_URL' and 'finishBackendSession'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               react-hooks/exhaustive-deps
+  265:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  263 |   useEffect(() => {
+  264 |     if (selectedCourse) {
+> 265 |       loadStudentProgress(studentId, selectedCourse.course_code)
+      |       ^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  266 |     }
+  267 |   }, [studentId, selectedCourse])
+  268 |        react-hooks/set-state-in-effect
+  267:6   warning  React Hook useEffect has a missing dependency: 'loadStudentProgress'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                react-hooks/exhaustive-deps
+  274:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  272 |
+  273 |     if (cursoParam) {
+> 274 |       setPendingCourseCode(cursoParam)
+      |       ^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  275 |     }
+  276 |   }, [])
+  277 |   const reloadCourses = useCallback(async () => {                                react-hooks/set-state-in-effect
+  335:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  333 |
+  334 |   useEffect(() => {
+> 335 |     reloadCourses()
+      |     ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  336 |   }, [reloadCourses])
+  337 |
+  338 |   useEffect(() => {                                                                                     react-hooks/set-state-in-effect
+  339:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  337 |
+  338 |   useEffect(() => {
+> 339 |     loadRecords()
+      |     ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  340 |   }, [])
+  341 |
+  342 |   useEffect(() => {                                                                                                      react-hooks/set-state-in-effect
+  381:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  379 |     }
+  380 |
+> 381 |     startBackendSession().then(id => {
+      |     ^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  382 |       if (!cancelled) {
+  383 |         currentSessionId = id
+  384 |         if (Object.keys(pendingSessionUpdate).length > 0) {  react-hooks/set-state-in-effect
+  586:6   warning  React Hook useEffect has missing dependencies: 'saveCompletion', 'selectedStudent', 'startBackendSession', and 'updateBackendSession'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             react-hooks/exhaustive-deps
+
+C:\Users\Usuário\Documents\scorm-monitor\src\main.jsx
+  1:8  error  'React' is defined but never used  no-unused-vars
+
+C:\Users\Usuário\Documents\scorm-monitor\src\pages\AdminPage.jsx
+   259:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  257 |
+  258 |   useEffect(() => {
+> 259 |     loadData()
+      |     ^^^^^^^^ Avoid calling setState() directly within an effect
+  260 |   }, [])
+  261 |
+  262 |   async function loadInsights() {                                                                                                        react-hooks/set-state-in-effect
+   260:6   warning  React Hook useEffect has a missing dependency: 'loadData'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     react-hooks/exhaustive-deps
+   296:34  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  294 |
+  295 |   useEffect(() => {
+> 296 |     if (activeTab === "acessos") loadInsights()
+      |                                  ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  297 |   }, [activeTab])
+  298 |   useEffect(() => {
+  299 |     async function loadClassStudents() {  react-hooks/set-state-in-effect
+   297:6   warning  React Hook useEffect has a missing dependency: 'loadInsights'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 react-hooks/exhaustive-deps
+   315:6   warning  React Hook useEffect has a missing dependency: 'API_URL'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-hooks/exhaustive-deps
+  2297:25  error    'labelStyle' is not defined                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     no-undef
+  2298:25  error    'labelStyle' is not defined                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     no-undef
+  2299:25  error    'labelStyle' is not defined                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     no-undef
+  2300:25  error    'labelStyle' is not defined                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     no-undef
+  2301:25  error    'labelStyle' is not defined                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     no-undef
+
+C:\Users\Usuário\Documents\scorm-monitor\src\pages\Dashboard.jsx
+   73:9    warning  The 'safeCourses' conditional could make the dependencies of useEffect Hook (at line 146) change on every render. To fix this, wrap the initialization of 'safeCourses' in its own useMemo() Hook                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              react-hooks/exhaustive-deps
+   73:9    warning  The 'safeCourses' conditional could make the dependencies of useMemo Hook (at line 199) change on every render. To fix this, wrap the initialization of 'safeCourses' in its own useMemo() Hook                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                react-hooks/exhaustive-deps
+   73:9    warning  The 'safeCourses' conditional could make the dependencies of useMemo Hook (at line 208) change on every render. To fix this, wrap the initialization of 'safeCourses' in its own useMemo() Hook                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                react-hooks/exhaustive-deps
+   96:5    error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  94 |
+  95 |   useEffect(() => {
+> 96 |     setPublicPage(1)
+     |     ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  97 |   }, [coursesPerPage])
+  98 |
+  99 |   const [passwordForm, setPasswordForm] = useState({  react-hooks/set-state-in-effect
+  194:5    error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  192 |
+  193 |   useEffect(() => {
+> 194 |     setPublicPage(1)
+      |     ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  195 |   }, [publicSearch, activeTab])
+  196 |
+  197 |   const enrolledCodes = useMemo(      react-hooks/set-state-in-effect
+  241:6    warning  React Hook useMemo has a missing dependency: 'getPublicPriority'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             react-hooks/exhaustive-deps
+  700:105  error    'partIndex' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          no-unused-vars
+
+✖ 32 problems (21 errors, 11 warnings)
+
+
+exit=1

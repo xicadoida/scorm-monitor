@@ -1,0 +1,6 @@
+cwd=C:\Users\Usuário\Documents\scorm-monitor
+Comando=C:\Users\Usuário\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe C:\Users\Usuário\Documents\scorm-monitor\node_modules\.audit-npm\bin\npm-cli.js --version
+
+11.6.2
+
+exit=0

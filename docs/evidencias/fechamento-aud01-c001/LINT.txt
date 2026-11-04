@@ -1,0 +1,13 @@
+cwd=C:\Users\Usuário\Documents\scorm-monitor
+Comando=C:\Users\Usuário\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe C:\Users\Usuário\Documents\scorm-monitor\node_modules\.audit-npm\bin\npm-cli.js run lint
+
+
+> scorm-monitor@0.0.0 lint
+> eslint .
+
+Extrato de execução: configuração atual incluiu venv/terceiros e public/scorm.
+✖ 38583 problems (38565 errors, 18 warnings)
+exit=1
+Saída integral preservada localmente: tmp/fechamento-aud01/lint-completo.txt
+SHA-256: 35b76e69e7948b28ae56409fd316d98158221aca83cd13cb2710e9bca261017a
+Diagnóstico dos fontes próprios sem esses diretórios: LINT-FONTES.txt.

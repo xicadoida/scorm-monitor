@@ -1,0 +1,6 @@
+cwd=C:\Users\Usuário\Documents\scorm-monitor
+Comando=C:\Users\Usuário\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe --version
+
+v24.22.1
+
+exit=0

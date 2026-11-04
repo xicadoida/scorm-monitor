@@ -1,0 +1,7 @@
+{
+  "backend/routes/sessions.py": true,
+  "backend/schemas.py": true,
+  "src/App.jsx": true,
+  "src/main.jsx": true,
+  "public/.htaccess": true
+}

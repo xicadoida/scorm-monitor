@@ -1,0 +1,89 @@
+Data: 04/11/2026; America/Sao_Paulo
+Ambiente: Windows-11-10.0.26200-SP0; Python 3.12.14
+Comando: C:\Users\Usuário\Documents\scorm-monitor\.venv-c001\Scripts\python.exe -m unittest discover -s tests -v
+cwd: C:\Users\Usuário\Documents\scorm-monitor\backend
+Testes locais: ZIP/XML reais; SQLite real; HTTP ASGI com FTP simulado; FTP loopback real. Sem homologação.
+
+test_corrupt_zip_http_rejected (test_scorm_api.ApiTests.test_corrupt_zip_http_rejected) ... ok
+test_explicit_migration_is_idempotent (test_scorm_api.ApiTests.test_explicit_migration_is_idempotent) ... ok
+test_explicit_migration_preserves_existing_course (test_scorm_api.ApiTests.test_explicit_migration_preserves_existing_course) ... C:\Users\Usuário\Documents\scorm-monitor\.venv-c001\Lib\site-packages\sqlalchemy\sql\schema.py:3623: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+ok
+test_invalid_manifest_http_has_no_ftp_or_db_effect (test_scorm_api.ApiTests.test_invalid_manifest_http_has_no_ftp_or_db_effect) ... ok
+test_replace_http_preserves_course_id (test_scorm_api.ApiTests.test_replace_http_preserves_course_id) ... C:\Users\Usuário\Documents\scorm-monitor\backend\scorm_publication.py:271: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  course.updated_at = datetime.utcnow()
+C:\Users\Usuário\Documents\scorm-monitor\backend\catalog_utils.py:10: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  state = CatalogState(id=1, updated_at=datetime.utcnow())
+ok
+test_restore_failure_http_returns_sanitized_error (test_scorm_api.ApiTests.test_restore_failure_http_returns_sanitized_error) ... ok
+test_root_api (test_scorm_api.ApiTests.test_root_api) ... ok
+test_upload_http_and_persistence (test_scorm_api.ApiTests.test_upload_http_and_persistence) ... C:\Users\Usuário\Documents\scorm-monitor\backend\scorm_publication.py:265: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  course = Course(course_code=code, active=True, created_at=datetime.utcnow(), **metadata)
+ok
+test_upload_without_authentication (test_scorm_api.ApiTests.test_upload_without_authentication) ... ok
+test_real_ftp_recovery_after_process_exit (test_scorm_ftp_local.LocalFtpTests.test_real_ftp_recovery_after_process_exit) ... ok
+test_real_ftp_rollback_after_injected_swap_response_loss (test_scorm_ftp_local.LocalFtpTests.test_real_ftp_rollback_after_injected_swap_response_loss) ... ok
+test_real_ftp_upload_and_replace (test_scorm_ftp_local.LocalFtpTests.test_real_ftp_upload_and_replace) ... C:\Users\Usuário\Documents\scorm-monitor\backend\catalog_utils.py:13: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  state.updated_at = datetime.utcnow()
+ok
+test_default_organization (test_scorm_manifest.ManifestTests.test_default_organization) ... ok
+test_dependency_missing (test_scorm_manifest.ManifestTests.test_dependency_missing) ... ok
+test_empty_manifest (test_scorm_manifest.ManifestTests.test_empty_manifest) ... ok
+test_entities_and_dtd (test_scorm_manifest.ManifestTests.test_entities_and_dtd) ... ok
+test_launcher_without_driver_folder_and_query (test_scorm_manifest.ManifestTests.test_launcher_without_driver_folder_and_query) ... ok
+test_malformed_xml (test_scorm_manifest.ManifestTests.test_malformed_xml) ... ok
+test_manifest_12 (test_scorm_manifest.ManifestTests.test_manifest_12) ... ok
+test_manifest_2004 (test_scorm_manifest.ManifestTests.test_manifest_2004) ... ok
+test_manifest_size (test_scorm_manifest.ManifestTests.test_manifest_size) ... ok
+test_missing_resource_file (test_scorm_manifest.ManifestTests.test_missing_resource_file) ... ok
+test_resource_reference (test_scorm_manifest.ManifestTests.test_resource_reference) ... ok
+test_unsafe_resource_paths (test_scorm_manifest.ManifestTests.test_unsafe_resource_paths) ... ok
+test_wrong_structure (test_scorm_manifest.ManifestTests.test_wrong_structure) ... ok
+test_xml_base_and_group_item (test_scorm_manifest.ManifestTests.test_xml_base_and_group_item) ... ok
+test_course_code (test_scorm_package.PackageTests.test_course_code) ... ok
+test_crc_corruption (test_scorm_package.PackageTests.test_crc_corruption) ... ok
+test_duplicate_case_alias (test_scorm_package.PackageTests.test_duplicate_case_alias) ... ok
+test_expansion_ratio (test_scorm_package.PackageTests.test_expansion_ratio) ... ok
+test_invalid_zip (test_scorm_package.PackageTests.test_invalid_zip) ... ok
+test_limits (test_scorm_package.PackageTests.test_limits) ... ok
+test_missing_launcher (test_scorm_package.PackageTests.test_missing_launcher) ... ok
+test_missing_manifest (test_scorm_package.PackageTests.test_missing_manifest) ... ok
+test_multiple_manifests (test_scorm_package.PackageTests.test_multiple_manifests) ... ok
+test_nested_package (test_scorm_package.PackageTests.test_nested_package) ... ok
+test_suspicious_files (test_scorm_package.PackageTests.test_suspicious_files) ... ok
+test_symlink (test_scorm_package.PackageTests.test_symlink) ... ok
+test_truncated_zip (test_scorm_package.PackageTests.test_truncated_zip) ... ok
+test_unsafe_paths (test_scorm_package.PackageTests.test_unsafe_paths) ... ok
+test_upload_limit_and_untrusted_filename (test_scorm_package.PackageTests.test_upload_limit_and_untrusted_filename) ... ok
+test_valid_package (test_scorm_package.PackageTests.test_valid_package) ... ok
+test_ambiguous_database_commit_keeps_committed_version (test_scorm_publication.PublicationTests.test_ambiguous_database_commit_keeps_committed_version) ... ok
+test_ambiguous_swap_applied_then_connection_lost (test_scorm_publication.PublicationTests.test_ambiguous_swap_applied_then_connection_lost) ... ok
+test_cleanup_failure_preserves_committed_state (test_scorm_publication.PublicationTests.test_cleanup_failure_preserves_committed_state) ... ok
+test_complete_upload (test_scorm_publication.PublicationTests.test_complete_upload) ... ok
+test_database_failure_rolls_back_remote (test_scorm_publication.PublicationTests.test_database_failure_rolls_back_remote) ... ok
+test_duplicate_course_rejected_before_ftp (test_scorm_publication.PublicationTests.test_duplicate_course_rejected_before_ftp) ... ok
+test_failure_during_restore_preserves_journal_and_backup (test_scorm_publication.PublicationTests.test_failure_during_restore_preserves_journal_and_backup) ... ok
+test_failure_during_swap (test_scorm_publication.PublicationTests.test_failure_during_swap) ... ok
+test_failure_during_temporary_upload (test_scorm_publication.PublicationTests.test_failure_during_temporary_upload) ... ok
+test_missing_previous_folder (test_scorm_publication.PublicationTests.test_missing_previous_folder) ... ok
+test_pending_operation_blocks_another_publication (test_scorm_publication.PublicationTests.test_pending_operation_blocks_another_publication) ... ok
+test_permission_failure_not_mistaken_for_absence (test_scorm_publication.PublicationTests.test_permission_failure_not_mistaken_for_absence) ... ok
+test_recovery_refuses_changed_ftp_target (test_scorm_publication.PublicationTests.test_recovery_refuses_changed_ftp_target) ... ok
+test_rename_unsupported_does_not_touch_previous (test_scorm_publication.PublicationTests.test_rename_unsupported_does_not_touch_previous) ... ok
+test_replace_preserves_persisted_links (test_scorm_publication.PublicationTests.test_replace_preserves_persisted_links) ... ok
+test_restart_after_interrupted_publication (test_scorm_publication.PublicationTests.test_restart_after_interrupted_publication) ... ok
+test_restart_after_staging_directory_creation (test_scorm_publication.PublicationTests.test_restart_after_staging_directory_creation) ... ok
+test_restart_with_probe_interrupted (test_scorm_publication.PublicationTests.test_restart_with_probe_interrupted) ... ok
+test_restore_response_lost_is_idempotent_on_retry (test_scorm_publication.PublicationTests.test_restore_response_lost_is_idempotent_on_retry) ... ok
+test_simultaneous_publication_same_course_is_excluded (test_scorm_publication.PublicationTests.test_simultaneous_publication_same_course_is_excluded) ... ok
+test_staged_integrity_mismatch (test_scorm_publication.PublicationTests.test_staged_integrity_mismatch) ... ok
+test_successive_cleanup_failures_never_revert_committed_version (test_scorm_publication.PublicationTests.test_successive_cleanup_failures_never_revert_committed_version) ... ok
+test_successive_restore_failures_preserve_previous_and_journal (test_scorm_publication.PublicationTests.test_successive_restore_failures_preserve_previous_and_journal) ... ok
+test_upload_conflict_does_not_overwrite_folder (test_scorm_publication.PublicationTests.test_upload_conflict_does_not_overwrite_folder) ... ok
+
+----------------------------------------------------------------------
+Ran 66 tests in 17.547s
+
+OK
+
+exit=0

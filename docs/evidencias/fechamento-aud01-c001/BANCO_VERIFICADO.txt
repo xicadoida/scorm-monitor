@@ -1,0 +1,6 @@
+cwd=C:\Users\Usuário\Documents\scorm-monitor\backend
+Comando=C:\Users\Usuário\Documents\scorm-monitor\.venv-c001\Scripts\python.exe -c "from database import SessionLocal,engine; from sqlalchemy import inspect; from models import Course; db=SessionLocal(); c=db.query(Course).one(); assert c.title=='Preservar'; assert 'scorm_publications' in inspect(engine).get_table_names(); print('Curso preservado; journal criado; nenhuma conexao FTP'); db.close()"
+
+Curso preservado; journal criado; nenhuma conexao FTP
+
+exit=0

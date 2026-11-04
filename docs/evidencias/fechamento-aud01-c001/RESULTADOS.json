@@ -1,0 +1,64 @@
+{
+  "data": "04/11/2026",
+  "ambiente": "Windows-11-10.0.26200-SP0",
+  "python": "3.12.14",
+  "etapas": [
+    {
+      "etapa": "DEPENDENCIAS",
+      "exit": 0
+    },
+    {
+      "etapa": "TESTES",
+      "exit": 0
+    },
+    {
+      "etapa": "BANCO_ANTERIOR",
+      "exit": 0
+    },
+    {
+      "etapa": "MIGRACAO",
+      "exit": 0
+    },
+    {
+      "etapa": "MIGRACAO_REPETIDA",
+      "exit": 0
+    },
+    {
+      "etapa": "BANCO_VERIFICADO",
+      "exit": 0
+    },
+    {
+      "etapa": "API",
+      "exit": 0
+    },
+    {
+      "etapa": "RECUPERACAO_CONSULTA",
+      "exit": 0
+    },
+    {
+      "etapa": "NODE",
+      "exit": 0
+    },
+    {
+      "etapa": "NPM",
+      "exit": 0
+    },
+    {
+      "etapa": "BUILD",
+      "exit": 0
+    },
+    {
+      "etapa": "LINT",
+      "exit": 1
+    },
+    {
+      "etapa": "VITE",
+      "exit": 0
+    },
+    {
+      "etapa": "PREVIEW",
+      "exit": 0
+    }
+  ],
+  "manifestos_aceitos": 10
+}

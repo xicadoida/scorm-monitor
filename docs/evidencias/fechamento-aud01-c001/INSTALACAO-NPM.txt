@@ -1,0 +1,6 @@
+Extrato do log npm ci: tmp\fechamento-aud01\npm-cache\_logs\2026-11-04T21_13_28_184Z-debug-0.log
+1 info using npm@11.6.2
+2 info using node@v24.22.1
+7 verbose title npm ci
+569 verbose exit 0
+570 info ok

@@ -1,0 +1,5 @@
+cwd=C:\Users\Usuário\Documents\scorm-monitor\backend
+Comando=C:\Users\Usuário\Documents\scorm-monitor\.venv-c001\Scripts\python.exe -c "from database import Base,engine,SessionLocal; import models; Base.metadata.create_all(engine,tables=[t for t in Base.metadata.sorted_tables if t.name!='scorm_publications']); db=SessionLocal(); db.add(models.Course(course_code='synthetic-aud01',title='Preservar',scorm_path='synthetic')); db.commit(); db.close()"
+
+
+exit=0

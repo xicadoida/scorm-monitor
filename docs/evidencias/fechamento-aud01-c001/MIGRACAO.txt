@@ -1,0 +1,6 @@
+cwd=C:\Users\Usuário\Documents\scorm-monitor\backend
+Comando=C:\Users\Usuário\Documents\scorm-monitor\.venv-c001\Scripts\python.exe migrate_add_scorm_publications.py
+
+Tabela scorm_publications disponível; nenhuma publicação executada.
+
+exit=0

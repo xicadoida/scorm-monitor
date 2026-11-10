@@ -654,12 +654,18 @@ function App() {
           event={event}
           reloadCourses={reloadCourses}
           onOpenReport={() => setCurrentPage("report")}
-          onLogout={() => {
-            localStorage.removeItem("loggedStudent")
-            localStorage.removeItem("accessToken")
-            setLoggedStudent(null)
-            setSelectedStudent(null)
-            setCurrentPage("login")
+          onLogout={async () => {
+            try {
+              await fetch(`${API_URL}/auth/logout`, { method: "POST" })
+            } catch {
+              // Mesmo sem rede, nao manter uma sessao local que a pessoa pediu para encerrar.
+            } finally {
+              localStorage.removeItem("loggedStudent")
+              localStorage.removeItem("accessToken")
+              setLoggedStudent(null)
+              setSelectedStudent(null)
+              setCurrentPage("login")
+            }
           }}
           onOpenCourse={(course) => {
             setSelectedCourse(course)

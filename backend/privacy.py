@@ -41,6 +41,20 @@ def anonymized_ip_hash(request: Request | None) -> str | None:
     return hmac.new(secret.encode("utf-8"), ip.encode("utf-8"), hashlib.sha256).hexdigest()
 
 
+def trusted_forwarded_ip_hash(request: Request | None) -> str | None:
+    """Hash de IP para limite de login somente via proxy explicitamente confiado.
+
+    Sem essa condicao, um proxy reverso faria todas as pessoas parecerem ter o
+    mesmo endereco (por exemplo, 127.0.0.1), bloqueando contas sem relacao.
+    """
+
+    if not _truthy(os.getenv("TRUST_PROXY_HEADERS")) or request is None:
+        return None
+    if not (request.headers.get("x-forwarded-for") or "").strip():
+        return None
+    return anonymized_ip_hash(request)
+
+
 def record_access_event(
     db,
     request: Request | None,

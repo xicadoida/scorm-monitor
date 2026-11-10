@@ -6,20 +6,32 @@ import secrets
 from datetime import datetime, timedelta
 from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy import func
 
 from database import SessionLocal
-from models import Student, Event, RegistrationProfile, PasswordResetToken
+from models import AccessEvent, Student, Event, RegistrationProfile, PasswordResetToken
 from schemas import ChangePasswordRequest
 from security import hash_password, verify_password
 from event_utils import get_event_for_email
-from auth_utils import CurrentUser, create_access_token, get_current_user, is_admin_email
+from auth_utils import (
+    CurrentUser,
+    auth_secret,
+    create_access_token,
+    get_current_user,
+    is_admin_email,
+    login_principal,
+    login_rate_limit,
+)
 from email_service import send_email
-from privacy import prune_expired_access_events, record_access_event
+from privacy import prune_expired_access_events, record_access_event, trusted_forwarded_ip_hash
 
 router = APIRouter()
 TERMS_OF_USE_URL = "https://iaclube.com/sobre/temos-de-uso-lms"
+# Hash sintaticamente valido para manter custo semelhante quando o e-mail nao
+# existe. Nao representa credencial de nenhuma conta.
+DUMMY_PASSWORD_HASH = "00000000000000000000000000000000$0000000000000000000000000000000000000000000000000000000000000000"
 
 
 class LoginRequest(BaseModel):
@@ -48,10 +60,8 @@ class ResetPasswordRequest(BaseModel):
 
 
 def _reset_token_hash(token: str) -> str:
-    secret = os.getenv("AUTH_SECRET", "")
-    if len(secret) < 32:
-        raise HTTPException(status_code=503, detail="Recupera\u00e7\u00e3o de senha indispon\u00edvel no servidor.")
-    return hmac.new(secret.encode("utf-8"), token.encode("utf-8"), hashlib.sha256).hexdigest()
+    secret = auth_secret()
+    return hmac.new(secret, token.encode("utf-8"), hashlib.sha256).hexdigest()
 
 
 def _public_app_url(event: dict | None = None) -> str:
@@ -101,75 +111,169 @@ def _check_event_access(db, email, event_slug):
     return True, None
 
 
+def _invalid_credentials_response():
+    """Nao diferencia conta inexistente de senha invalida."""
+
+    return JSONResponse(
+        status_code=401,
+        content={"success": False, "message": "Credenciais invalidas."},
+    )
+
+
+def _failed_login_attempts(db, principal, client_ip_hash, cutoff):
+    base_query = db.query(AccessEvent).filter(
+        AccessEvent.event_type == "login",
+        AccessEvent.success.is_(False),
+        AccessEvent.created_at >= cutoff,
+    )
+    principal_count = base_query.filter(
+        AccessEvent.student_code == principal
+    ).count()
+    if not client_ip_hash:
+        return principal_count
+    ip_count = base_query.filter(AccessEvent.ip_hash == client_ip_hash).count()
+    return max(principal_count, ip_count)
+
+
+def _rate_limited_response(window_seconds):
+    return JSONResponse(
+        status_code=429,
+        content={
+            "success": False,
+            "message": "Muitas tentativas. Aguarde antes de tentar novamente.",
+        },
+        headers={"Retry-After": str(window_seconds)},
+    )
+
+
 @router.post("/auth/login")
 def login(data: LoginRequest, request: Request):
+    # Falha antes de consultar credenciais se a chave de assinatura nao estiver
+    # configurada. Assim, uma instalacao incompleta nao emite sessao alguma.
+    auth_secret()
+    policy = login_rate_limit()
     db = SessionLocal()
-    email = data.email.strip().lower()
+    try:
+        email = data.email.strip().lower()
 
-    student = db.query(Student).filter(
-        func.lower(Student.email) == email
-    ).first()
+        student = db.query(Student).filter(
+            func.lower(Student.email) == email
+        ).first()
+        principal = login_principal(email, student.student_code if student else None)
+        # A dimensao de IP so e usada quando o proxy foi configurado para fornecer
+        # um X-Forwarded-For confiavel; a conta sempre continua limitada.
+        client_ip_hash = trusted_forwarded_ip_hash(request)
+        cutoff = datetime.utcnow() - timedelta(seconds=policy.window_seconds)
 
-    if not student:
-        record_access_event(db, request, "login", success=False, route="/auth/login")
-        prune_expired_access_events(db)
-        db.commit()
-        db.close()
-        return {
-            "success": False,
-            "message": "Aluno não encontrado."
-        }
+        if _failed_login_attempts(db, principal, client_ip_hash, cutoff) >= policy.max_attempts:
+            record_access_event(
+                db,
+                request,
+                "login_rate_limited",
+                success=False,
+                student_code=principal,
+                route="/auth/login",
+            )
+            prune_expired_access_events(db)
+            db.commit()
+            return _rate_limited_response(policy.window_seconds)
 
-    if not verify_password(data.password, student.password_hash):
+        if not student:
+            verify_password(data.password, DUMMY_PASSWORD_HASH)
+            record_access_event(
+                db,
+                request,
+                "login",
+                success=False,
+                student_code=principal,
+                route="/auth/login",
+            )
+            prune_expired_access_events(db)
+            db.commit()
+            return _invalid_credentials_response()
+
+        if not verify_password(data.password, student.password_hash):
+            record_access_event(
+                db, request, "login", success=False,
+                student_code=student.student_code, route="/auth/login",
+            )
+            prune_expired_access_events(db)
+            db.commit()
+            return _invalid_credentials_response()
+
+        event = get_event_for_email(db, student.email)
+        allowed, message = _check_event_access(db, student.email, data.event_slug)
+        if not allowed:
+            record_access_event(
+                db, request, "login", success=False,
+                student_code=student.student_code,
+                event_id=event["id"] if event else None,
+                route="/auth/login",
+            )
+            prune_expired_access_events(db)
+            db.commit()
+            return {"success": False, "message": message}
         record_access_event(
-            db, request, "login", success=False,
-            student_code=student.student_code, route="/auth/login",
-        )
-        prune_expired_access_events(db)
-        db.commit()
-        db.close()
-        return {
-            "success": False,
-            "message": "Senha incorreta."
-        }
-
-    event = get_event_for_email(db, student.email)
-    allowed, message = _check_event_access(db, student.email, data.event_slug)
-    if not allowed:
-        record_access_event(
-            db, request, "login", success=False,
+            db, request, "login", success=True,
             student_code=student.student_code,
             event_id=event["id"] if event else None,
             route="/auth/login",
         )
         prune_expired_access_events(db)
         db.commit()
-        db.close()
-        return {"success": False, "message": message}
-    record_access_event(
-        db, request, "login", success=True,
-        student_code=student.student_code,
-        event_id=event["id"] if event else None,
-        route="/auth/login",
-    )
-    prune_expired_access_events(db)
-    db.commit()
-    access_token = create_access_token(student)
-    db.close()
+        access_token = create_access_token(student)
 
-    return {
-        "success": True,
-        "access_token": access_token,
-        "token_type": "bearer",
-        "student": {
-            "id": student.id,
-            "student_code": student.student_code,
-            "name": student.name,
-            "email": student.email,
-            "event": event,
-            "is_admin": is_admin_email(student.email),
+        return {
+            "success": True,
+            "access_token": access_token,
+            "token_type": "bearer",
+            "student": {
+                "id": student.id,
+                "student_code": student.student_code,
+                "name": student.name,
+                "email": student.email,
+                "event": event,
+                "is_admin": is_admin_email(student.email),
+            }
         }
-    }
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+@router.post("/auth/logout")
+def logout(request: Request, current_user: CurrentUser = Depends(get_current_user)):
+    """Revoga os tokens ativos da conta pela versao de autenticacao."""
+
+    db = SessionLocal()
+    try:
+        student = db.query(Student).filter(
+            Student.student_code == current_user.student_code
+        ).first()
+        if not student:
+            raise HTTPException(status_code=401, detail="Sessao invalida ou expirada.")
+
+        student.auth_token_version = (student.auth_token_version or 0) + 1
+        event = get_event_for_email(db, student.email)
+        record_access_event(
+            db,
+            request,
+            "logout",
+            success=True,
+            student_code=student.student_code,
+            event_id=event["id"] if event else None,
+            route="/auth/logout",
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+    return {"success": True, "message": "Sessao encerrada com sucesso."}
 
 
 @router.post("/auth/register")

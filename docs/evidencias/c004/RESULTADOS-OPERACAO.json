@@ -1,0 +1,38 @@
+{
+  "data": "14/11/2026",
+  "escopo": "verificação do guia com fixture sintética; não é aceite C0-05/produção",
+  "etapas": [
+    {
+      "etapa": "BACKUP",
+      "exit": 0,
+      "esperado": 0
+    },
+    {
+      "etapa": "VERIFICAR",
+      "exit": 0,
+      "esperado": 0
+    },
+    {
+      "etapa": "RESTAURAR_FIXTURE",
+      "exit": 0,
+      "esperado": 0
+    },
+    {
+      "etapa": "RECUSAR_SOBRESCRITA",
+      "exit": 1,
+      "esperado": "não zero"
+    },
+    {
+      "etapa": "DETECTAR_CORRUPCAO",
+      "exit": 1,
+      "esperado": "não zero"
+    },
+    {
+      "etapa": "RECUSAR_RESTORE_CORROMPIDO",
+      "exit": 1,
+      "esperado": "não zero"
+    }
+  ],
+  "origem_sqlite_preservada": true,
+  "utilitario_sha256": "04f06c6dd6e9e1e92b9503cf7c708b1a6b1da252298ec0f78793d8a4d04c8912"
+}

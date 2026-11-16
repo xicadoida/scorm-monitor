@@ -1,0 +1,9 @@
+Data: 14/11/2026 America/Sao_Paulo
+Python 3.12.14; Windows-11-10.0.26200-SP0
+cwd=C:\Users\Usuário\Documents\scorm-monitor
+Comando: C:\Users\Usuário\Documents\scorm-monitor\.venv-c001\Scripts\python.exe C:\Users\Usuário\Documents\scorm-monitor\tools\lms_snapshot.py restore --source C:\Users\USURIO~2\AppData\Local\Temp\tmptmn4y2u_\snapshot --destination C:\Users\USURIO~2\AppData\Local\Temp\tmptmn4y2u_\restored
+
+Falha: Destino deve ser novo; não haverá sobrescrita.
+Não remover nem sobrescrever fontes; revisar snapshot/destino.
+
+exit=1

@@ -1,0 +1,9 @@
+Data: 14/11/2026 America/Sao_Paulo
+Python 3.12.14; Windows-11-10.0.26200-SP0
+cwd=C:\Users\Usuário\Documents\scorm-monitor
+Comando: C:\Users\Usuário\Documents\scorm-monitor\.venv-c001\Scripts\python.exe -c "import sys,hashlib,fastapi,sqlalchemy,defusedxml,httpx,pyftpdlib; assert sys.version_info>=(3,11); assert hasattr(hashlib,'file_digest'); print(sys.version); print('FastAPI',fastapi.__version__,'SQLAlchemy',sqlalchemy.__version__,'defusedxml',defusedxml.__version__)"
+
+3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]
+FastAPI 0.136.3 SQLAlchemy 2.0.50 defusedxml 0.7.1
+
+exit=0

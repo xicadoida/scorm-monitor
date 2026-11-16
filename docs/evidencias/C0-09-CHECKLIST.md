@@ -1,5 +1,7 @@
 # C0-09 — condições para homologa⁠ção
 
+Preparação C0-04 concluída documentalmente em 14/11/2026: consultar [guia operacional](../GUIA_OPERACIONAL_LMS.md) e [FECHAMENTO_C004.md](FECHAMENTO_C004.md). Isso não disponibiliza o ambiente nem conclui a prova de restauração C0-05.
+
 Atualização de fechamento em 04/11/2026: publicação recuperável, migração e procedimento de recuperação estão implementados e testados localmente. Nenhum ambiente externo foi identificado/autorizado. Não foram utilizadas credenciais/dados reais nem feito acesso FTP externo. Os ensaios loopback não disponibilizam homologação à equipe de conteúdo.
 
 O operador precisa fornecer: identificação/URL do ambiente; DATABASE_URL segregado; host/porta/raiz/URL FTP; credencial exclusiva limitada à raiz de teste; transporte escolhido; autorização e janela para falhas. Os valores devem ser configurados privadamente, não anexados aos logs.

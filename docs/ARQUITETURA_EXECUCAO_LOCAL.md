@@ -1,5 +1,7 @@
 # AUD-01 — arquitetura e execução reproduzível
 
+Operação atual (C0-04, 14/11/2026): [instalação, migrações, backup e restauração](GUIA_OPERACIONAL_LMS.md). Após C0-03, AUTH_SECRET e administradores não têm fallback utilizável, POST /auth/logout revoga tokens da conta, e AUTH_LOGIN_MAX_ATTEMPTS/AUTH_LOGIN_WINDOW_SECONDS configuram o limite de login. TRUST_PROXY_HEADERS permanece false salvo proxy explicitamente confiável.
+
 Fechamento local de 04/11/2026, main/fa3fbab com alterações locais preservadas. Critério original: “README de arquitetura com comandos reproduzíveis e mapa das rotas” (Execução técnica!H2, extrato em evidencias/auditoria-v3/PLANILHA_REFERENCIA.json). Este documento consolida o estado atual; os relatórios anteriores preservam o histórico.
 
 ## Componentes, dados e fluxos
@@ -23,7 +25,7 @@ SQLAlchemy usa SQLite como fallback, configurável por DATABASE_URL. Course repr
 | Router | Operações principais |
 |---|---|
 | raiz | GET /, /docs e /openapi.json |
-| auth | POST /auth/login, register, forgot-password, reset-password, change-password |
+| auth | POST /auth/login, logout, register, forgot-password, reset-password, change-password |
 | courses | POST /courses/upload; POST /courses/{course_code}/replace-file; GET/POST /courses; GET /courses/public; PUT/DELETE /courses/{course_code} |
 | sessions | POST /sessions/start; POST /sessions/{session_id}/update e finish; GET /sessions; GET /progress/{student_id}/{course_id} |
 | students | GET/POST /students; PUT/DELETE /students/{student_code}; POST reset-password e delete-account |

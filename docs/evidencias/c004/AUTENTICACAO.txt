@@ -1,0 +1,33 @@
+Data: 14/11/2026 America/Sao_Paulo
+Python 3.12.14; Windows-11-10.0.26200-SP0
+cwd=C:\Users\Usuário\Documents\scorm-monitor\backend
+Comando: C:\Users\Usuário\Documents\scorm-monitor\.venv-c001\Scripts\python.exe -m unittest discover -s tests -p test_auth_security.py -v
+
+test_example_configuration_contains_no_usable_secrets (test_auth_security.AuthenticationSecurityTests.test_example_configuration_contains_no_usable_secrets) ... C:\Users\Usuário\Documents\scorm-monitor\.venv-c001\Lib\site-packages\sqlalchemy\sql\schema.py:3623: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+ok
+test_expired_session_is_rejected (test_auth_security.AuthenticationSecurityTests.test_expired_session_is_rejected) ... ok
+test_invalid_or_malformed_credentials_are_rejected_without_enumeration (test_auth_security.AuthenticationSecurityTests.test_invalid_or_malformed_credentials_are_rejected_without_enumeration) ... C:\Users\Usuário\Documents\scorm-monitor\backend\routes\auth.py:166: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  cutoff = datetime.utcnow() - timedelta(seconds=policy.window_seconds)
+C:\Users\Usuário\Documents\scorm-monitor\backend\privacy.py:78: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  created_at=datetime.utcnow(),
+C:\Users\Usuário\Documents\scorm-monitor\backend\privacy.py:89: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  cutoff = datetime.utcnow() - timedelta(days=retention_days)
+ok
+test_ip_limit_only_uses_explicitly_trusted_forwarded_header (test_auth_security.AuthenticationSecurityTests.test_ip_limit_only_uses_explicitly_trusted_forwarded_header) ... ok
+test_logout_revokes_token_and_new_login_works (test_auth_security.AuthenticationSecurityTests.test_logout_revokes_token_and_new_login_works) ... ok
+test_missing_or_tampered_session_is_rejected (test_auth_security.AuthenticationSecurityTests.test_missing_or_tampered_session_is_rejected) ... ok
+test_repeated_login_attempts_are_limited_and_recover_after_window (test_auth_security.AuthenticationSecurityTests.test_repeated_login_attempts_are_limited_and_recover_after_window) ... C:\Users\Usuário\Documents\scorm-monitor\backend\tests\test_auth_security.py:225: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  {AccessEvent.created_at: datetime.utcnow() - timedelta(seconds=61)}
+ok
+test_role_and_owner_restrictions_are_enforced (test_auth_security.AuthenticationSecurityTests.test_role_and_owner_restrictions_are_enforced) ... ok
+test_rotating_auth_secret_rejects_previously_issued_token (test_auth_security.AuthenticationSecurityTests.test_rotating_auth_secret_rejects_previously_issued_token) ... ok
+test_secret_configuration_fails_closed_without_default_admin (test_auth_security.AuthenticationSecurityTests.test_secret_configuration_fails_closed_without_default_admin) ... ok
+test_valid_login_creates_usable_session (test_auth_security.AuthenticationSecurityTests.test_valid_login_creates_usable_session) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 7.548s
+
+OK
+
+exit=0

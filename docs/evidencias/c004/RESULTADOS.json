@@ -1,0 +1,57 @@
+{
+  "data": "14/11/2026",
+  "escopo": "verificação do guia com fixture sintética; não é aceite C0-05/produção",
+  "etapas": [
+    {
+      "etapa": "AMBIENTE",
+      "exit": 0,
+      "esperado": 0
+    },
+    {
+      "etapa": "DEPENDENCIAS",
+      "exit": 0,
+      "esperado": 0
+    },
+    {
+      "etapa": "SCORM",
+      "exit": 0,
+      "esperado": 0
+    },
+    {
+      "etapa": "AUTENTICACAO",
+      "exit": 0,
+      "esperado": 0
+    },
+    {
+      "etapa": "BACKUP",
+      "exit": 0,
+      "esperado": 0
+    },
+    {
+      "etapa": "VERIFICAR",
+      "exit": 0,
+      "esperado": 0
+    },
+    {
+      "etapa": "RESTAURAR_FIXTURE",
+      "exit": 0,
+      "esperado": 0
+    },
+    {
+      "etapa": "RECUSAR_SOBRESCRITA",
+      "exit": 1,
+      "esperado": "não zero"
+    },
+    {
+      "etapa": "DETECTAR_CORRUPCAO",
+      "exit": 1,
+      "esperado": "não zero"
+    },
+    {
+      "etapa": "RECUSAR_RESTORE_CORROMPIDO",
+      "exit": 1,
+      "esperado": "não zero"
+    }
+  ],
+  "origem_sqlite_preservada": true
+}

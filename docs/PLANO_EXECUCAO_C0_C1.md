@@ -1,5 +1,7 @@
 # Consolidação C0/C1 — 04/11/2026
 
+Entrega C0-04 de 14/11/2026: [guia operacional](GUIA_OPERACIONAL_LMS.md) e [fechamento](evidencias/FECHAMENTO_C004.md), com recomendação de conclusão documental e testes locais. C0-05 permanece entrega separada; homologação C0-09 ainda depende de recursos externos.
+
 Consolidação vigente das cinco tarefas e próximas prioridades: [RELATORIO_ATUALIZACAO_PLANO.md](evidencias/RELATORIO_ATUALIZACAO_PLANO.md). A [matriz SCORM atual](evidencias/consolidacao-atual/MATRIZ_SCORM.md) e as novas evidências substituem, para acompanhamento corrente, a matriz e a ordem de ações históricas abaixo. Não é necessário reimplementar a C0-01 ou recuperar uma branch antiga para repetir os testes atuais.
 
 Atualização posterior às auditorias: as correções C0-01 estão descritas em [publicação e recuperação](SCORM_PUBLICACAO_RECUPERACAO.md) e [relatório de correções](evidencias/RELATORIO_CORRECOES_C001.md). O conteúdo abaixo preserva o snapshot anterior às correções: afirmações de ausência de manifesto XML validado ou staging/rollback descrevem aquele momento, não o estado atual. Resultados e limitações atuais devem ser consultados nesses novos documentos. A revisão separada C0-08 está em [revisão semântica](evidencias/C0-08-REVISAO_SEMANTICA.md).

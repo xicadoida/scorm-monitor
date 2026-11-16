@@ -1,0 +1,8 @@
+Data: 14/11/2026 America/Sao_Paulo
+Python 3.12.14; Windows-11-10.0.26200-SP0
+cwd=C:\Users\Usuário\Documents\scorm-monitor
+Comando: C:\Users\Usuário\Documents\scorm-monitor\.venv-c001\Scripts\python.exe -m pip check
+
+No broken requirements found.
+
+exit=0

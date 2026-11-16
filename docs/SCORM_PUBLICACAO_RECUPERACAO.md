@@ -1,5 +1,7 @@
 # C0-01 — publicação e recuperação SCORM
 
+Backup pareado e restauração de infraestrutura são descritos no [guia C0-04](GUIA_OPERACIONAL_LMS.md). Preservar a tabela scorm_publications e pastas ocultas do FTP no mesmo conjunto; copiar apenas o repositório não preserva o estado operacional.
+
 Estado implementado em 04/11/2026. Ver resultados em `evidencias/RELATORIO_CORRECOES_C001.md`. Esta versão sucede o snapshot auditado na v3; não houve deploy.
 
 ## Contrato do pacote

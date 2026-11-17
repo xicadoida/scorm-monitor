@@ -5,9 +5,10 @@ import re
 import uuid
 
 from fastapi import APIRouter, Depends, File, UploadFile
+from sqlalchemy import func
 
 from database import SessionLocal
-from models import Event, EventEmail
+from models import EmailVerificationToken, Event, EventEmail, EventMembership
 from catalog_utils import touch_catalog
 from schemas import (
     EventCreateRequest,
@@ -197,6 +198,10 @@ async def upload_event_logo(
 def delete_event(event_id: int, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
+    # A lista de e-mails e apenas convite; memberships e links pendentes do
+    # evento tambem deixam de poder ser usados quando ele e removido.
+    db.query(EventMembership).filter(EventMembership.event_id == event_id).delete()
+    db.query(EmailVerificationToken).filter(EmailVerificationToken.event_id == event_id).delete()
     db.query(EventEmail).filter(EventEmail.event_id == event_id).delete()
     db.query(Event).filter(Event.id == event_id).delete()
 
@@ -267,9 +272,23 @@ def add_event_emails(
 def remove_event_email(event_id: int, email: str, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
+    normalized_email = email.lower().strip()
+    now = datetime.utcnow()
+    # Remover o convite tambem revoga o vinculo confirmado. Recolocar o e-mail
+    # posteriormente exigira uma nova confirmacao; nao ha restauracao oculta.
+    db.query(EventMembership).filter(
+        EventMembership.event_id == event_id,
+        EventMembership.email == normalized_email,
+        EventMembership.status == "confirmed",
+        EventMembership.revoked_at.is_(None),
+    ).update(
+        {EventMembership.status: "revoked", EventMembership.revoked_at: now},
+        synchronize_session=False,
+    )
+
     db.query(EventEmail).filter(
         EventEmail.event_id == event_id,
-        EventEmail.email == email.lower().strip()
+        func.lower(EventEmail.email) == normalized_email
     ).delete()
 
     db.commit()

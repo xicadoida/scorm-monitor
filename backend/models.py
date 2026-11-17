@@ -1,5 +1,15 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Date
+from sqlalchemy import (
+    Boolean,
+    Column,
+    Date,
+    DateTime,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+    func,
+)
 from database import Base
 
 
@@ -103,6 +113,14 @@ class Student(Base):
     password_hash = Column(String(255))
     # Incrementado ao trocar senha para invalidar tokens de sessões antigas.
     auth_token_version = Column(Integer, default=0, nullable=False)
+    # NULL significa que a posse do endereço ainda não foi comprovada. A
+    # migração deliberadamente não preenche esse campo para contas antigas.
+    email_verified_at = Column(DateTime, nullable=True, index=True)
+    __table_args__ = (
+        # Login e verificacao normalizam espacos e maiusculas. O indice impede
+        # que duas contas virem o mesmo endereco logico em uma corrida.
+        Index("uq_students_email_normalized", func.lower(func.trim(email)), unique=True),
+    )
 
 
 class RegistrationProfile(Base):
@@ -144,6 +162,59 @@ class PasswordResetToken(Base):
     token_hash = Column(String(64), nullable=False, unique=True, index=True)
     expires_at = Column(DateTime, nullable=False, index=True)
     used_at = Column(DateTime, nullable=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+class EmailVerificationToken(Base):
+    """Token de confirmação salvo apenas como hash, nunca em texto puro.
+
+    ``purpose`` separa confirmação de cadastro, acesso a evento e troca de
+    e-mail. O token bruto é enviado somente ao endereço informado e não é
+    persistido nem devolvido por esta tabela.
+    """
+    __tablename__ = "email_verification_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_code = Column(String(100), nullable=False, index=True)
+    email = Column(String(255), nullable=False, index=True)
+    event_id = Column(Integer, nullable=True, index=True)
+    purpose = Column(String(50), nullable=False, index=True)
+    token_hash = Column(String(64), nullable=False, unique=True, index=True)
+    expires_at = Column(DateTime, nullable=False, index=True)
+    used_at = Column(DateTime, nullable=True, index=True)
+    # Contador persistido para que tentativas contra um token válido possam
+    # ser bloqueadas sem manter o token em texto puro.
+    failed_attempts = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+class EventMembership(Base):
+    """Vínculo confirmado de uma conta a um evento específico.
+
+    ``EventEmail`` continua sendo uma lista de convidados. Ela não concede
+    acesso por si só: apenas uma associação com status ``confirmed`` deve ser
+    aceita pelas rotas protegidas.
+    """
+    __tablename__ = "event_memberships"
+    __table_args__ = (
+        UniqueConstraint(
+            "student_code",
+            "event_id",
+            name="uq_event_memberships_student_event",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_code = Column(String(100), nullable=False, index=True)
+    event_id = Column(Integer, nullable=False, index=True)
+    # Endereço comprovado ao criar/reativar este vínculo. Ele permite
+    # invalidar imediatamente a associação quando a conta troca de e-mail.
+    email = Column(String(255), nullable=False, index=True)
+    # pending | confirmed | revoked. O padrão falha fechado: pendente não
+    # concede acesso até a confirmação explícita.
+    status = Column(String(20), default="pending", nullable=False, index=True)
+    confirmed_at = Column(DateTime, nullable=True, index=True)
+    revoked_at = Column(DateTime, nullable=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 
 

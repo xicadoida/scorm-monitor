@@ -12,6 +12,7 @@ from fastapi import Depends, Header, HTTPException, status
 
 from database import SessionLocal
 from models import Student
+from event_utils import has_event_scope, student_has_active_event_membership
 
 
 AUTH_SECRET_MIN_LENGTH = 32
@@ -25,6 +26,9 @@ class CurrentUser:
     student_code: str
     email: str
     is_admin: bool
+    # O contexto do evento e assinado no token, mas continua sendo conferido
+    # no banco a cada requisicao para que uma revogacao tenha efeito imediato.
+    active_event_id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -120,12 +124,18 @@ def is_admin_email(email: str) -> bool:
     return email.lower() in admins
 
 
-def create_access_token(student: Student) -> str:
+def create_access_token(student: Student, active_event_id: int | None = None) -> str:
     payload = {
         "sub": student.student_code,
         "ver": student.auth_token_version or 0,
         "exp": int(time.time()) + token_ttl_seconds(),
     }
+    if active_event_id is not None:
+        # Nao permita que valores arbitrarios ou booleanos virem escopo de
+        # evento no token assinado.
+        if isinstance(active_event_id, bool):
+            raise ValueError("invalid event context")
+        payload["evt"] = int(active_event_id)
     encoded_payload = _base64url(json.dumps(payload, separators=(",", ":")).encode("utf-8"))
     signature = hmac.new(auth_secret(), encoded_payload.encode("ascii"), hashlib.sha256).digest()
     return f"{encoded_payload}.{_base64url(signature)}"
@@ -148,6 +158,10 @@ def _read_token(token: str) -> dict:
         if int(payload.get("exp", 0)) <= int(time.time()):
             raise ValueError("expired token")
         int(payload.get("ver", -1))
+        if "evt" in payload:
+            event_id = payload["evt"]
+            if isinstance(event_id, bool) or not isinstance(event_id, int) or event_id <= 0:
+                raise ValueError("invalid event context")
         return payload
     except (
         ValueError,
@@ -184,16 +198,46 @@ def get_current_user(authorization: str | None = Header(default=None)) -> Curren
     db = SessionLocal()
     try:
         student = db.query(Student).filter(Student.student_code == payload["sub"]).first()
-        if not student or (student.auth_token_version or 0) != token_version:
+        if (
+            not student
+            or (student.auth_token_version or 0) != token_version
+            # Contas antigas e novos cadastros pendentes nao recebem sessao
+            # ate comprovarem que controlam o endereco informado.
+            or student.email_verified_at is None
+        ):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Sessão inválida ou expirada.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+        is_admin = is_admin_email(student.email)
+        active_event_id = payload.get("evt")
+
+        # A lista EventEmail e apenas um convite. Para um token de evento, o
+        # vinculo confirmado precisa continuar ativo e corresponder ao e-mail
+        # atual da conta. Para a plataforma padrao, uma conta associada a um
+        # evento nao pode contornar o isolamento usando um token sem escopo.
+        # Administradores ja autorizados podem auditar os dois contextos.
+        if not is_admin:
+            if active_event_id is not None:
+                if not student_has_active_event_membership(db, student, active_event_id):
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Sessao invalida ou expirada.",
+                        headers={"WWW-Authenticate": "Bearer"},
+                    )
+            elif has_event_scope(db, student):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Sessao invalida ou expirada.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
         return CurrentUser(
             student_code=student.student_code,
             email=student.email,
-            is_admin=is_admin_email(student.email),
+            is_admin=is_admin,
+            active_event_id=active_event_id,
         )
     finally:
         db.close()

@@ -1,6 +1,6 @@
 from datetime import datetime, date as date_cls
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from database import SessionLocal
 from models import (
@@ -9,7 +9,7 @@ from models import (
     AttendanceRecord,
     Course,
     CourseSession,
-    EventEmail,
+    EventMembership,
     Student
 )
 from schemas import (
@@ -19,7 +19,11 @@ from schemas import (
     AttendanceModulePartUpdateRequest,
     AttendanceRecordUpdateRequest
 )
-from event_utils import get_event_for_email
+from event_utils import (
+    get_confirmed_events_for_student,
+    is_email_invited_to_event,
+    normalize_email,
+)
 from auth_utils import CurrentUser, require_admin, require_self_or_admin
 
 router = APIRouter()
@@ -249,7 +253,10 @@ def _compute_stats(statuses):
 
 
 @router.get("/attendance/students/{student_code}")
-def get_student_attendance(student_code: str, _: CurrentUser = Depends(require_self_or_admin)):
+def get_student_attendance(
+    student_code: str,
+    current_user: CurrentUser = Depends(require_self_or_admin),
+):
     db = SessionLocal()
 
     student = db.query(Student).filter(
@@ -260,8 +267,25 @@ def get_student_attendance(student_code: str, _: CurrentUser = Depends(require_s
         db.close()
         return {"success": False, "message": "Aluno não encontrado."}
 
-    student_event = get_event_for_email(db, student.email)
-    student_event_id = student_event["id"] if student_event else None
+    if current_user.is_admin:
+        confirmed_events = get_confirmed_events_for_student(db, student)
+        student_event_id = current_user.active_event_id
+        if student_event_id is None and len(confirmed_events) == 1:
+            student_event_id = confirmed_events[0]["id"]
+    else:
+        # A rota de aluno usa somente o evento da sessao autenticada. Nunca
+        # escolhe o primeiro EventEmail que coincida com o endereco.
+        student_event_id = current_user.active_event_id
+
+    # A plataforma padrão não possui lista de chamada. A interface já oculta
+    # essa área; esta validação impede que a rota seja usada diretamente para
+    # ler módulos globais. Administradores preservam o acesso de auditoria.
+    if student_event_id is None and not current_user.is_admin:
+        db.close()
+        raise HTTPException(
+            status_code=403,
+            detail="Frequência disponível somente para participantes de eventos.",
+        )
 
     # Aluno vê os módulos globais (sem evento) e, se for de um evento,
     # também os módulos criados especificamente pra esse evento.
@@ -381,12 +405,21 @@ def set_attendance_status(
 def get_event_progress(event_id: int, _: CurrentUser = Depends(require_admin)):
     """Acompanhamento de atividades substitutivas por aluno e módulo."""
     db = SessionLocal()
-    event_emails = {
-        entry.email.lower() for entry in db.query(EventEmail).filter(
-            EventEmail.event_id == event_id
-        ).all()
+    memberships = db.query(EventMembership).filter(
+        EventMembership.event_id == event_id,
+        EventMembership.status == "confirmed",
+        EventMembership.revoked_at.is_(None),
+    ).all()
+    emails_by_student = {
+        membership.student_code: normalize_email(membership.email)
+        for membership in memberships
     }
-    students = [student for student in db.query(Student).all() if student.email.lower() in event_emails]
+    students = [
+        student for student in db.query(Student).all()
+        if student.email_verified_at is not None
+        and emails_by_student.get(student.student_code) == normalize_email(student.email)
+        and is_email_invited_to_event(db, student.email, event_id)
+    ]
     student_codes = [student.student_code for student in students]
 
     modules = db.query(AttendanceModule).filter(
@@ -454,14 +487,20 @@ def get_attendance_report(
 
     students_query = db.query(Student)
     if event_id is not None:
-        event_emails = [
-            entry.email.lower() for entry in db.query(EventEmail).filter(
-                EventEmail.event_id == event_id
-            ).all()
-        ]
+        memberships = db.query(EventMembership).filter(
+            EventMembership.event_id == event_id,
+            EventMembership.status == "confirmed",
+            EventMembership.revoked_at.is_(None),
+        ).all()
+        emails_by_student = {
+            membership.student_code: normalize_email(membership.email)
+            for membership in memberships
+        }
         students = [
             student for student in students_query.all()
-            if student.email.lower() in event_emails
+            if student.email_verified_at is not None
+            and emails_by_student.get(student.student_code) == normalize_email(student.email)
+            and is_email_invited_to_event(db, student.email, event_id)
         ]
     else:
         students = students_query.all()

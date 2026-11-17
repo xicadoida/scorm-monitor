@@ -2,10 +2,11 @@ from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from database import SessionLocal
-from models import Course, Enrollment, CourseSession, ScormPublication
+from models import Course, Enrollment, CourseSession, Event, ScormPublication, Student
 from schemas import CourseCreateRequest, CourseUpdateRequest
 from catalog_utils import touch_catalog
 from auth_utils import CurrentUser, get_current_user, require_admin
+from event_utils import get_event_for_student, serialize_event
 
 import os
 from scorm_package import InvalidPackage, prepare_package, validate_course_code
@@ -219,18 +220,29 @@ def list_public_courses(email: str, current_user: CurrentUser = Depends(get_curr
     - Se o email pertence a um evento: só mostra os cursos DESSE evento.
     - Caso contrário: só mostra os cursos públicos (sem evento nenhum).
     """
-    from event_utils import get_event_for_email
+    # O parametro email continua por compatibilidade da interface. O escopo
+    # real vem da sessao assinada e da membership revalidada no servidor.
 
     if not current_user.is_admin and email.lower().strip() != current_user.email.lower().strip():
         raise HTTPException(status_code=403, detail="Você não tem acesso aos cursos de outra pessoa.")
 
     db = SessionLocal()
-    event = get_event_for_email(db, email)
+    if current_user.is_admin:
+        event = (
+            serialize_event(db.query(Event).filter(Event.id == current_user.active_event_id).first())
+            if current_user.active_event_id is not None
+            else None
+        )
+    else:
+        student = db.query(Student).filter(
+            Student.student_code == current_user.student_code
+        ).first()
+        event = get_event_for_student(db, student, current_user.active_event_id)
 
     query = db.query(Course).filter(Course.active == True)
 
-    if event:
-        courses = query.filter(Course.event_id == event["id"]).all()
+    if current_user.active_event_id is not None:
+        courses = query.filter(Course.event_id == current_user.active_event_id).all()
     else:
         courses = query.filter(Course.event_id.is_(None)).all()
 

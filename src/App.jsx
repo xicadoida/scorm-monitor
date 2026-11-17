@@ -37,6 +37,13 @@ function App() {
   const [landingEvent, setLandingEvent] = useState(null)
   const [pendingCourseCode, setPendingCourseCode] = useState(null)
   const [resetToken, setResetToken] = useState(() => new URLSearchParams(window.location.search).get("reset_token"))
+  // O token de confirmação fica no fragmento para não ser enviado em logs de
+  // servidor, Referer ou requisições de recursos estáticos.
+  const [verificationToken, setVerificationToken] = useState(() => {
+    const fragment = window.location.hash.replace(/^#/, "")
+    return new URLSearchParams(fragment).get("verify_token")
+  })
+  const [loginNotice, setLoginNotice] = useState("")
   const isAdmin = Boolean(loggedStudent?.is_admin)
   const API_URL =
     import.meta.env.VITE_API_URL || "http://127.0.0.1:8000"
@@ -151,6 +158,9 @@ function App() {
       const pathSegments = window.location.pathname.split("/").filter(Boolean)
       const pathSegment = pathSegments[0]
       const resetTokenFromUrl = new URLSearchParams(window.location.search).get("reset_token")
+      const verificationTokenFromUrl = new URLSearchParams(
+        window.location.hash.replace(/^#/, "")
+      ).get("verify_token")
 
       if (pathSegment) {
         try {
@@ -160,7 +170,7 @@ function App() {
             setLandingEvent(data.event)
             // Formato de evento: /arctel/CODIGO-DO-CURSO
             if (pathSegments[1]) setPendingCourseCode(decodeURIComponent(pathSegments[1]))
-            if (resetTokenFromUrl) {
+            if (resetTokenFromUrl || verificationTokenFromUrl) {
               setCurrentPage("login")
               return
             }
@@ -185,7 +195,7 @@ function App() {
 
       // Um link de recupera\u00e7\u00e3o precisa abrir a tela de senha mesmo se este
       // navegador ainda tiver uma sess\u00e3o salva de outra pessoa.
-      if (resetTokenFromUrl) {
+      if (resetTokenFromUrl || verificationTokenFromUrl) {
         setCurrentPage("login")
         return
       }
@@ -598,7 +608,10 @@ function App() {
       <RegisterPage
         API_URL={API_URL}
         event={landingEvent}
-        onBackToLogin={() => setCurrentPage("login")}
+        onBackToLogin={(message) => {
+          setLoginNotice(message || "Confira seu e-mail para confirmar o cadastro.")
+          setCurrentPage("login")
+        }}
       />
     )
   }
@@ -609,14 +622,26 @@ function App() {
         API_URL={API_URL}
         event={landingEvent}
         resetToken={resetToken}
+        verificationToken={verificationToken}
+        initialNotice={loginNotice}
         onResetFinished={() => {
           setResetToken(null)
           const url = new URL(window.location.href)
           url.searchParams.delete("reset_token")
           window.history.replaceState({}, "", `${url.pathname}${url.search}`)
         }}
+        onVerificationFinished={(message) => {
+          setVerificationToken(null)
+          if (message) setLoginNotice(message)
+          const url = new URL(window.location.href)
+          const fragment = new URLSearchParams(url.hash.replace(/^#/, ""))
+          fragment.delete("verify_token")
+          url.hash = fragment.toString()
+          window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`)
+        }}
         onGoToRegister={() => setCurrentPage("register")}
         onLogin={(student) => {
+          setLoginNotice("")
           setLoggedStudent(student)
           setSelectedStudent(student)
           setCurrentPage("dashboard")

@@ -82,6 +82,7 @@ class AuthenticationSecurityTests(unittest.TestCase):
                         email="student@tests.invalid",
                         password_hash=hash_password("student-password"),
                         auth_token_version=0,
+                        email_verified_at=datetime.utcnow(),
                     ),
                     Student(
                         student_code="other-student",
@@ -89,6 +90,7 @@ class AuthenticationSecurityTests(unittest.TestCase):
                         email="other@tests.invalid",
                         password_hash=hash_password("other-password"),
                         auth_token_version=0,
+                        email_verified_at=datetime.utcnow(),
                     ),
                     Student(
                         student_code="admin",
@@ -96,6 +98,7 @@ class AuthenticationSecurityTests(unittest.TestCase):
                         email="admin@tests.invalid",
                         password_hash=hash_password("admin-password"),
                         auth_token_version=0,
+                        email_verified_at=datetime.utcnow(),
                     ),
                 ]
             )

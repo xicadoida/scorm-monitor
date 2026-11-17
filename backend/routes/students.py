@@ -3,7 +3,17 @@ from datetime import datetime
 from fastapi import APIRouter, Depends
 
 from database import SessionLocal
-from models import Student, Enrollment, CourseSession, ClassStudent, RegistrationProfile
+from models import (
+    AttendanceRecord,
+    ClassStudent,
+    CourseSession,
+    EmailVerificationToken,
+    Enrollment,
+    EventMembership,
+    PasswordResetToken,
+    RegistrationProfile,
+    Student,
+)
 from schemas import (
     StudentCreateRequest,
     StudentUpdateRequest,
@@ -11,7 +21,7 @@ from schemas import (
     DeleteAccountRequest,
 )
 from security import hash_password, verify_password
-from event_utils import get_event_for_email
+from event_utils import get_confirmed_events_for_student, normalize_email
 from auth_utils import CurrentUser, require_admin, require_self_or_admin
 
 router = APIRouter()
@@ -24,7 +34,7 @@ def create_student(data: StudentCreateRequest, _: CurrentUser = Depends(require_
     student = Student(
         student_code=data.student_code,
         name=data.name,
-        email=data.email,
+        email=normalize_email(data.email),
         created_at=datetime.utcnow()
     )
 
@@ -57,18 +67,22 @@ def list_students(_: CurrentUser = Depends(require_admin)):
         for profile in db.query(RegistrationProfile).all()
     }
 
-    result = [
-        {
-            "id": s.id,
-            "student_code": s.student_code,
-            "name": s.name,
-            "email": s.email,
-            "person_type": profiles.get(s.student_code).person_type if s.student_code in profiles else "not_informed",
-            "accepted_terms_at": profiles.get(s.student_code).accepted_terms_at if s.student_code in profiles else None,
-            "event": get_event_for_email(db, s.email)
-        }
-        for s in students
-    ]
+    result = []
+    for student in students:
+        events = get_confirmed_events_for_student(db, student)
+        result.append({
+            "id": student.id,
+            "student_code": student.student_code,
+            "name": student.name,
+            "email": student.email,
+            "email_verified": student.email_verified_at is not None,
+            "person_type": profiles.get(student.student_code).person_type if student.student_code in profiles else "not_informed",
+            "accepted_terms_at": profiles.get(student.student_code).accepted_terms_at if student.student_code in profiles else None,
+            # Mantem o campo antigo somente quando nao ha ambiguidade. A lista
+            # completa e a fonte correta para contas em mais de um evento.
+            "event": events[0] if len(events) == 1 else None,
+            "events": events,
+        })
 
     db.close()
 
@@ -125,6 +139,25 @@ def reset_student_password(
 
 
 def _delete_student_cascade(db, student_code):
+    # Os identificadores nao possuem chave estrangeira no schema legado. Sem
+    # esta limpeza, uma eventual reutilizacao de student_code poderia herdar
+    # dados, tokens ou memberships de uma pessoa excluida.
+    db.query(EventMembership).filter(
+        EventMembership.student_code == student_code
+    ).delete()
+
+    db.query(EmailVerificationToken).filter(
+        EmailVerificationToken.student_code == student_code
+    ).delete()
+
+    db.query(PasswordResetToken).filter(
+        PasswordResetToken.student_code == student_code
+    ).delete()
+
+    db.query(RegistrationProfile).filter(
+        RegistrationProfile.student_code == student_code
+    ).delete()
+
     db.query(Enrollment).filter(
         Enrollment.student_code == student_code
     ).delete()
@@ -135,6 +168,10 @@ def _delete_student_cascade(db, student_code):
 
     db.query(ClassStudent).filter(
         ClassStudent.student_code == student_code
+    ).delete()
+
+    db.query(AttendanceRecord).filter(
+        AttendanceRecord.student_code == student_code
     ).delete()
 
     db.query(Student).filter(

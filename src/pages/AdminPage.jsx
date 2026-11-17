@@ -355,15 +355,12 @@ function AdminPage({ API_URL, onBack }) {
         setAttendanceEventStudents([])
         return
       }
-
-      const response = await fetch(
-        `${API_URL}/events/${attendanceEventRecordForm.event_id}/emails`
-      )
-      const emails = await response.json()
-      const allowedEmails = new Set(emails.map(item => item.email.toLowerCase()))
-
       setAttendanceEventStudents(
-        students.filter(student => allowedEmails.has(student.email.toLowerCase()))
+        students.filter(student =>
+          (student.events || []).some(event =>
+            String(event.id) === String(attendanceEventRecordForm.event_id)
+          )
+        )
       )
     }
 
@@ -1133,9 +1130,9 @@ function AdminPage({ API_URL, onBack }) {
     return a.name.localeCompare(b.name, "pt-BR")
   })
   const studentsInSelectedEvent = students
-    .filter(student => eventEmails.some(item => item.email.toLowerCase() === student.email.toLowerCase()))
+    .filter(student => (student.events || []).some(event => String(event.id) === String(selectedEventId)))
     .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
-  const standardStudents = students.filter(student => !student.event)
+  const standardStudents = students.filter(student => !(student.events || []).length)
 
   const filteredCourses = courses
     .filter(course => {
@@ -2055,8 +2052,9 @@ function AdminPage({ API_URL, onBack }) {
       <div style={containerStyle}>
         <h2>Eventos</h2>
         <p style={{ color: "#666", marginTop: "-8px" }}>
-          Alunos com o email cadastrado num evento veem uma logo/cor diferente
-          e só enxergam os cursos vinculados a esse evento.
+          E-mails nesta lista são convites. A conta só acessa o evento depois
+          de confirmar a posse do e-mail; participantes confirmados veem a
+          logo, as cores e apenas os cursos daquele evento.
         </p>
 
         <form onSubmit={createEvent}>
@@ -2230,7 +2228,7 @@ function AdminPage({ API_URL, onBack }) {
               </form>
             </>}
             <h3>
-              Emails de "{eventNameFor(Number(selectedEventId))}"
+              E-mails convidados de "{eventNameFor(Number(selectedEventId))}"
             </h3>
 
             <form onSubmit={addEmailsToEvent}>
@@ -2242,12 +2240,12 @@ function AdminPage({ API_URL, onBack }) {
               />
 
               <button type="submit">
-                Adicionar emails
+                Adicionar convidados
               </button>
             </form>
 
             {eventEmails.length === 0 ? (
-              <p>Nenhum email cadastrado nesse evento ainda.</p>
+              <p>Nenhum e-mail convidado nesse evento ainda.</p>
             ) : (
               <ul>
                 {eventEmails.map(item => (
@@ -2267,9 +2265,9 @@ function AdminPage({ API_URL, onBack }) {
             )}
 
             <div style={{ ...subsectionStyle, marginTop: "20px" }}>
-              <h3 style={subsectionTitle}>Pessoas cadastradas neste evento</h3>
-              <p style={{ color: "#64748b", fontSize: "13px", marginTop: 0 }}>Somente pessoas que já criaram conta na plataforma.</p>
-              {studentsInSelectedEvent.length === 0 ? <p>Nenhuma pessoa cadastrada ainda.</p> : <div className="admin-table-wrap"><table style={tableStyle}><thead><tr><th style={th}>Nome</th><th style={th}>E-mail</th></tr></thead><tbody>{studentsInSelectedEvent.map(student => <tr key={student.student_code}><td style={td}>{student.name}</td><td style={td}>{student.email}</td></tr>)}</tbody></table></div>}
+              <h3 style={subsectionTitle}>Participantes confirmados neste evento</h3>
+              <p style={{ color: "#64748b", fontSize: "13px", marginTop: 0 }}>Aparecem aqui somente contas que confirmaram o próprio e-mail para este evento.</p>
+              {studentsInSelectedEvent.length === 0 ? <p>Nenhum participante confirmado ainda.</p> : <div className="admin-table-wrap"><table style={tableStyle}><thead><tr><th style={th}>Nome</th><th style={th}>E-mail</th></tr></thead><tbody>{studentsInSelectedEvent.map(student => <tr key={student.student_code}><td style={td}>{student.name}</td><td style={td}>{student.email}</td></tr>)}</tbody></table></div>}
             </div>
 
             <div style={{ ...subsectionStyle, marginTop: "20px" }}>

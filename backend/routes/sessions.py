@@ -9,8 +9,31 @@ from schemas import (
     SessionUpdateRequest
 )
 from auth_utils import CurrentUser, get_current_user, require_admin
+from event_utils import student_can_access_course
 
 router = APIRouter()
+
+
+def _has_active_course_access(
+    db, student_code: str, course_code: str, active_event_id: int | None
+) -> bool:
+    """Confere matrícula, curso ativo e escopo de evento no servidor."""
+
+    student = db.query(Student).filter(
+        Student.student_code == student_code
+    ).first()
+    course = db.query(Course).filter(
+        Course.course_code == course_code
+    ).first()
+    if not student_can_access_course(db, student, course, active_event_id):
+        return False
+
+    enrollment = db.query(Enrollment).filter(
+        Enrollment.student_code == student_code,
+        Enrollment.course_code == course_code,
+        Enrollment.active == True,
+    ).first()
+    return enrollment is not None
 
 
 @router.post("/sessions/start")
@@ -19,15 +42,14 @@ def start_session(data: SessionStartRequest, current_user: CurrentUser = Depends
         raise HTTPException(status_code=403, detail="Você não pode iniciar uma sessão para outra pessoa.")
 
     db = SessionLocal()
-    if not current_user.is_admin:
-        enrollment = db.query(Enrollment).filter(
-            Enrollment.student_code == data.student_id,
-            Enrollment.course_code == data.course_id,
-            Enrollment.active == True,
-        ).first()
-        if not enrollment:
-            db.close()
-            raise HTTPException(status_code=403, detail="Você não está matriculado neste curso.")
+    if not current_user.is_admin and not _has_active_course_access(
+        db,
+        current_user.student_code,
+        data.course_id,
+        current_user.active_event_id,
+    ):
+        db.close()
+        raise HTTPException(status_code=403, detail="Você não tem acesso a este curso.")
 
     session = CourseSession(
         student_id=data.student_id,
@@ -67,6 +89,15 @@ def update_session(
     if not current_user.is_admin and current_user.student_code != session.student_id:
         db.close()
         raise HTTPException(status_code=403, detail="Você não pode alterar esta sessão.")
+
+    if not current_user.is_admin and not _has_active_course_access(
+        db,
+        current_user.student_code,
+        session.course_id,
+        current_user.active_event_id,
+    ):
+        db.close()
+        raise HTTPException(status_code=403, detail="Você não tem acesso a este curso.")
 
     if data.status is not None:
         # O SCORM pode informar "completed" antes de o questionário ser
@@ -163,6 +194,15 @@ def get_progress(
 
     db = SessionLocal()
 
+    if not current_user.is_admin and not _has_active_course_access(
+        db,
+        current_user.student_code,
+        course_id,
+        current_user.active_event_id,
+    ):
+        db.close()
+        raise HTTPException(status_code=403, detail="Você não tem acesso a este curso.")
+
     sessions = db.query(CourseSession).filter(
         CourseSession.student_id == student_id,
         CourseSession.course_id == course_id
@@ -226,6 +266,15 @@ def finish_session(session_id: int, current_user: CurrentUser = Depends(get_curr
     if not current_user.is_admin and current_user.student_code != session.student_id:
         db.close()
         raise HTTPException(status_code=403, detail="Você não pode encerrar esta sessão.")
+
+    if not current_user.is_admin and not _has_active_course_access(
+        db,
+        current_user.student_code,
+        session.course_id,
+        current_user.active_event_id,
+    ):
+        db.close()
+        raise HTTPException(status_code=403, detail="Você não tem acesso a este curso.")
 
     session.ended_at = datetime.utcnow()
     session.updated_at = datetime.utcnow()

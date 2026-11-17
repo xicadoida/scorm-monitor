@@ -5,7 +5,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from database import SessionLocal
 from models import Enrollment, Course, Student
 from schemas import EnrollmentCreateRequest
-from event_utils import get_event_for_email
+from event_utils import (
+    course_is_available_for_event,
+    student_can_access_course,
+)
 from auth_utils import CurrentUser, get_current_user, require_admin, require_self_or_admin
 
 router = APIRouter()
@@ -39,7 +42,7 @@ def create_enrollment(data: EnrollmentCreateRequest, _: CurrentUser = Depends(re
 def self_enroll(
     student_code: str,
     course_code: str,
-    _: CurrentUser = Depends(require_self_or_admin),
+    current_user: CurrentUser = Depends(require_self_or_admin),
 ):
     db = SessionLocal()
 
@@ -60,16 +63,14 @@ def self_enroll(
         db.close()
         return {"success": False, "message": "Curso não encontrado."}
 
-    # Se o curso é de um evento, só pode se inscrever quem está na lista desse evento
-    if course.event_id is not None:
-        event = get_event_for_email(db, student.email)
-
-        if not event or event["id"] != course.event_id:
-            db.close()
-            return {
-                "success": False,
-                "message": "Você não tem acesso a esse curso."
-            }
+    # A regra vale nos dois sentidos: uma conta de evento não pode usar uma
+    # matrícula direta para entrar no catálogo padrão, e uma conta padrão não
+    # pode entrar em curso de evento.
+    if not current_user.is_admin and not student_can_access_course(
+        db, student, course, current_user.active_event_id
+    ):
+        db.close()
+        raise HTTPException(status_code=403, detail="Você não tem acesso a esse curso.")
 
     existing = db.query(Enrollment).filter(
         Enrollment.student_code == student_code,
@@ -99,7 +100,7 @@ def self_enroll(
 @router.get("/students/{student_code}/courses")
 def get_student_courses(
     student_code: str,
-    _: CurrentUser = Depends(require_self_or_admin),
+    current_user: CurrentUser = Depends(require_self_or_admin),
 ):
     db = SessionLocal()
 
@@ -114,6 +115,18 @@ def get_student_courses(
         Course.course_code.in_(course_codes),
         Course.active == True
     ).all()
+
+    # Administradores podem auditar todas as matrículas. Para alunos, a
+    # visibilidade acompanha a afiliação atual do evento, inclusive quando
+    # restaram matrículas legadas de outro escopo.
+    if not current_user.is_admin:
+        student = db.query(Student).filter(
+            Student.student_code == student_code
+        ).first()
+        courses = [
+            course for course in courses
+            if course_is_available_for_event(course, current_user.active_event_id)
+        ]
 
     result = [
         {

@@ -66,7 +66,7 @@ function RegisterPage({ API_URL, onBackToLogin, event }) {
       return
     }
 
-    onBackToLogin()
+    onBackToLogin(data.message || "Confira seu e-mail para confirmar o cadastro.")
   }
 
   const theme = event ? {

@@ -432,16 +432,25 @@ function AdminPage({ API_URL, onBack }) {
       formData.append("duration_hours", courseForm.duration_hours)
     }
 
-    const response = await fetch(`${API_URL}/courses/upload`, {
+    let response
+    let data
+    try {
+      response = await fetch(`${API_URL}/courses/upload`, {
         method: "POST",
         body: formData
-    })
+      })
+      data = await response.json().catch(() => ({}))
+    } catch {
+      alert("Não foi possível conectar ao servidor para publicar o curso.")
+      return
+    }
 
-    const data = await response.json()
-
-    if (data.success === false) {
-        alert(data.message)
-        return
+    // FastAPI devolve { detail } para erros HTTP como 409/503, enquanto
+    // validações de pacote usam { success: false, message }. Os dois casos
+    // devem preservar o formulário e nunca aparentar um cadastro concluído.
+    if (!response.ok || data.success === false) {
+      alert(data.detail || data.message || "Não foi possível publicar o curso.")
+      return
     }
 
     alert("Curso cadastrado com sucesso!")

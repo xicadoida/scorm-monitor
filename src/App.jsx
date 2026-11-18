@@ -6,6 +6,11 @@ import LoginPage from './pages/LoginPage'
 import AdminPage from './pages/AdminPage'
 import RegisterPage from './pages/RegisterPage'
 
+function getVerificationTokenFromLocation() {
+  const fragment = window.location.hash.replace(/^#/, "")
+  return new URLSearchParams(fragment).get("verify_token")
+}
+
 function App() {
   const [currentPage, setCurrentPage] = useState("dashboard")
   const [courses, setCourses] = useState([])
@@ -39,10 +44,7 @@ function App() {
   const [resetToken, setResetToken] = useState(() => new URLSearchParams(window.location.search).get("reset_token"))
   // O token de confirmação fica no fragmento para não ser enviado em logs de
   // servidor, Referer ou requisições de recursos estáticos.
-  const [verificationToken, setVerificationToken] = useState(() => {
-    const fragment = window.location.hash.replace(/^#/, "")
-    return new URLSearchParams(fragment).get("verify_token")
-  })
+  const [verificationToken, setVerificationToken] = useState(getVerificationTokenFromLocation)
   const [loginNotice, setLoginNotice] = useState("")
   const isAdmin = Boolean(loggedStudent?.is_admin)
   const API_URL =
@@ -158,9 +160,7 @@ function App() {
       const pathSegments = window.location.pathname.split("/").filter(Boolean)
       const pathSegment = pathSegments[0]
       const resetTokenFromUrl = new URLSearchParams(window.location.search).get("reset_token")
-      const verificationTokenFromUrl = new URLSearchParams(
-        window.location.hash.replace(/^#/, "")
-      ).get("verify_token")
+      const verificationTokenFromUrl = getVerificationTokenFromLocation()
 
       if (pathSegment) {
         try {
@@ -229,6 +229,22 @@ function App() {
     }
 
     initializeApp()
+  }, [])
+
+  // Links de confirma\u00e7\u00e3o usam o fragmento para que o token n\u00e3o seja enviado
+  // ao servidor. Quando o link \u00e9 aberto na mesma aba do LMS, a navega\u00e7\u00e3o
+  // ocorre apenas como hashchange e o componente n\u00e3o \u00e9 remontado.
+  useEffect(() => {
+    const showEmailVerification = () => {
+      const token = getVerificationTokenFromLocation()
+      if (!token) return
+
+      setVerificationToken(token)
+      setCurrentPage("login")
+    }
+
+    window.addEventListener("hashchange", showEmailVerification)
+    return () => window.removeEventListener("hashchange", showEmailVerification)
   }, [])
 
   useEffect(() => {

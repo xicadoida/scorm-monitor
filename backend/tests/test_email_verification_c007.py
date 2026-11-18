@@ -195,8 +195,22 @@ class EmailVerificationC007Tests(unittest.TestCase):
             messages = self.outbox
         self.assertTrue(messages, "Nenhuma mensagem de confirmacao foi colocada no outbox.")
         message = messages[-1]
-        match = re.search(r"#verify_token=([A-Za-z0-9_-]+)", message["text"] + message["html"])
-        self.assertIsNotNone(match, "O e-mail de teste nao contem token no fragmento.")
+        content = message["text"] + message["html"]
+        self.assertIn(
+            "?confirmacao=1#verify_token=",
+            content,
+            "O e-mail deve forcar uma navegacao nova sem expor o token na query.",
+        )
+        self.assertNotRegex(
+            content,
+            r"[?&]verify_token=",
+            "O token de confirmacao nao pode ser enviado na query string.",
+        )
+        match = re.search(r"\?confirmacao=1#verify_token=([A-Za-z0-9_-]+)", content)
+        self.assertIsNotNone(
+            match,
+            "O e-mail de teste nao contem o token no fragmento apos o marcador de confirmacao.",
+        )
         return match.group(1)
 
     def _login(self, email, password, event_slug=None):

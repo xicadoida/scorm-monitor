@@ -226,7 +226,9 @@ function LoginPage({
         {isVerifyingEmail ? (
           <>
             <p style={{ color: "white", textAlign: "center", margin: "0 0 18px" }}>
-              Confirme seu e-mail para ativar o acesso.
+              {verificationNeedsPassword
+                ? "Defina uma senha para concluir a confirma\u00e7\u00e3o."
+                : "Confirme seu e-mail para ativar o acesso."}
             </p>
             {verificationNeedsPassword && (
               <input
@@ -293,7 +295,9 @@ function LoginPage({
             <button type="button" onClick={onGoToRegister} style={buttonOutline}>Criar conta</button>
           )}
           <button type="submit" disabled={loading} style={{ ...buttonPrimary, background: "var(--lms-login-secondary, #EF4923)", opacity: loading ? 0.75 : 1 }}>
-            {isVerifyingEmail ? "Confirmar e-mail" : resetToken ? "Salvar senha" : showRecovery ? "Enviar link" : showVerificationResend ? "Reenviar link" : "Entrar"}
+            {isVerifyingEmail
+              ? verificationNeedsPassword ? "Definir senha e confirmar" : "Confirmar e-mail"
+              : resetToken ? "Salvar senha" : showRecovery ? "Enviar link" : showVerificationResend ? "Reenviar link" : "Entrar"}
           </button>
         </div>
       </form>

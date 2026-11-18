@@ -211,7 +211,10 @@ def _send_verification_email(
 ) -> bool:
     """Envia o unico local onde o token bruto e usado apos a criacao."""
 
-    verification_url = f"{_public_app_url(event)}#verify_token={raw_token}"
+    # O marcador publico obriga clientes de e-mail a abrirem uma navegacao nova
+    # antes de aplicar o fragmento. O segredo continua exclusivamente depois
+    # de ``#``, portanto nao chega a logs, proxies ou ao servidor web.
+    verification_url = f"{_public_app_url(event)}?confirmacao=1#verify_token={raw_token}"
     subject = "Confirme seu e-mail - IACLUBE LMS"
     if purpose == "email_change":
         intro = "Confirme o novo e-mail da sua conta"

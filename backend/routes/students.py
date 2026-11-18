@@ -1,12 +1,10 @@
 from datetime import datetime
 
 from fastapi import APIRouter, Depends
+from sqlalchemy import func
 
 from database import SessionLocal
 from models import (
-    AttendanceRecord,
-    ClassStudent,
-    CourseSession,
     EmailVerificationToken,
     Enrollment,
     EventMembership,
@@ -31,10 +29,22 @@ router = APIRouter()
 def create_student(data: StudentCreateRequest, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
+    normalized_email = normalize_email(data.email)
+    duplicate = db.query(Student).filter(
+        (Student.student_code == data.student_code) |
+        (func.lower(func.trim(Student.email)) == normalized_email),
+    ).first()
+    if duplicate:
+        db.close()
+        return {
+            "success": False,
+            "message": "Já existe um registro com este código ou e-mail.",
+        }
+
     student = Student(
         student_code=data.student_code,
         name=data.name,
-        email=normalize_email(data.email),
+        email=normalized_email,
         created_at=datetime.utcnow()
     )
 
@@ -53,7 +63,8 @@ def create_student(data: StudentCreateRequest, _: CurrentUser = Depends(require_
         "id": student.id,
         "student_code": student.student_code,
         "name": student.name,
-        "email": student.email
+        "email": student.email,
+        "active": student.active,
     }
 
 
@@ -75,7 +86,9 @@ def list_students(_: CurrentUser = Depends(require_admin)):
             "student_code": student.student_code,
             "name": student.name,
             "email": student.email,
+            "active": student.active,
             "email_verified": student.email_verified_at is not None,
+            "deactivated_at": student.deactivated_at,
             "person_type": profiles.get(student.student_code).person_type if student.student_code in profiles else "not_informed",
             "accepted_terms_at": profiles.get(student.student_code).accepted_terms_at if student.student_code in profiles else None,
             # Mantem o campo antigo somente quando nao ha ambiguidade. A lista
@@ -98,7 +111,7 @@ def update_student(
     db = SessionLocal()
     student = db.query(Student).filter(Student.student_code == student_code).first()
 
-    if not student:
+    if not student or not student.active:
         db.close()
         return {"success": False, "message": "Aluno não encontrado."}
 
@@ -127,7 +140,7 @@ def reset_student_password(
 
     db = SessionLocal()
     student = db.query(Student).filter(Student.student_code == student_code).first()
-    if not student:
+    if not student or not student.active:
         db.close()
         return {"success": False, "message": "Aluno não encontrado."}
 
@@ -138,66 +151,68 @@ def reset_student_password(
     return {"success": True, "message": "Senha redefinida com sucesso."}
 
 
-def _delete_student_cascade(db, student_code):
-    # Os identificadores nao possuem chave estrangeira no schema legado. Sem
-    # esta limpeza, uma eventual reutilizacao de student_code poderia herdar
-    # dados, tokens ou memberships de uma pessoa excluida.
+def _deactivate_student(db, student):
+    """Revoga acesso sem apagar o histórico que usa ``student_code``.
+
+    O banco legado não possui FKs entre os registros acadêmicos. Manter o
+    aluno e seu identificador reservado é mais seguro do que apagar linhas e
+    permitir que uma conta futura herde sessões, presenças ou auditoria.
+    """
+
+    now = datetime.utcnow()
+    student.active = False
+    student.deactivated_at = now
+    student.auth_token_version = (student.auth_token_version or 0) + 1
+
     db.query(EventMembership).filter(
-        EventMembership.student_code == student_code
-    ).delete()
-
+        EventMembership.student_code == student.student_code,
+        EventMembership.revoked_at.is_(None),
+    ).update(
+        {EventMembership.status: "revoked", EventMembership.revoked_at: now},
+        synchronize_session=False,
+    )
+    # Tokens continuam auditáveis, mas deixam de poder ser usados.
     db.query(EmailVerificationToken).filter(
-        EmailVerificationToken.student_code == student_code
-    ).delete()
-
+        EmailVerificationToken.student_code == student.student_code,
+        EmailVerificationToken.used_at.is_(None),
+    ).update({EmailVerificationToken.used_at: now}, synchronize_session=False)
     db.query(PasswordResetToken).filter(
-        PasswordResetToken.student_code == student_code
-    ).delete()
+        PasswordResetToken.student_code == student.student_code,
+        PasswordResetToken.used_at.is_(None),
+    ).update({PasswordResetToken.used_at: now}, synchronize_session=False)
 
-    db.query(RegistrationProfile).filter(
-        RegistrationProfile.student_code == student_code
-    ).delete()
-
+    # A matrícula permanece como histórico, mas não pode liberar novo acesso
+    # caso um operador restaure a conta sem revisar os vínculos.
     db.query(Enrollment).filter(
-        Enrollment.student_code == student_code
-    ).delete()
-
-    db.query(CourseSession).filter(
-        CourseSession.student_id == student_code
-    ).delete()
-
-    db.query(ClassStudent).filter(
-        ClassStudent.student_code == student_code
-    ).delete()
-
-    db.query(AttendanceRecord).filter(
-        AttendanceRecord.student_code == student_code
-    ).delete()
-
-    db.query(Student).filter(
-        Student.student_code == student_code
-    ).delete()
+        Enrollment.student_code == student.student_code,
+        Enrollment.active.is_(True),
+    ).update({Enrollment.active: False}, synchronize_session=False)
 
     db.commit()
 
 
 @router.delete("/students/{student_code}")
 def delete_student(student_code: str, _: CurrentUser = Depends(require_admin)):
-    """Exclusão pelo admin, sem exigir senha."""
+    """Desativa a conta pelo admin, preservando o histórico acadêmico."""
     db = SessionLocal()
 
     student = db.query(Student).filter(
         Student.student_code == student_code
     ).first()
 
-    if not student:
+    if not student or not student.active:
         db.close()
         return {"success": False, "message": "Aluno não encontrado."}
 
-    _delete_student_cascade(db, student_code)
-    db.close()
+    try:
+        _deactivate_student(db, student)
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
 
-    return {"success": True, "message": "Aluno excluído com sucesso."}
+    return {"success": True, "message": "Conta desativada e histórico preservado."}
 
 
 @router.post("/students/{student_code}/delete-account")
@@ -213,7 +228,7 @@ def self_delete_account(
         Student.student_code == student_code
     ).first()
 
-    if not student:
+    if not student or not student.active:
         db.close()
         return {"success": False, "message": "Aluno não encontrado."}
 
@@ -221,7 +236,12 @@ def self_delete_account(
         db.close()
         return {"success": False, "message": "Senha incorreta."}
 
-    _delete_student_cascade(db, student_code)
-    db.close()
+    try:
+        _deactivate_student(db, student)
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
 
-    return {"success": True, "message": "Conta excluída com sucesso."}
+    return {"success": True, "message": "Conta desativada e histórico preservado."}

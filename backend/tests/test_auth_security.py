@@ -128,6 +128,55 @@ class AuthenticationSecurityTests(unittest.TestCase):
             200,
         )
 
+    def test_configured_admin_can_use_login_and_session_without_email_confirmation(self):
+        """A exceção é restrita ao endereço configurado em ADMIN_EMAILS."""
+
+        with self.sessions() as db:
+            admin = db.query(Student).filter(Student.student_code == "admin").one()
+            admin.email_verified_at = None
+            db.commit()
+
+        response = self.login("admin@tests.invalid", "admin-password")
+
+        self.assertEqual(response.status_code, 200, response.text)
+        data = response.json()
+        self.assertTrue(data["success"])
+        self.assertTrue(data["student"]["is_admin"])
+        self.assertEqual(
+            self.client.get("/students", headers=self.bearer(data["access_token"])).status_code,
+            200,
+        )
+
+    def test_unverified_non_admin_remains_blocked(self):
+        with self.sessions() as db:
+            student = db.query(Student).filter(Student.student_code == "student").one()
+            student.email_verified_at = None
+            db.commit()
+
+        response = self.login("student@tests.invalid", "student-password")
+
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(
+            response.json(),
+            {
+                "success": False,
+                "message": "Confirme seu e-mail antes de entrar. Use a opcao de reenviar confirmacao se necessario.",
+            },
+        )
+
+    def test_unverified_admin_session_is_rejected_if_allowlist_changes(self):
+        with self.sessions() as db:
+            admin = db.query(Student).filter(Student.student_code == "admin").one()
+            admin.email_verified_at = None
+            db.commit()
+
+        token = self.login("admin@tests.invalid", "admin-password").json()["access_token"]
+
+        with patch.dict(os.environ, {"ADMIN_EMAILS": ""}):
+            response = self.client.get("/students", headers=self.bearer(token))
+
+        self.assertEqual(response.status_code, 401)
+
     def test_invalid_or_malformed_credentials_are_rejected_without_enumeration(self):
         unknown = self.login("unknown@tests.invalid", "wrong-password")
         wrong_password = self.login("student@tests.invalid", "wrong-password")

@@ -9,6 +9,7 @@ from models import (
     AttendanceRecord,
     Course,
     CourseSession,
+    Event,
     EventMembership,
     Student
 )
@@ -23,6 +24,7 @@ from event_utils import (
     get_confirmed_events_for_student,
     is_email_invited_to_event,
     normalize_email,
+    student_has_active_event_membership,
 )
 from auth_utils import CurrentUser, require_admin, require_self_or_admin
 
@@ -46,17 +48,63 @@ def _serialize_part(part, course_titles):
         "course_code": part.course_code,
         "label": part.label or course_titles.get(part.course_code, "Parte"),
         "date": part.date.isoformat() if part.date else None,
-        "position": part.position
+        "position": part.position,
+        "active": part.active,
+        "archived_at": part.archived_at,
     }
+
+
+def _active_event_exists(db, event_id):
+    return event_id is None or db.query(Event.id).filter(
+        Event.id == event_id,
+        Event.active.is_(True),
+    ).first() is not None
+
+
+def _course_matches_module_scope(course, module):
+    return course is not None and course.active and course.event_id == module.event_id
+
+
+def _part_has_academic_history(db, part):
+    if db.query(AttendanceRecord.id).filter(
+        AttendanceRecord.part_id == part.id
+    ).first():
+        return True
+    return bool(part.course_code and db.query(CourseSession.id).filter(
+        CourseSession.course_id == part.course_code
+    ).first())
+
+
+def _report_students_for_event(db, event_id):
+    """Inclui ex-participantes confirmados em relatórios administrativos.
+
+    A consulta de acesso exige convite e membership atuais; o relatório é
+    administrativo e precisa manter a pessoa que foi posteriormente removida
+    ou desativada para não apagar seu histórico de presença.
+    """
+
+    memberships = db.query(EventMembership).filter(
+        EventMembership.event_id == event_id,
+        EventMembership.confirmed_at.isnot(None),
+    ).all()
+    student_codes = {membership.student_code for membership in memberships}
+    if not student_codes:
+        return []
+    return db.query(Student).filter(Student.student_code.in_(student_codes)).all()
 
 
 @router.post("/attendance/modules")
 def create_module(data: AttendanceModuleCreateRequest, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
+    event_id = None if data.event_id == 0 else data.event_id
+    if not _active_event_exists(db, event_id):
+        db.close()
+        return {"success": False, "message": "Evento não encontrado ou inativo."}
+
     module = AttendanceModule(
         name=data.name,
-        event_id=data.event_id,
+        event_id=event_id,
         position=data.position or 0,
         created_at=datetime.utcnow()
     )
@@ -70,10 +118,17 @@ def create_module(data: AttendanceModuleCreateRequest, _: CurrentUser = Depends(
 
 
 @router.get("/attendance/modules")
-def list_modules(event_id: int = None, _: CurrentUser = Depends(require_admin)):
+def list_modules(
+    event_id: int = None,
+    include_archived: bool = False,
+    _: CurrentUser = Depends(require_admin),
+):
     db = SessionLocal()
 
     query = db.query(AttendanceModule)
+
+    if not include_archived:
+        query = query.filter(AttendanceModule.active.is_(True))
 
     if event_id is not None:
         query = query.filter(AttendanceModule.event_id == event_id)
@@ -86,15 +141,20 @@ def list_modules(event_id: int = None, _: CurrentUser = Depends(require_admin)):
     result = []
 
     for module in modules:
-        parts = db.query(AttendanceModulePart).filter(
+        parts_query = db.query(AttendanceModulePart).filter(
             AttendanceModulePart.module_id == module.id
-        ).order_by(AttendanceModulePart.position).all()
+        )
+        if not include_archived:
+            parts_query = parts_query.filter(AttendanceModulePart.active.is_(True))
+        parts = parts_query.order_by(AttendanceModulePart.position).all()
 
         result.append({
             "id": module.id,
             "name": module.name,
             "event_id": module.event_id,
             "position": module.position,
+            "active": module.active,
+            "archived_at": module.archived_at,
             "parts": [_serialize_part(p, course_titles) for p in parts]
         })
 
@@ -110,7 +170,7 @@ def update_module(module_id: int, data: AttendanceModuleUpdateRequest, _: Curren
         AttendanceModule.id == module_id
     ).first()
 
-    if not module:
+    if not module or not module.active:
         db.close()
         return {"success": False, "message": "Módulo não encontrado."}
 
@@ -118,7 +178,29 @@ def update_module(module_id: int, data: AttendanceModuleUpdateRequest, _: Curren
         module.name = data.name
 
     if data.event_id is not None:
-        module.event_id = None if data.event_id == 0 else data.event_id
+        target_event_id = None if data.event_id == 0 else data.event_id
+        if not _active_event_exists(db, target_event_id):
+            db.close()
+            return {"success": False, "message": "Evento não encontrado ou inativo."}
+        if target_event_id != module.event_id:
+            parts = db.query(AttendanceModulePart).filter(
+                AttendanceModulePart.module_id == module.id
+            ).all()
+            part_ids = [part.id for part in parts]
+            if (
+                any(part.course_code for part in parts)
+                or (
+                    part_ids and db.query(AttendanceRecord.id).filter(
+                        AttendanceRecord.part_id.in_(part_ids)
+                    ).first()
+                )
+            ):
+                db.close()
+                raise HTTPException(
+                    status_code=409,
+                    detail="Módulo possui partes vinculadas ou presenças; não altere seu evento.",
+                )
+            module.event_id = target_event_id
 
     if data.position is not None:
         module.position = data.position
@@ -133,29 +215,38 @@ def update_module(module_id: int, data: AttendanceModuleUpdateRequest, _: Curren
 def delete_module(module_id: int, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
-    part_ids = [
-        p.id for p in db.query(AttendanceModulePart).filter(
-            AttendanceModulePart.module_id == module_id
-        ).all()
-    ]
-
-    if part_ids:
-        db.query(AttendanceRecord).filter(
-            AttendanceRecord.part_id.in_(part_ids)
-        ).delete(synchronize_session=False)
-
-    db.query(AttendanceModulePart).filter(
-        AttendanceModulePart.module_id == module_id
-    ).delete()
-
-    db.query(AttendanceModule).filter(
+    module = db.query(AttendanceModule).filter(
         AttendanceModule.id == module_id
-    ).delete()
+    ).first()
+    if not module:
+        db.close()
+        return {"success": False, "message": "Módulo não encontrado."}
 
-    db.commit()
-    db.close()
+    parts = db.query(AttendanceModulePart).filter(
+        AttendanceModulePart.module_id == module_id
+    ).all()
+    try:
+        if not parts:
+            # Este é o único caso de exclusão física: não há parte,
+            # presença ou associação acadêmica dependente.
+            db.delete(module)
+            outcome = "excluído"
+        else:
+            now = datetime.utcnow()
+            module.active = False
+            module.archived_at = now
+            for part in parts:
+                part.active = False
+                part.archived_at = now
+            outcome = "arquivado"
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
 
-    return {"success": True}
+    return {"success": True, "outcome": outcome}
 
 
 @router.post("/attendance/modules/{module_id}/parts")
@@ -166,9 +257,22 @@ def create_part(module_id: int, data: AttendanceModulePartCreateRequest, _: Curr
         AttendanceModule.id == module_id
     ).first()
 
-    if not module:
+    if not module or not module.active or not _active_event_exists(db, module.event_id):
         db.close()
         return {"success": False, "message": "Módulo não encontrado."}
+
+    course = None
+    if data.course_code:
+        course = db.query(Course).filter(
+            Course.course_code == data.course_code,
+            Course.active.is_(True),
+        ).first()
+        if not _course_matches_module_scope(course, module):
+            db.close()
+            return {
+                "success": False,
+                "message": "Curso não encontrado, inativo ou de outro ambiente.",
+            }
 
     part = AttendanceModulePart(
         module_id=module_id,
@@ -194,18 +298,49 @@ def update_part(part_id: int, data: AttendanceModulePartUpdateRequest, _: Curren
         AttendanceModulePart.id == part_id
     ).first()
 
-    if not part:
+    if not part or not part.active:
         db.close()
         return {"success": False, "message": "Parte não encontrada."}
 
-    if data.course_code is not None:
+    module = db.query(AttendanceModule).filter(
+        AttendanceModule.id == part.module_id,
+        AttendanceModule.active.is_(True),
+    ).first()
+    if not module or not _active_event_exists(db, module.event_id):
+        db.close()
+        return {"success": False, "message": "Módulo não encontrado ou inativo."}
+
+    if data.course_code is not None and data.course_code != part.course_code:
+        course = db.query(Course).filter(
+            Course.course_code == data.course_code,
+            Course.active.is_(True),
+        ).first() if data.course_code else None
+        if data.course_code and not _course_matches_module_scope(course, module):
+            db.close()
+            return {
+                "success": False,
+                "message": "Curso não encontrado, inativo ou de outro ambiente.",
+            }
+        if _part_has_academic_history(db, part):
+            db.close()
+            raise HTTPException(
+                status_code=409,
+                detail="Parte possui presença ou sessões vinculadas; não altere seu curso.",
+            )
         part.course_code = data.course_code
 
     if data.label is not None:
         part.label = data.label
 
     if data.date is not None:
-        part.date = _parse_date(data.date)
+        new_date = _parse_date(data.date)
+        if new_date != part.date and _part_has_academic_history(db, part):
+            db.close()
+            raise HTTPException(
+                status_code=409,
+                detail="Parte possui presença ou sessões vinculadas; não altere sua data.",
+            )
+        part.date = new_date
 
     if data.position is not None:
         part.position = data.position
@@ -220,18 +355,29 @@ def update_part(part_id: int, data: AttendanceModulePartUpdateRequest, _: Curren
 def delete_part(part_id: int, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
-    db.query(AttendanceRecord).filter(
-        AttendanceRecord.part_id == part_id
-    ).delete()
-
-    db.query(AttendanceModulePart).filter(
+    part = db.query(AttendanceModulePart).filter(
         AttendanceModulePart.id == part_id
-    ).delete()
+    ).first()
+    if not part:
+        db.close()
+        return {"success": False, "message": "Parte não encontrada."}
 
-    db.commit()
-    db.close()
+    try:
+        if _part_has_academic_history(db, part):
+            part.active = False
+            part.archived_at = datetime.utcnow()
+            outcome = "arquivada"
+        else:
+            db.delete(part)
+            outcome = "excluída"
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
 
-    return {"success": True}
+    return {"success": True, "outcome": outcome}
 
 
 def _compute_stats(statuses):
@@ -290,6 +436,7 @@ def get_student_attendance(
     # Aluno vê os módulos globais (sem evento) e, se for de um evento,
     # também os módulos criados especificamente pra esse evento.
     query = db.query(AttendanceModule).filter(
+        AttendanceModule.active.is_(True),
         (AttendanceModule.event_id.is_(None)) |
         (AttendanceModule.event_id == student_event_id)
     )
@@ -316,7 +463,8 @@ def get_student_attendance(
 
     for module in modules:
         parts = db.query(AttendanceModulePart).filter(
-            AttendanceModulePart.module_id == module.id
+            AttendanceModulePart.module_id == module.id,
+            AttendanceModulePart.active.is_(True),
         ).order_by(AttendanceModulePart.position).all()
 
         part_results = []
@@ -378,6 +526,39 @@ def set_attendance_status(
 
     db = SessionLocal()
 
+    student = db.query(Student).filter(
+        Student.student_code == student_code,
+        Student.active.is_(True),
+    ).first()
+    part = db.query(AttendanceModulePart).filter(
+        AttendanceModulePart.id == part_id,
+        AttendanceModulePart.active.is_(True),
+    ).first()
+    module = None
+    if part:
+        module = db.query(AttendanceModule).filter(
+            AttendanceModule.id == part.module_id,
+            AttendanceModule.active.is_(True),
+        ).first()
+    if not student or not part or not module or not _active_event_exists(db, module.event_id):
+        db.close()
+        return {
+            "success": False,
+            "message": "Aluno, módulo ou parte não encontrado ou inativo.",
+        }
+
+    # Uma presença de evento precisa apontar para uma participação comprovada
+    # naquele evento. Sem essa regra, um lançamento administrativo poderia
+    # criar um registro que não pertence a nenhum participante do relatório.
+    if module.event_id is not None and not student_has_active_event_membership(
+        db, student, module.event_id
+    ):
+        db.close()
+        return {
+            "success": False,
+            "message": "Aluno não possui vínculo confirmado com este evento.",
+        }
+
     record = db.query(AttendanceRecord).filter(
         AttendanceRecord.student_code == student_code,
         AttendanceRecord.part_id == part_id
@@ -405,6 +586,9 @@ def set_attendance_status(
 def get_event_progress(event_id: int, _: CurrentUser = Depends(require_admin)):
     """Acompanhamento de atividades substitutivas por aluno e módulo."""
     db = SessionLocal()
+    if not _active_event_exists(db, event_id):
+        db.close()
+        return {"success": False, "message": "Evento não encontrado ou inativo."}
     memberships = db.query(EventMembership).filter(
         EventMembership.event_id == event_id,
         EventMembership.status == "confirmed",
@@ -415,7 +599,7 @@ def get_event_progress(event_id: int, _: CurrentUser = Depends(require_admin)):
         for membership in memberships
     }
     students = [
-        student for student in db.query(Student).all()
+        student for student in db.query(Student).filter(Student.active.is_(True)).all()
         if student.email_verified_at is not None
         and emails_by_student.get(student.student_code) == normalize_email(student.email)
         and is_email_invited_to_event(db, student.email, event_id)
@@ -423,6 +607,7 @@ def get_event_progress(event_id: int, _: CurrentUser = Depends(require_admin)):
     student_codes = [student.student_code for student in students]
 
     modules = db.query(AttendanceModule).filter(
+        AttendanceModule.active.is_(True),
         (AttendanceModule.event_id.is_(None)) |
         (AttendanceModule.event_id == event_id)
     ).order_by(AttendanceModule.position).all()
@@ -430,7 +615,8 @@ def get_event_progress(event_id: int, _: CurrentUser = Depends(require_admin)):
     for module in modules:
         for part in db.query(AttendanceModulePart).filter(
             AttendanceModulePart.module_id == module.id,
-            AttendanceModulePart.course_code.isnot(None)
+            AttendanceModulePart.course_code.isnot(None),
+            AttendanceModulePart.active.is_(True),
         ).order_by(AttendanceModulePart.position).all():
             parts_with_courses.append((module, part))
 
@@ -485,25 +671,10 @@ def get_attendance_report(
     start = _parse_date(start_date)
     end = _parse_date(end_date)
 
-    students_query = db.query(Student)
     if event_id is not None:
-        memberships = db.query(EventMembership).filter(
-            EventMembership.event_id == event_id,
-            EventMembership.status == "confirmed",
-            EventMembership.revoked_at.is_(None),
-        ).all()
-        emails_by_student = {
-            membership.student_code: normalize_email(membership.email)
-            for membership in memberships
-        }
-        students = [
-            student for student in students_query.all()
-            if student.email_verified_at is not None
-            and emails_by_student.get(student.student_code) == normalize_email(student.email)
-            and is_email_invited_to_event(db, student.email, event_id)
-        ]
+        students = _report_students_for_event(db, event_id)
     else:
-        students = students_query.all()
+        students = db.query(Student).all()
 
     modules_query = db.query(AttendanceModule)
     if event_id is not None:
@@ -599,6 +770,8 @@ def get_attendance_report(
                 "part_id": part.id,
                 "label": part.label,
                 "date": part.date.isoformat() if part.date else None,
+                "active": part.active,
+                "module_active": module.active,
                 "status": status,
                 "source": source,
                 "received_at": received_at.isoformat() if received_at else None,
@@ -610,6 +783,7 @@ def get_attendance_report(
             "student_code": student.student_code,
             "name": student.name,
             "email": student.email,
+            "active": student.active,
             "stats": _compute_stats(row_statuses),
             "sources": {"manual": manual_count, "atividade_substitutiva": substitute_count},
             "attendance": row_attendance
@@ -620,7 +794,14 @@ def get_attendance_report(
         "success": True,
         "period": {"start_date": start_date, "end_date": end_date},
         "parts": [
-            {"module": module.name, "id": part.id, "label": part.label, "date": part.date.isoformat() if part.date else None}
+            {
+                "module": module.name,
+                "id": part.id,
+                "label": part.label,
+                "date": part.date.isoformat() if part.date else None,
+                "active": part.active,
+                "module_active": module.active,
+            }
             for module, part in report_parts
         ],
         "students": rows

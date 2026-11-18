@@ -198,19 +198,25 @@ def get_current_user(authorization: str | None = Header(default=None)) -> Curren
     db = SessionLocal()
     try:
         student = db.query(Student).filter(Student.student_code == payload["sub"]).first()
+        # O administrador e uma identidade explicitamente provisionada em
+        # ``ADMIN_EMAILS``. Ele continua sujeito a senha, token assinado,
+        # expiração e revogação, mas não depende de uma caixa postal para
+        # operar a administração do LMS.
+        is_admin = bool(student and is_admin_email(student.email))
         if (
             not student
+            or not student.active
             or (student.auth_token_version or 0) != token_version
             # Contas antigas e novos cadastros pendentes nao recebem sessao
-            # ate comprovarem que controlam o endereco informado.
-            or student.email_verified_at is None
+            # ate comprovarem que controlam o endereco informado. A única
+            # exceção é o administrador explicitamente configurado acima.
+            or (student.email_verified_at is None and not is_admin)
         ):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Sessão inválida ou expirada.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        is_admin = is_admin_email(student.email)
         active_event_id = payload.get("evt")
 
         # A lista EventEmail e apenas um convite. Para um token de evento, o

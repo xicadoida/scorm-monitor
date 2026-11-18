@@ -3,7 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 
 from database import SessionLocal
-from models import Enrollment, Course, Student
+from models import Enrollment, Course, Event, Student
 from schemas import EnrollmentCreateRequest
 from event_utils import (
     course_is_available_for_event,
@@ -14,9 +14,51 @@ from auth_utils import CurrentUser, get_current_user, require_admin, require_sel
 router = APIRouter()
 
 
+def _active_student_and_course(db, student_code, course_code):
+    student = db.query(Student).filter(
+        Student.student_code == student_code,
+        Student.active.is_(True),
+    ).first()
+    course = db.query(Course).filter(
+        Course.course_code == course_code,
+        Course.active.is_(True),
+    ).first()
+    if not student or not course:
+        return None, None
+    if course.event_id is not None and not db.query(Event.id).filter(
+        Event.id == course.event_id,
+        Event.active.is_(True),
+    ).first():
+        return None, None
+    return student, course
+
+
 @router.post("/enrollments")
 def create_enrollment(data: EnrollmentCreateRequest, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
+
+    student, course = _active_student_and_course(
+        db, data.student_code, data.course_code
+    )
+    if not student or not course:
+        db.close()
+        return {"success": False, "message": "Aluno ou curso não encontrado ou inativo."}
+
+    existing = db.query(Enrollment).filter(
+        Enrollment.student_code == data.student_code,
+        Enrollment.course_code == data.course_code,
+    ).first()
+    if existing:
+        existing.active = True
+        db.commit()
+        db.refresh(existing)
+        db.close()
+        return {
+            "id": existing.id,
+            "student_code": existing.student_code,
+            "course_code": existing.course_code,
+            "active": existing.active,
+        }
 
     enrollment = Enrollment(
         student_code=data.student_code,
@@ -46,22 +88,10 @@ def self_enroll(
 ):
     db = SessionLocal()
 
-    student = db.query(Student).filter(
-        Student.student_code == student_code
-    ).first()
-
-    if not student:
+    student, course = _active_student_and_course(db, student_code, course_code)
+    if not student or not course:
         db.close()
-        return {"success": False, "message": "Aluno não encontrado."}
-
-    course = db.query(Course).filter(
-        Course.course_code == course_code,
-        Course.active == True
-    ).first()
-
-    if not course:
-        db.close()
-        return {"success": False, "message": "Curso não encontrado."}
+        return {"success": False, "message": "Aluno ou curso não encontrado ou inativo."}
 
     # A regra vale nos dois sentidos: uma conta de evento não pode usar uma
     # matrícula direta para entrar no catálogo padrão, e uma conta padrão não

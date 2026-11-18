@@ -2,7 +2,15 @@ from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from database import SessionLocal
-from models import Course, Enrollment, CourseSession, Event, ScormPublication, Student
+from models import (
+    AttendanceModulePart,
+    Course,
+    Enrollment,
+    CourseSession,
+    Event,
+    ScormPublication,
+    Student,
+)
 from schemas import CourseCreateRequest, CourseUpdateRequest
 from catalog_utils import touch_catalog
 from auth_utils import CurrentUser, get_current_user, require_admin
@@ -25,6 +33,24 @@ FTP_BASE_DIR = "/public_html/scorm"
 PUBLIC_BASE_URL = "https://lms.iaclube.help/scorm"
 CATALOG_STATUSES = {"active", "coming_soon", "completed"}
 
+
+def _has_active_event_reference(db, event_id):
+    return event_id is None or db.query(Event.id).filter(
+        Event.id == event_id,
+        Event.active.is_(True),
+    ).first() is not None
+
+
+def _course_has_linked_records(db, course_code):
+    """Evita mover o curso para outro escopo depois de haver histórico."""
+
+    return any((
+        db.query(Enrollment.id).filter(Enrollment.course_code == course_code).first(),
+        db.query(CourseSession.id).filter(CourseSession.course_id == course_code).first(),
+        db.query(AttendanceModulePart.id).filter(
+            AttendanceModulePart.course_code == course_code
+        ).first(),
+    ))
 
 def remove_dir_ftp(ftp, remote_dir):
     try:
@@ -86,6 +112,12 @@ async def upload_course(
 ):
     if catalog_status not in CATALOG_STATUSES:
         return {"success": False, "message": "Status de catálogo inválido."}
+    db = SessionLocal()
+    try:
+        if not _has_active_event_reference(db, event_id):
+            return {"success": False, "message": "Evento não encontrado ou inativo."}
+    finally:
+        db.close()
     with tempfile.TemporaryDirectory() as tmp_dir:
         try:
             validate_course_code(course_code)
@@ -115,6 +147,16 @@ async def replace_course_file(
     _: CurrentUser = Depends(require_admin),
 ):
     """Valida e publica com staging/journal, preservando os vínculos do curso."""
+    db = SessionLocal()
+    try:
+        course = db.query(Course).filter(
+            Course.course_code == course_code,
+            Course.active.is_(True),
+        ).first()
+        if not course:
+            return {"success": False, "message": "Curso não encontrado ou arquivado."}
+    finally:
+        db.close()
     with tempfile.TemporaryDirectory() as tmp_dir:
         try:
             validate_course_code(course_code)
@@ -138,6 +180,9 @@ def create_course(data: CourseCreateRequest, _: CurrentUser = Depends(require_ad
         return {"success": False, "message": "Status de catálogo inválido."}
 
     db = SessionLocal()
+    if not _has_active_event_reference(db, data.event_id):
+        db.close()
+        return {"success": False, "message": "Evento não encontrado ou inativo."}
     if db.get(ScormPublication, data.course_code) is not None:
         db.close()
         raise HTTPException(status_code=409, detail="Curso possui publicação pendente.")
@@ -171,6 +216,7 @@ def create_course(data: CourseCreateRequest, _: CurrentUser = Depends(require_ad
         "course_code": course.course_code,
         "scorm_path": course.scorm_path,
         "active": course.active,
+        "archived_at": course.archived_at,
         "event_id": course.event_id,
         "color_primary": course.color_primary
         ,"passing_score": course.passing_score,
@@ -195,6 +241,7 @@ def list_courses(_: CurrentUser = Depends(require_admin)):
             "course_code": c.course_code,
             "scorm_path": c.scorm_path,
             "active": c.active,
+            "archived_at": c.archived_at,
             "event_id": c.event_id,
             "color_primary": c.color_primary,
             "passing_score": c.passing_score,
@@ -279,7 +326,7 @@ def update_course(
         Course.course_code == course_code
     ).first()
 
-    if not course:
+    if not course or not course.active:
         db.close()
         return {"success": False, "message": "Curso não encontrado."}
 
@@ -288,10 +335,21 @@ def update_course(
 
     if data.active is not None:
         course.active = data.active
+        course.archived_at = None if data.active else datetime.utcnow()
 
     if data.event_id is not None:
         # manda 0 pra "desvincular do evento" (voltar a ser público)
-        course.event_id = None if data.event_id == 0 else data.event_id
+        target_event_id = None if data.event_id == 0 else data.event_id
+        if not _has_active_event_reference(db, target_event_id):
+            db.close()
+            return {"success": False, "message": "Evento não encontrado ou inativo."}
+        if target_event_id != course.event_id and _course_has_linked_records(db, course_code):
+            db.close()
+            raise HTTPException(
+                status_code=409,
+                detail="Curso possui matrículas, sessões ou partes vinculadas; não altere seu evento.",
+            )
+        course.event_id = target_event_id
 
     if data.color_primary is not None:
         course.color_primary = data.color_primary
@@ -330,6 +388,7 @@ def update_course(
         "course_code": course.course_code,
         "scorm_path": course.scorm_path,
         "active": course.active,
+        "archived_at": course.archived_at,
         "event_id": course.event_id,
         "color_primary": course.color_primary
         ,"passing_score": course.passing_score,
@@ -353,38 +412,25 @@ def delete_course(course_code: str, _: CurrentUser = Depends(require_admin)):
         Course.course_code == course_code
     ).first()
 
-    if not course:
+    if not course or not course.active:
         db.close()
         return {"success": False, "message": "Curso não encontrado."}
 
-    # Limpa matrículas e sessões/progresso ligados a esse curso
-    db.query(Enrollment).filter(
-        Enrollment.course_code == course_code
-    ).delete()
-
-    db.query(CourseSession).filter(
-        CourseSession.course_id == course_code
-    ).delete()
-
-    db.delete(course)
-    touch_catalog(db)
-    db.commit()
-    db.close()
-
-    # Tenta remover os arquivos do FTP também (não bloqueia a exclusão se falhar)
-    ftp_error = None
-
+    # O código do curso é uma chave lógica usada por sessões, matrículas e
+    # partes da frequência. Arquivá-lo evita perda de histórico e também não
+    # contorna o journal recuperável de publicação SCORM com uma remoção FTP.
     try:
-        ftp = ftplib.FTP()
-        ftp.connect(FTP_HOST, 21, timeout=10)
-        ftp.login(FTP_USER, FTP_PASS)
-        remove_dir_ftp(ftp, f"{FTP_BASE_DIR}/{course_code}")
-        ftp.quit()
-    except Exception as e:
-        ftp_error = str(e)
+        course.active = False
+        course.archived_at = datetime.utcnow()
+        touch_catalog(db)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
 
     return {
         "success": True,
-        "message": "Curso excluído com sucesso.",
-        "ftp_warning": ftp_error
+        "message": "Curso arquivado e histórico preservado.",
     }

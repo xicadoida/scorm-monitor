@@ -27,6 +27,8 @@ def serialize_event(event: Event | None) -> dict | None:
         "item_name": event.item_name,
         "show_progress": event.show_progress,
         "show_footer": event.show_footer,
+        "active": event.active,
+        "archived_at": event.archived_at,
     }
 
 
@@ -34,7 +36,10 @@ def get_event_by_slug(db, slug: str | None) -> Event | None:
     normalized_slug = (slug or "").strip().lower()
     if not normalized_slug:
         return None
-    return db.query(Event).filter(func.lower(Event.slug) == normalized_slug).first()
+    return db.query(Event).filter(
+        func.lower(Event.slug) == normalized_slug,
+        Event.active.is_(True),
+    ).first()
 
 
 def is_email_invited_to_event(db, email: str | None, event_id: int | None) -> bool:
@@ -43,17 +48,30 @@ def is_email_invited_to_event(db, email: str | None, event_id: int | None) -> bo
     normalized_email = normalize_email(email)
     if not normalized_email or event_id is None:
         return False
-    return db.query(EventEmail.id).filter(
+    return db.query(EventEmail.id).join(
+        Event, Event.id == EventEmail.event_id
+    ).filter(
         EventEmail.event_id == event_id,
+        EventEmail.active.is_(True),
+        Event.active.is_(True),
         func.lower(EventEmail.email) == normalized_email,
     ).first() is not None
 
 
 def has_any_event_invitation(db, email: str | None) -> bool:
+    """Mantém o isolamento de contas mesmo depois de arquivar um evento.
+
+    Esta consulta não concede acesso. Ao contrário de
+    :func:`is_email_invited_to_event`, ela preserva o escopo de uma conta que
+    teve convite para um evento arquivado, evitando que passe a usar o catálogo
+    padrão apenas porque o evento deixou de aceitar logins.
+    """
+
     normalized_email = normalize_email(email)
     if not normalized_email:
         return False
     return db.query(EventEmail.id).filter(
+        EventEmail.active.is_(True),
         func.lower(EventEmail.email) == normalized_email,
     ).first() is not None
 
@@ -66,7 +84,12 @@ def student_has_active_event_membership(db, student, event_id: int | None) -> bo
     acesso mesmo que ainda exista um token de sessao assinado e valido.
     """
 
-    if not student or not student.email_verified_at or event_id is None:
+    if (
+        not student
+        or not student.active
+        or not student.email_verified_at
+        or event_id is None
+    ):
         return False
     normalized_email = normalize_email(student.email)
     membership = db.query(EventMembership).filter(
@@ -82,13 +105,16 @@ def student_has_active_event_membership(db, student, event_id: int | None) -> bo
 def get_event_for_student(db, student, event_id: int | None) -> dict | None:
     if not student_has_active_event_membership(db, student, event_id):
         return None
-    return serialize_event(db.query(Event).filter(Event.id == event_id).first())
+    return serialize_event(db.query(Event).filter(
+        Event.id == event_id,
+        Event.active.is_(True),
+    ).first())
 
 
 def get_confirmed_events_for_student(db, student) -> list[dict]:
     """Lista todos os eventos efetivamente autorizados para exibicao admin."""
 
-    if not student or not student.email_verified_at:
+    if not student or not student.active or not student.email_verified_at:
         return []
     memberships = db.query(EventMembership).filter(
         EventMembership.student_code == student.student_code,
@@ -107,7 +133,7 @@ def get_confirmed_events_for_student(db, student) -> list[dict]:
 def has_event_scope(db, student) -> bool:
     """Indica se a conta deve entrar pelo ambiente de evento, nao pelo padrao."""
 
-    if not student:
+    if not student or not student.active:
         return False
     if has_any_event_invitation(db, student.email):
         return True
@@ -123,7 +149,7 @@ def course_is_available_for_event(course, event_id: int | None) -> bool:
 def student_can_access_course(db, student, course, active_event_id: int | None = None) -> bool:
     """Aplica identidade, vinculo de evento e estado do curso no servidor."""
 
-    if not student or student.email_verified_at is None:
+    if not student or not student.active or student.email_verified_at is None:
         return False
     if active_event_id is not None:
         return (

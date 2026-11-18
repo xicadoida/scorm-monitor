@@ -2,8 +2,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends
 
 from database import SessionLocal
-from models import ClassGroup, ClassStudent
-from models import Enrollment
+from models import ClassGroup, ClassStudent, Course, Enrollment, Event, Student
 from schemas import ClassCreateRequest, AddStudentsToClassRequest
 from auth_utils import CurrentUser, require_admin
 
@@ -59,9 +58,30 @@ def add_students_to_class(
 ):
     db = SessionLocal()
 
+    class_group = db.query(ClassGroup).filter(ClassGroup.id == class_id).first()
+    if not class_group:
+        db.close()
+        return {"success": False, "message": "Turma não encontrada."}
+
+    requested_codes = list(dict.fromkeys(data.student_codes))
+    valid_codes = {
+        student.student_code
+        for student in db.query(Student).filter(
+            Student.student_code.in_(requested_codes),
+            Student.active.is_(True),
+        ).all()
+    }
+    invalid_codes = [code for code in requested_codes if code not in valid_codes]
+    if invalid_codes:
+        db.close()
+        return {
+            "success": False,
+            "message": "Um ou mais alunos não existem ou estão desativados.",
+        }
+
     added = 0
 
-    for student_code in data.student_codes:
+    for student_code in requested_codes:
         exists = db.query(ClassStudent).filter(
             ClassStudent.class_id == class_id,
             ClassStudent.student_code == student_code
@@ -127,22 +147,51 @@ def enroll_class(class_id: int, data: dict, _: CurrentUser = Depends(require_adm
 
     course_code = data.get("course_code")
 
-    students = db.query(ClassStudent).filter(
+    class_group = db.query(ClassGroup).filter(ClassGroup.id == class_id).first()
+    course = db.query(Course).filter(
+        Course.course_code == course_code,
+        Course.active.is_(True),
+    ).first()
+    if not class_group or not course:
+        db.close()
+        return {"success": False, "message": "Turma ou curso não encontrado ou inativo."}
+    if course.event_id is not None and not db.query(Event.id).filter(
+        Event.id == course.event_id,
+        Event.active.is_(True),
+    ).first():
+        db.close()
+        return {"success": False, "message": "O evento do curso está inativo."}
+
+    class_students = db.query(ClassStudent).filter(
         ClassStudent.class_id == class_id
     ).all()
+    student_codes = [row.student_code for row in class_students]
+    active_student_codes = {
+        student.student_code
+        for student in db.query(Student).filter(
+            Student.student_code.in_(student_codes),
+            Student.active.is_(True),
+        ).all()
+    } if student_codes else set()
 
     added = 0
     skipped = 0
 
-    for student in students:
+    for student in class_students:
+        if student.student_code not in active_student_codes:
+            skipped += 1
+            continue
 
         existing = db.query(Enrollment).filter(
             Enrollment.student_code == student.student_code,
             Enrollment.course_code == course_code,
-            Enrollment.active == True
         ).first()
 
         if existing:
+            if not existing.active:
+                existing.active = True
+                added += 1
+                continue
             skipped += 1
             continue
 

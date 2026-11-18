@@ -3,7 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 
 from database import SessionLocal
-from models import CourseSession, Student, Course, Enrollment
+from models import CourseSession, Student, Course, Enrollment, Event
 from schemas import (
     SessionStartRequest,
     SessionUpdateRequest
@@ -36,13 +36,36 @@ def _has_active_course_access(
     return enrollment is not None
 
 
+def _has_active_session_entities(db, student_code: str, course_code: str) -> bool:
+    """Impede que uma sessão nova seja criada para identificadores soltos."""
+
+    student = db.query(Student).filter(
+        Student.student_code == student_code,
+        Student.active.is_(True),
+    ).first()
+    course = db.query(Course).filter(
+        Course.course_code == course_code,
+        Course.active.is_(True),
+    ).first()
+    if not student or not course:
+        return False
+    return course.event_id is None or db.query(Event.id).filter(
+        Event.id == course.event_id,
+        Event.active.is_(True),
+    ).first() is not None
+
+
 @router.post("/sessions/start")
 def start_session(data: SessionStartRequest, current_user: CurrentUser = Depends(get_current_user)):
     if not current_user.is_admin and current_user.student_code != data.student_id:
         raise HTTPException(status_code=403, detail="Você não pode iniciar uma sessão para outra pessoa.")
 
     db = SessionLocal()
-    if not current_user.is_admin and not _has_active_course_access(
+    if current_user.is_admin:
+        if not _has_active_session_entities(db, data.student_id, data.course_id):
+            db.close()
+            return {"error": "Student or course not found or inactive"}
+    elif not _has_active_course_access(
         db,
         current_user.student_code,
         data.course_id,
@@ -136,7 +159,7 @@ def update_session(
         session.completed = data.completed
         if data.completed:
             session.completed_at = datetime.utcnow()
-    
+
     if data.suspend_data is not None:
         session.suspend_data = data.suspend_data
 

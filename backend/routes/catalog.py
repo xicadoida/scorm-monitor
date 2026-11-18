@@ -75,8 +75,19 @@ def get_catalog():
     db = SessionLocal()
     try:
         state = get_catalog_state(db)
-        events = {event.id: event for event in db.query(Event).all()}
-        courses = db.query(Course).order_by(Course.created_at.desc()).all()
+        # Curso/evento arquivado preserva o histórico administrativo, mas não
+        # pode continuar aparecendo como um item acessível do catálogo público.
+        events = {
+            event.id: event
+            for event in db.query(Event).filter(Event.active.is_(True)).all()
+        }
+        courses = db.query(Course).filter(Course.active.is_(True)).order_by(
+            Course.created_at.desc()
+        ).all()
+        courses = [
+            course for course in courses
+            if course.event_id is None or course.event_id in events
+        ]
         return public_catalog_response({
             "updated_at": catalog_datetime(state.updated_at),
             "courses": [serialize_catalog_course(course, events) for course in courses],

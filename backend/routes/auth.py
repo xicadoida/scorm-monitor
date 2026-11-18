@@ -408,6 +408,22 @@ def login(data: LoginRequest, request: Request):
             db.commit()
             return _invalid_credentials_response()
 
+        if not student.active:
+            # A resposta é a mesma para não revelar se uma conta inativa ainda
+            # existe. O histórico fica preservado, mas a autenticação não.
+            verify_password(data.password, student.password_hash)
+            record_access_event(
+                db,
+                request,
+                "login",
+                success=False,
+                student_code=student.student_code,
+                route="/auth/login",
+            )
+            prune_expired_access_events(db)
+            db.commit()
+            return _invalid_credentials_response()
+
         if not verify_password(data.password, student.password_hash):
             record_access_event(
                 db,
@@ -421,7 +437,11 @@ def login(data: LoginRequest, request: Request):
             db.commit()
             return _invalid_credentials_response()
 
-        if student.email_verified_at is None:
+        # A conta administrativa é provisionada pelo operador em
+        # ``ADMIN_EMAILS`` e pode não ter uma caixa postal real. Ela segue
+        # protegida por senha, limite de tentativas e token assinado; somente
+        # essa identidade configurada fica dispensada da confirmação por e-mail.
+        if student.email_verified_at is None and not is_admin_email(student.email):
             record_access_event(
                 db,
                 request,
@@ -574,6 +594,11 @@ def _request_verification(
     # Reservas administrativas continuam proibidas para criacao publica. Uma
     # conta administrativa ja provisionada ainda pode receber sua confirmacao.
     if not existing and is_admin_email(email):
+        eligible = False
+
+    # Uma conta desativada mantém seu identificador e seus dados acadêmicos.
+    # O fluxo público nunca a reativa por conhecimento do e-mail.
+    if existing and not existing.active:
         eligible = False
 
     if eligible and not student:
@@ -775,7 +800,11 @@ def verify_email(data: VerifyEmailRequest, request: Request):
             return {"success": False, "message": GENERIC_VERIFICATION_ERROR}
 
         student = db.query(Student).filter(Student.student_code == token.student_code).first()
-        if not student or token.purpose not in {"registration", "event_membership", "email_change"}:
+        if (
+            not student
+            or not student.active
+            or token.purpose not in {"registration", "event_membership", "email_change"}
+        ):
             token.used_at = now
             _mark_verification_attempt(db, request, success=False, principal=principal)
             db.commit()
@@ -889,7 +918,9 @@ def forgot_password(data: ForgotPasswordRequest, request: Request):
         student = db.query(Student).filter(func.lower(Student.email) == email).first()
         event = _event_for_request(db, data.event_slug) if data.event_slug else None
         event_data = None
-        allowed = bool(student and student.email_verified_at is not None)
+        allowed = bool(
+            student and student.active and student.email_verified_at is not None
+        )
         if allowed and event:
             allowed = student_has_active_event_membership(db, student, event.id) or is_admin_email(student.email)
             event_data = _event_dict(event) if allowed else None
@@ -972,7 +1003,7 @@ def reset_password(data: ResetPasswordRequest, request: Request):
             return {"success": False, "message": "Este link de recuperacao e invalido ou expirou."}
 
         student = db.query(Student).filter(Student.student_code == token.student_code).first()
-        if not student:
+        if not student or not student.active:
             token.used_at = datetime.utcnow()
             db.commit()
             return {"success": False, "message": "Este link de recuperacao e invalido ou expirou."}

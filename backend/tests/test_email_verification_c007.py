@@ -15,6 +15,7 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 
 import auth_utils
@@ -24,6 +25,7 @@ from models import (
     AccessEvent,
     AttendanceRecord,
     Course,
+    CourseSession,
     EmailVerificationToken,
     Enrollment,
     Event,
@@ -473,8 +475,8 @@ class EmailVerificationC007Tests(unittest.TestCase):
         after_reproof = self._login("changed@tests.invalid", "member-password", "alpha")
         self.assertTrue(after_reproof.json()["success"], after_reproof.text)
 
-    def test_account_deletion_removes_event_links_before_student_code_reuse(self):
-        """A exclusao nao pode deixar autorizacao para outra pessoa herdar."""
+    def test_account_deactivation_preserves_history_and_blocks_student_code_reuse(self):
+        """C0-06 preserva dados sem permitir que outra pessoa os herde."""
 
         current_login = self._login("member@tests.invalid", "member-password", "alpha")
         self.assertTrue(current_login.json()["success"], current_login.text)
@@ -508,6 +510,15 @@ class EmailVerificationC007Tests(unittest.TestCase):
                         active=True,
                         assigned_at=now,
                     ),
+                    CourseSession(
+                        student_id="member",
+                        course_id="course-alpha",
+                        status="passed",
+                        completed=True,
+                        started_at=now,
+                        updated_at=now,
+                        completed_at=now,
+                    ),
                     AttendanceRecord(
                         student_code="member",
                         part_id=1,
@@ -527,20 +538,38 @@ class EmailVerificationC007Tests(unittest.TestCase):
         self.assertTrue(deleted.json()["success"], deleted.text)
 
         with self.sessions() as db:
-            for model in (
-                Student,
-                RegistrationProfile,
-                EmailVerificationToken,
-                PasswordResetToken,
-                EventMembership,
-                Enrollment,
-                AttendanceRecord,
-            ):
-                self.assertEqual(
-                    db.query(model).filter(model.student_code == "member").count(),
-                    0,
-                    model.__name__,
-                )
+            student = db.query(Student).filter(Student.student_code == "member").one()
+            self.assertFalse(student.active)
+            self.assertIsNotNone(student.deactivated_at)
+            self.assertEqual(
+                db.query(RegistrationProfile).filter(
+                    RegistrationProfile.student_code == "member"
+                ).count(),
+                1,
+            )
+            self.assertEqual(
+                db.query(CourseSession).filter(CourseSession.student_id == "member").count(),
+                1,
+            )
+            enrollment = db.query(Enrollment).filter(
+                Enrollment.student_code == "member"
+            ).one()
+            self.assertFalse(enrollment.active)
+            self.assertEqual(
+                db.query(AttendanceRecord).filter(
+                    AttendanceRecord.student_code == "member"
+                ).count(),
+                1,
+            )
+            membership = db.query(EventMembership).filter(
+                EventMembership.student_code == "member"
+            ).one()
+            self.assertEqual(membership.status, "revoked")
+            self.assertIsNotNone(membership.revoked_at)
+            for model in (EmailVerificationToken, PasswordResetToken):
+                token = db.query(model).filter(model.student_code == "member").one()
+                self.assertIsNotNone(token.used_at)
+
             db.add(
                 Student(
                     student_code="member",
@@ -551,13 +580,17 @@ class EmailVerificationC007Tests(unittest.TestCase):
                     email_verified_at=now,
                 )
             )
-            db.commit()
+            with self.assertRaises(IntegrityError):
+                db.commit()
+            db.rollback()
 
-        recreated_login = self._login(
-            "member@tests.invalid", "replacement-password", "alpha"
+        old_token = self.client.get(
+            "/courses/public?email=member%40tests.invalid",
+            headers=self.bearer(current_login.json()["access_token"]),
         )
-        self.assertEqual(recreated_login.status_code, 200, recreated_login.text)
-        self.assertFalse(recreated_login.json()["success"], recreated_login.text)
+        self.assertEqual(old_token.status_code, 401, old_token.text)
+        deactivated_login = self._login("member@tests.invalid", "member-password", "alpha")
+        self.assertFalse(deactivated_login.json()["success"], deactivated_login.text)
 
     def _create_preverification_students_table(self, database_path):
         """Cria somente o formato legado, sem a coluna da nova migracao."""

@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from sqlalchemy.orm import Session, sessionmaker
 
-from models import Course, CourseSession, Enrollment, ScormPublication
+from models import Course, CourseSession, Enrollment, Event, ScormPublication
 from publication_fixtures import PublicationFixture
 from scorm_publication import PublicationBusy, PublicationError, RecoveryRequired, publish_course, recover_publication
 
@@ -33,6 +33,40 @@ class PublicationTests(PublicationFixture, unittest.TestCase):
         self.assertEqual(self.remote.nodes['/scorm/course/scormdriver/indexAPI.html'], b'new content')
         with self.sessions() as db:
             self.assertEqual(db.query(Course).count(), 1)
+            self.assertIsNone(db.get(ScormPublication, 'course'))
+
+    def test_event_archived_during_new_publication_is_rolled_back(self):
+        """A publicação não pode criar curso em evento desativado durante staging."""
+
+        with self.sessions() as db:
+            event = Event(name='Synthetic event', active=True)
+            db.add(event)
+            db.commit()
+            event_id = event.id
+
+        archived = False
+
+        def archive_event_after_swap(action, source, destination, after):
+            nonlocal archived
+            if (
+                not archived
+                and action == 'rename'
+                and destination == '/scorm/course'
+                and after
+            ):
+                archived = True
+                with self.sessions() as db:
+                    db.get(Event, event_id).active = False
+                    db.commit()
+
+        self.remote.hook = archive_event_after_swap
+        with self.assertRaises(PublicationError):
+            self.publish({'title': 'Synthetic', 'event_id': event_id})
+
+        self.assertTrue(archived)
+        self.assertNotIn('/scorm/course', self.remote.nodes)
+        with self.sessions() as db:
+            self.assertEqual(db.query(Course).count(), 0)
             self.assertIsNone(db.get(ScormPublication, 'course'))
 
     def test_replace_preserves_persisted_links(self):

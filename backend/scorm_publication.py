@@ -18,7 +18,7 @@ from sqlalchemy.exc import IntegrityError
 
 from catalog_utils import touch_catalog
 from database import SessionLocal
-from models import Course, ScormPublication
+from models import Course, Event, ScormPublication
 from scorm_manifest import validate_manifest
 from scorm_package import validate_course_code
 
@@ -262,10 +262,21 @@ def publish_course(root, code, metadata=None, session_factory=SessionLocal, remo
             if metadata is not None:
                 if course is not None:
                     raise PublicationError('Código cadastrado durante a publicação.')
+                event_id = metadata.get('event_id')
+                if event_id is not None and not db.query(Event.id).filter(
+                    Event.id == event_id,
+                    Event.active.is_(True),
+                ).first():
+                    raise PublicationError('Evento não encontrado ou inativo durante a publicação.')
                 course = Course(course_code=code, active=True, created_at=datetime.utcnow(), **metadata)
                 db.add(course)
-            elif course is None:
-                raise PublicationError('Curso removido durante a publicação.')
+            elif course is None or not course.active:
+                raise PublicationError('Curso removido ou arquivado durante a publicação.')
+            elif course.event_id is not None and not db.query(Event.id).filter(
+                Event.id == course.event_id,
+                Event.active.is_(True),
+            ).first():
+                raise PublicationError('Evento do curso foi arquivado durante a publicação.')
             base_url = os.getenv('SCORM_PUBLIC_BASE_URL', 'https://lms.iaclube.help/scorm').rstrip('/')
             course.scorm_path = f'{base_url}/{code}/{manifest.launcher}'
             course.updated_at = datetime.utcnow()

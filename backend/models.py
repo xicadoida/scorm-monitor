@@ -39,6 +39,9 @@ class Course(Base):
     course_code = Column(String(100), unique=True, index=True)
     scorm_path = Column(String(500))
     active = Column(Boolean, default=True)
+    # Uma exclusão administrativa arquiva o curso em vez de apagar sessões,
+    # matrículas e referências de frequência que usam o course_code.
+    archived_at = Column(DateTime, nullable=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     # NULL = curso público (aparece pra todo mundo que não é de evento nenhum)
     # preenchido = curso só aparece pra alunos cujo email está na lista do evento
@@ -90,6 +93,10 @@ class Event(Base):
     item_name = Column(String(50), nullable=True)
     show_progress = Column(Boolean, default=True)
     show_footer = Column(Boolean, default=False)
+    # Eventos arquivados continuam existindo para manter o contexto histórico
+    # de cursos, perfis, presenças e auditoria, mas não aceitam acesso.
+    active = Column(Boolean, default=True, nullable=False, index=True)
+    archived_at = Column(DateTime, nullable=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -99,6 +106,10 @@ class EventEmail(Base):
     id = Column(Integer, primary_key=True, index=True)
     event_id = Column(Integer, index=True)
     email = Column(String(255), index=True)
+    # Convites removidos são revogados para preservar a trilha do vínculo
+    # sem continuarem elegíveis para o evento.
+    active = Column(Boolean, default=True, nullable=False, index=True)
+    revoked_at = Column(DateTime, nullable=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -110,6 +121,10 @@ class Student(Base):
     name = Column(String(255))
     email = Column(String(255), unique=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    # O código permanece reservado após a desativação. Isso preserva o
+    # histórico e impede que uma nova pessoa herde registros antigos.
+    active = Column(Boolean, default=True, nullable=False, index=True)
+    deactivated_at = Column(DateTime, nullable=True, index=True)
     password_hash = Column(String(255))
     # Incrementado ao trocar senha para invalidar tokens de sessões antigas.
     auth_token_version = Column(Integer, default=0, nullable=False)
@@ -250,6 +265,8 @@ class AttendanceModule(Base):
     name = Column(String(50))
     event_id = Column(Integer, nullable=True, index=True)
     position = Column(Integer, default=0)
+    active = Column(Boolean, default=True, nullable=False, index=True)
+    archived_at = Column(DateTime, nullable=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -262,6 +279,8 @@ class AttendanceModulePart(Base):
     label = Column(String(255), nullable=True)
     date = Column(Date, nullable=True)
     position = Column(Integer, default=0)
+    active = Column(Boolean, default=True, nullable=False, index=True)
+    archived_at = Column(DateTime, nullable=True, index=True)
 
 
 class AttendanceRecord(Base):

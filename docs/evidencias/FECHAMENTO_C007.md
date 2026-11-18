@@ -5,6 +5,24 @@ Escopo: autorização no backend, vínculo conta-evento e confirmação de posse
 e-mail. Não houve deploy, acesso à produção, migração em banco real, commit,
 push, alteração de Excel ou implementação C1.
 
+## Atualização operacional — administrador sem caixa postal
+
+Em 18/11/2026, foi autorizada uma exceção estrita para a conta administrativa
+explicitamente configurada em `ADMIN_EMAILS`: ela pode autenticar e usar uma
+sessão mesmo quando `email_verified_at` estiver vazio. A exceção é validada no
+login e em toda rota protegida; remover o endereço de `ADMIN_EMAILS` invalida
+imediatamente a sessão não verificada.
+
+Ela não se aplica a cadastro público, alteração de e-mail, participantes,
+matrículas ou acesso de aluno. A senha, o limite de tentativas, a assinatura,
+a expiração e a revogação de token continuam obrigatórios. Esse administrador
+não terá recuperação de senha por e-mail; a senha deve ser longa, exclusiva e
+mantida pelo operador. Não incluir endereços de alunos em `ADMIN_EMAILS`.
+
+Validação posterior: 109 testes de backend aprovados com Python 3.12, incluindo
+login e sessão de administrador não confirmado, bloqueio de aluno pendente e
+revogação imediata desse acesso se o endereço deixar a allowlist.
+
 ## Vulnerabilidade corrigida
 
 O modelo anterior usava EventEmail como se fosse autorização: conhecer um
@@ -73,13 +91,14 @@ Esse comando não foi executado contra produção nesta tarefa.
 | Conta pendente/não verificada | Não recebe sessão; confirmação/reenvio apenas | Não | Não |
 | Aluno padrão verificado | Apenas própria conta, senha, matrículas, sessões e progresso | Somente cursos padrão ativos; frequência de evento não é exposta | Não |
 | Participante de evento confirmado | Apenas própria conta no ambiente cujo evento está no token | Somente cursos, matrículas, sessões e frequência do evento atual; não acessa plataforma padrão nem outro evento | Não |
-| Administrador global verificado | Acesso administrativo previsto nas rotas | Auditoria e operação global | Sim |
+| Administrador global configurado | Acesso administrativo previsto nas rotas | Auditoria e operação global | Sim |
 
-Um administrador também precisa ter uma conta confirmada; estar listado em
-ADMIN_EMAILS não permite apropriar uma conta pública. Alterar student_code,
-course_code, session_id, parâmetros ou o slug não concede acesso de outro
-aluno ou outro evento. Não existem, no modelo atual, papéis de professor ou
-gestor limitado a evento; PF/PJ e convite não são papéis.
+Uma conta administrativa já provisionada e listada em `ADMIN_EMAILS` é a única
+exceção à confirmação de e-mail; estar listado não permite cadastro público ou
+apropriação de conta. Alterar student_code, course_code, session_id, parâmetros
+ou o slug não concede acesso de outro aluno ou outro evento. Não existem, no
+modelo atual, papéis de professor ou gestor limitado a evento; PF/PJ e convite
+não são papéis.
 
 ## Arquivos alterados
 

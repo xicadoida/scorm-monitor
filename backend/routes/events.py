@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, File, UploadFile
 from sqlalchemy import func
 
 from database import SessionLocal
-from models import EmailVerificationToken, Event, EventEmail, EventMembership
+from models import Course, EmailVerificationToken, Event, EventEmail, EventMembership, ScormPublication
 from catalog_utils import touch_catalog
 from schemas import (
     EventCreateRequest,
@@ -43,7 +43,9 @@ def _serialize_event(event):
         "color_secondary": event.color_secondary,
         "item_name": event.item_name,
         "show_progress": event.show_progress,
-        "show_footer": event.show_footer
+        "show_footer": event.show_footer,
+        "active": event.active,
+        "archived_at": event.archived_at,
     }
 
 
@@ -94,9 +96,12 @@ def list_events(_: CurrentUser = Depends(require_admin)):
 @router.get("/events/slug/{slug}")
 def get_event_by_slug(slug: str):
     db = SessionLocal()
-    event = db.query(Event).filter(Event.slug == _normalize_slug(slug)).first()
+    event = db.query(Event).filter(
+        Event.slug == _normalize_slug(slug),
+        Event.active.is_(True),
+    ).first()
 
-    if not event:
+    if not event or not event.active:
         db.close()
         return {"success": False, "message": "Evento não encontrado."}
 
@@ -111,7 +116,7 @@ def update_event(event_id: int, data: EventUpdateRequest, _: CurrentUser = Depen
 
     event = db.query(Event).filter(Event.id == event_id).first()
 
-    if not event:
+    if not event or not event.active:
         db.close()
         return {"success": False, "message": "Evento não encontrado."}
 
@@ -163,7 +168,7 @@ async def upload_event_logo(
 
     db = SessionLocal()
     event = db.query(Event).filter(Event.id == event_id).first()
-    if not event:
+    if not event or not event.active:
         db.close()
         return {"success": False, "message": "Evento não encontrado."}
 
@@ -197,19 +202,55 @@ async def upload_event_logo(
 @router.delete("/events/{event_id}")
 def delete_event(event_id: int, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event or not event.active:
+        db.close()
+        return {"success": False, "message": "Evento não encontrado."}
 
-    # A lista de e-mails e apenas convite; memberships e links pendentes do
-    # evento tambem deixam de poder ser usados quando ele e removido.
-    db.query(EventMembership).filter(EventMembership.event_id == event_id).delete()
-    db.query(EmailVerificationToken).filter(EmailVerificationToken.event_id == event_id).delete()
-    db.query(EventEmail).filter(EventEmail.event_id == event_id).delete()
-    db.query(Event).filter(Event.id == event_id).delete()
+    # Uma substituição SCORM em curso ainda pode gravar o caminho do pacote no
+    # Course. Arquivar o evento nesse intervalo criaria um curso novo/alterado
+    # em escopo desativado. A publicação deve ser recuperada ou concluída antes
+    # do arquivamento; novos cursos também são revalidados no journal.
+    pending_publication = db.query(ScormPublication.course_code).join(
+        Course, Course.course_code == ScormPublication.course_code
+    ).filter(Course.event_id == event_id).first()
+    if pending_publication:
+        db.close()
+        return {
+            "success": False,
+            "message": "Há uma publicação SCORM pendente para este evento.",
+        }
 
-    touch_catalog(db)
-    db.commit()
-    db.close()
+    # Course, AttendanceModule, RegistrationProfile e AccessEvent guardam o
+    # event_id como relação legada sem FK. Arquivar preserva esse contexto e
+    # evita deixar todos eles apontando para um evento inexistente.
+    now = datetime.utcnow()
+    try:
+        event.active = False
+        event.archived_at = now
+        db.query(EventMembership).filter(
+            EventMembership.event_id == event_id,
+            EventMembership.revoked_at.is_(None),
+        ).update(
+            {EventMembership.status: "revoked", EventMembership.revoked_at: now},
+            synchronize_session=False,
+        )
+        db.query(EmailVerificationToken).filter(
+            EmailVerificationToken.event_id == event_id,
+            EmailVerificationToken.used_at.is_(None),
+        ).update({EmailVerificationToken.used_at: now}, synchronize_session=False)
+        # O evento inativo já bloqueia a elegibilidade do convite. Mantemos a
+        # linha ativa para a conta continuar identificada como de evento e não
+        # migrar silenciosamente para o catálogo padrão.
+        touch_catalog(db)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
 
-    return {"success": True, "message": "Evento excluído."}
+    return {"success": True, "message": "Evento desativado e histórico preservado."}
 
 
 @router.get("/events/{event_id}/emails")
@@ -217,7 +258,8 @@ def list_event_emails(event_id: int, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
     emails = db.query(EventEmail).filter(
-        EventEmail.event_id == event_id
+        EventEmail.event_id == event_id,
+        EventEmail.active.is_(True),
     ).all()
 
     result = [
@@ -237,6 +279,14 @@ def add_event_emails(
 ):
     db = SessionLocal()
 
+    event = db.query(Event).filter(
+        Event.id == event_id,
+        Event.active.is_(True),
+    ).first()
+    if not event:
+        db.close()
+        return {"success": False, "message": "Evento não encontrado."}
+
     added = []
 
     for raw_email in data.emails:
@@ -247,10 +297,16 @@ def add_event_emails(
 
         existing = db.query(EventEmail).filter(
             EventEmail.event_id == event_id,
-            EventEmail.email == email
+            func.lower(EventEmail.email) == email,
         ).first()
 
         if existing:
+            if not existing.active:
+                # Reativar um convite não restaura a membership revogada. A
+                # pessoa precisa confirmar novamente o e-mail para ter acesso.
+                existing.active = True
+                existing.revoked_at = None
+                added.append(email)
             continue
 
         entry = EventEmail(
@@ -272,13 +328,21 @@ def add_event_emails(
 def remove_event_email(event_id: int, email: str, _: CurrentUser = Depends(require_admin)):
     db = SessionLocal()
 
+    event = db.query(Event).filter(
+        Event.id == event_id,
+        Event.active.is_(True),
+    ).first()
+    if not event:
+        db.close()
+        return {"success": False, "message": "Evento não encontrado."}
+
     normalized_email = email.lower().strip()
     now = datetime.utcnow()
     # Remover o convite tambem revoga o vinculo confirmado. Recolocar o e-mail
     # posteriormente exigira uma nova confirmacao; nao ha restauracao oculta.
     db.query(EventMembership).filter(
         EventMembership.event_id == event_id,
-        EventMembership.email == normalized_email,
+        func.lower(func.trim(EventMembership.email)) == normalized_email,
         EventMembership.status == "confirmed",
         EventMembership.revoked_at.is_(None),
     ).update(
@@ -288,8 +352,20 @@ def remove_event_email(event_id: int, email: str, _: CurrentUser = Depends(requi
 
     db.query(EventEmail).filter(
         EventEmail.event_id == event_id,
-        func.lower(EventEmail.email) == normalized_email
-    ).delete()
+        func.lower(EventEmail.email) == normalized_email,
+        EventEmail.active.is_(True),
+    ).update(
+        {EventEmail.active: False, EventEmail.revoked_at: now},
+        synchronize_session=False,
+    )
+
+    # Um link emitido antes da remoção do convite não pode sobreviver à
+    # revogação e restaurar o vínculo caso o e-mail seja adicionado de novo.
+    db.query(EmailVerificationToken).filter(
+        EmailVerificationToken.event_id == event_id,
+        func.lower(func.trim(EmailVerificationToken.email)) == normalized_email,
+        EmailVerificationToken.used_at.is_(None),
+    ).update({EmailVerificationToken.used_at: now}, synchronize_session=False)
 
     db.commit()
     db.close()
